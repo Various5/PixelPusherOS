@@ -1,128 +1,229 @@
 #!/usr/bin/env python3
 """
-Pixel Pusher OS - Configuration Settings
-Centralized configuration management for the application.
-
-This module handles all configuration settings including:
-- Flask application settings
-- Database configuration
-- File system paths
-- Game highscore file locations
-- Environment-specific settings
+Pixel Pusher OS - Configuration
+Application configuration settings
 """
 
 import os
-import json
-import logging
-
-# Setup comprehensive logging for debugging and monitoring
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
-)
+import secrets
 
 
 class Config:
-    """
-    Main configuration class for Pixel Pusher OS.
-    Contains all application settings and paths.
-    """
+    """Application configuration class"""
 
-    # Flask Application Settings
-    SECRET_KEY = os.environ.get('SECRET_KEY') or "pixel_pusher_secret_key_2024"
-    JSONIFY_PRETTYPRINT_REGULAR = False  # Disable pretty JSON for performance
+    # Flask configuration
+    SECRET_KEY = os.environ.get('SECRET_KEY') or secrets.token_hex(32)
 
-    # Database Configuration
-    # Uses SQLite by default, can be overridden with DATABASE_URL environment variable
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///pixel_pusher_users.db'
-    SQLALCHEMY_TRACK_MODIFICATIONS = False  # Disable event system for performance
-
-    # File System Configuration
-    # Base directory for user files and data storage
-    BASE_DIR = os.path.abspath(os.path.expanduser("pixel-pusher-files"))
-
-    # Ensure base directory exists
-    os.makedirs(BASE_DIR, exist_ok=True)
-    print(f"📁 File storage directory: {BASE_DIR}")
-
-    # Game Highscore File Locations
-    # Each game has its own JSON file for persistent highscores
-    HIGHSCORE_FILES = {
-        'dino': os.path.join(BASE_DIR, 'dino_scores.json'),
-        'snake': os.path.join(BASE_DIR, 'snake_scores.json'),
-        'clicker': os.path.join(BASE_DIR, 'clicker_scores.json'),
-        'memory': os.path.join(BASE_DIR, 'memory_scores.json')
+    # Database configuration
+    basedir = os.path.abspath(os.path.dirname(__file__))
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
+                              'sqlite:///' + os.path.join(basedir, 'pixelpusher.db')
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_pre_ping': True,
+        'pool_recycle': 300,
     }
 
-    # Application Metadata
-    APP_NAME = "Pixel Pusher OS"
-    APP_VERSION = "2.0.0"
-    APP_DESCRIPTION = "A modern web-based desktop environment"
+    # Session configuration
+    PERMANENT_SESSION_LIFETIME = 3600  # 1 hour
+    SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
 
-    # Security Settings
-    SESSION_PERMANENT = False
-    PERMANENT_SESSION_LIFETIME = 3600  # 1 hour session timeout
+    # File system configuration
+    BASE_DIR = os.path.join(basedir, 'user_files')
+    MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max file upload
 
-    # Create highscore files if they don't exist
-    for game_name, file_path in HIGHSCORE_FILES.items():
-        if not os.path.exists(file_path):
-            try:
-                with open(file_path, 'w') as f:
-                    json.dump([], f)  # Initialize with empty array
-                print(f"✅ Created highscore file: {game_name}")
-            except Exception as e:
-                print(f"❌ Failed to create {game_name} highscore file: {e}")
+    # Security settings
+    WTF_CSRF_ENABLED = True
+    WTF_CSRF_TIME_LIMIT = None
+
+    # Application settings
+    APP_NAME = 'Pixel Pusher OS'
+    APP_VERSION = '2.0.0'
+    DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
+
+    # Logging configuration
+    LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')
+
+    # Default user settings
+    DEFAULT_THEME = 'default'
+    DEFAULT_WALLPAPER = None
+
+    @staticmethod
+    def init_app(app):
+        """Initialize application with configuration"""
+
+        # Create necessary directories
+        os.makedirs(Config.BASE_DIR, exist_ok=True)
+
+        # Create subdirectories for user files
+        user_dirs = [
+            'documents',
+            'pictures',
+            'music',
+            'videos',
+            'downloads',
+            'desktop'
+        ]
+
+        for dirname in user_dirs:
+            dir_path = os.path.join(Config.BASE_DIR, dirname)
+            os.makedirs(dir_path, exist_ok=True)
+
+        # Create sample files for demo
+        Config.create_sample_files()
+
+        print(f"✅ Configuration initialized")
+        print(f"📁 User files directory: {Config.BASE_DIR}")
+
+    @staticmethod
+    def create_sample_files():
+        """Create sample files for demo purposes"""
+
+        # Sample text file
+        readme_path = os.path.join(Config.BASE_DIR, 'README.txt')
+        if not os.path.exists(readme_path):
+            with open(readme_path, 'w', encoding='utf-8') as f:
+                f.write("""Welcome to Pixel Pusher OS!
+
+This is your personal file space. You can:
+
+• Create, edit, and manage files
+• Upload and download documents
+• Use the terminal to navigate
+• Play games and use applications
+• Customize your desktop environment
+
+Sample files are located in the subdirectories:
+- documents/
+- pictures/
+- music/
+- videos/
+- downloads/
+
+Enjoy exploring your web-based desktop environment!
+""")
+
+        # Sample files in documents
+        docs_dir = os.path.join(Config.BASE_DIR, 'documents')
+
+        sample_doc = os.path.join(docs_dir, 'sample_document.txt')
+        if not os.path.exists(sample_doc):
+            with open(sample_doc, 'w', encoding='utf-8') as f:
+                f.write("""Sample Document
+
+This is a sample text document to demonstrate the file system.
+
+You can:
+- Edit this file using the built-in text editor
+- Create new documents
+- Organize files in folders
+- Access files through the terminal
+
+The file explorer allows you to browse, preview, and manage all your files.
+""")
+
+        # Sample script file
+        script_file = os.path.join(docs_dir, 'hello_world.py')
+        if not os.path.exists(script_file):
+            with open(script_file, 'w', encoding='utf-8') as f:
+                f.write("""#!/usr/bin/env python3
+\"\"\"
+Sample Python Script
+A simple hello world program to demonstrate code files.
+\"\"\"
+
+def main():
+    print("Hello, World!")
+    print("Welcome to Pixel Pusher OS!")
+
+    # Show some system info
+    import platform
+    print(f"Platform: {platform.system()}")
+    print(f"Python Version: {platform.python_version()}")
+
+if __name__ == "__main__":
+    main()
+""")
+
+        # Sample JSON configuration
+        config_file = os.path.join(docs_dir, 'config.json')
+        if not os.path.exists(config_file):
+            import json
+            sample_config = {
+                "application": "Pixel Pusher OS",
+                "version": "2.0.0",
+                "settings": {
+                    "theme": "default",
+                    "language": "en",
+                    "auto_save": True,
+                    "notifications": True
+                },
+                "features": [
+                    "Desktop Environment",
+                    "File Management",
+                    "Terminal Access",
+                    "Games Center",
+                    "Text Editor",
+                    "Web Browser"
+                ]
+            }
+
+            with open(config_file, 'w', encoding='utf-8') as f:
+                json.dump(sample_config, f, indent=2)
 
 
 class DevelopmentConfig(Config):
-    """
-    Development-specific configuration.
-    Used during development with debug features enabled.
-    """
+    """Development configuration"""
     DEBUG = True
     TESTING = False
-
-    # Development database (separate from production)
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///pixel_pusher_dev.db'
-
-    # Enable Flask debug toolbar and detailed error pages
-    SQLALCHEMY_ECHO = True  # Log all SQL queries
 
 
 class ProductionConfig(Config):
-    """
-    Production-specific configuration.
-    Used in production with security and performance optimizations.
-    """
+    """Production configuration"""
     DEBUG = False
     TESTING = False
+    SESSION_COOKIE_SECURE = True  # Require HTTPS
 
-    # Use PostgreSQL or MySQL in production
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
-                              'sqlite:///pixel_pusher_production.db'
+    # Use more secure settings in production
+    @staticmethod
+    def init_app(app):
+        Config.init_app(app)
 
-    # Security enhancements for production
-    SESSION_COOKIE_SECURE = True  # Only send cookies over HTTPS
-    SESSION_COOKIE_HTTPONLY = True  # Prevent XSS attacks
-    SESSION_COOKIE_SAMESITE = 'Lax'  # CSRF protection
+        # Additional production setup
+        import logging
+        from logging.handlers import RotatingFileHandler
+
+        if not app.debug:
+            # Set up file logging
+            if not os.path.exists('logs'):
+                os.mkdir('logs')
+
+            file_handler = RotatingFileHandler(
+                'logs/pixelpusher.log',
+                maxBytes=10240000,
+                backupCount=10
+            )
+
+            file_handler.setFormatter(logging.Formatter(
+                '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
+            ))
+
+            file_handler.setLevel(logging.INFO)
+            app.logger.addHandler(file_handler)
+            app.logger.setLevel(logging.INFO)
+            app.logger.info('Pixel Pusher OS startup')
 
 
 class TestingConfig(Config):
-    """
-    Testing-specific configuration.
-    Used during automated testing.
-    """
+    """Testing configuration"""
     TESTING = True
-    DEBUG = True
-
-    # Use in-memory database for fast testing
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
-
-    # Disable CSRF protection for testing
     WTF_CSRF_ENABLED = False
 
 
-# Configuration dictionary for easy access
+# Configuration mapping
 config = {
     'development': DevelopmentConfig,
     'production': ProductionConfig,
@@ -130,16 +231,4 @@ config = {
     'default': DevelopmentConfig
 }
 
-
-# Helper function to get current configuration
-def get_config():
-    """
-    Get the current configuration based on environment.
-    Returns the appropriate config class.
-    """
-    config_name = os.environ.get('FLASK_ENV', 'development')
-    return config.get(config_name, DevelopmentConfig)
-
-
-# Print configuration info on import
-print(f"🔧 Configuration loaded: {get_config().__name__}")
+print("✅ Configuration loaded successfully")

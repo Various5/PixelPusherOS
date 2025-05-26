@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
 Pixel Pusher OS - Database Models
+SQLAlchemy database models for user management and application data.
 """
 
 from flask_sqlalchemy import SQLAlchemy
@@ -8,109 +9,232 @@ from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 
-# Import db from app to avoid circular imports
+# Initialize SQLAlchemy instance
 db = SQLAlchemy()
 
 
-class User(db.Model, UserMixin):
+class User(UserMixin, db.Model):
+    """
+    User model for authentication and user management.
+
+    Attributes:
+        id: Primary key
+        username: Unique username for login
+        password_hash: Hashed password for security
+        group: User group (User or Admin)
+        created_at: Account creation timestamp
+        last_login: Last login timestamp
+        is_active: Account status
+    """
+
     __tablename__ = 'users'
 
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False, index=True)
-    email = db.Column(db.String(120), unique=True, nullable=True)
-    password_hash = db.Column(db.String(128), nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)
     group = db.Column(db.String(20), nullable=False, default='User')
-    is_active = db.Column(db.Boolean, default=True, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    last_login = db.Column(db.DateTime, nullable=True)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    preferences = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    last_login = db.Column(db.DateTime)
+    is_active = db.Column(db.Boolean, default=True)
 
-    def __repr__(self):
-        return f'<User {self.username} ({self.group})>'
+    def __init__(self, username, password, group='User'):
+        """Initialize new user with hashed password"""
+        self.username = username
+        self.set_password(password)
+        self.group = group
 
     def set_password(self, password):
-        self.password_hash = generate_password_hash(password, method='pbkdf2:sha256')
-        print(f"🔐 Password set for user: {self.username}")
+        """Hash and set user password"""
+        self.password_hash = generate_password_hash(password)
 
     def check_password(self, password):
+        """Check if provided password matches hash"""
         return check_password_hash(self.password_hash, password)
 
-    def is_admin(self):
-        return self.group.lower() == 'admin'
-
-    def is_active_user(self):
-        return self.is_active
-
-    def get_id(self):
-        return str(self.id)
-
     def update_last_login(self):
+        """Update last login timestamp"""
         self.last_login = datetime.utcnow()
         db.session.commit()
-        print(f"📅 Updated last login for: {self.username}")
+
+    def is_admin(self):
+        """Check if user has admin privileges"""
+        return self.group.lower() == 'admin'
 
     def to_dict(self):
+        """Convert user to dictionary for JSON responses"""
         return {
             'id': self.id,
             'username': self.username,
-            'email': self.email,
             'group': self.group,
-            'is_active': self.is_active,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'last_login': self.last_login.isoformat() if self.last_login else None,
-            'is_admin': self.is_admin()
+            'is_active': self.is_active
         }
 
     @staticmethod
     def create_default_users():
+        """Create default demo users if they don't exist"""
         default_users = [
             {'username': 'admin', 'password': 'admin', 'group': 'Admin'},
             {'username': 'user', 'password': 'user', 'group': 'User'},
-            {'username': 'demo', 'password': 'demo', 'group': 'User'}
+            {'username': 'demo', 'password': 'demo', 'group': 'User'},
         ]
 
         for user_data in default_users:
             existing_user = User.query.filter_by(username=user_data['username']).first()
             if not existing_user:
-                new_user = User(
+                user = User(
                     username=user_data['username'],
+                    password=user_data['password'],
                     group=user_data['group']
                 )
-                new_user.set_password(user_data['password'])
-                db.session.add(new_user)
-                print(f"👤 Created default user: {user_data['username']}")
+                db.session.add(user)
+                print(f"✅ Created default user: {user_data['username']}")
 
         try:
             db.session.commit()
             print("✅ Default users created successfully")
         except Exception as e:
             db.session.rollback()
-            print(f"❌ Failed to create default users: {e}")
+            print(f"❌ Error creating default users: {e}")
+
+    def __repr__(self):
+        return f'<User {self.username}>'
 
 
-# Simplified UserSession model (remove if causing issues)
 class UserSession(db.Model):
+    """
+    User session tracking for analytics and security.
+    """
+
     __tablename__ = 'user_sessions'
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    session_token = db.Column(db.String(255), unique=True, nullable=False)
-    ip_address = db.Column(db.String(45), nullable=True)
-    user_agent = db.Column(db.Text, nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    expires_at = db.Column(db.DateTime, nullable=False)
+    session_id = db.Column(db.String(255), nullable=False, index=True)
+    login_time = db.Column(db.DateTime, default=datetime.utcnow)
+    logout_time = db.Column(db.DateTime)
+    ip_address = db.Column(db.String(45))  # Support IPv6
+    user_agent = db.Column(db.Text)
     is_active = db.Column(db.Boolean, default=True)
 
+    # Relationship to User
+    user = db.relationship('User', backref=db.backref('sessions', lazy=True))
+
     def __repr__(self):
-        return f'<UserSession {self.user_id}:{self.session_token[:8]}...>'
+        return f'<UserSession {self.user.username} - {self.login_time}>'
 
-    def is_expired(self):
-        return datetime.utcnow() > self.expires_at
 
-    def revoke(self):
-        self.is_active = False
-        db.session.commit()
+class ApplicationLog(db.Model):
+    """
+    Application event logging for debugging and analytics.
+    """
+
+    __tablename__ = 'application_logs'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    level = db.Column(db.String(20), nullable=False)  # INFO, WARNING, ERROR
+    category = db.Column(db.String(50), nullable=False)  # AUTH, TERMINAL, GAME, etc.
+    message = db.Column(db.Text, nullable=False)
+    details = db.Column(db.JSON)  # Additional structured data
+    ip_address = db.Column(db.String(45))
+
+    # Relationship to User
+    user = db.relationship('User', backref=db.backref('logs', lazy=True))
+
+    @staticmethod
+    def log_event(level, category, message, user_id=None, details=None, ip_address=None):
+        """Log an application event"""
+        log_entry = ApplicationLog(
+            user_id=user_id,
+            level=level.upper(),
+            category=category.upper(),
+            message=message,
+            details=details,
+            ip_address=ip_address
+        )
+
+        db.session.add(log_entry)
+        try:
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            print(f"Failed to log event: {e}")
+
+    def __repr__(self):
+        return f'<ApplicationLog {self.level} - {self.category} - {self.timestamp}>'
+
+
+class GameScore(db.Model):
+    """
+    Game high scores and statistics tracking.
+    """
+
+    __tablename__ = 'game_scores'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    game_name = db.Column(db.String(50), nullable=False)
+    score = db.Column(db.Integer, nullable=False)
+    level = db.Column(db.Integer, default=1)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    is_high_score = db.Column(db.Boolean, default=False)
+    game_data = db.Column(db.JSON)  # Additional game-specific data
+
+    # Relationship to User
+    user = db.relationship('User', backref=db.backref('game_scores', lazy=True))
+
+    @staticmethod
+    def record_score(user_id, game_name, score, level=1, game_data=None):
+        """Record a new game score and check if it's a high score"""
+        # Check if this is a new high score for this user and game
+        current_high = GameScore.query.filter_by(
+            user_id=user_id,
+            game_name=game_name,
+            is_high_score=True
+        ).first()
+
+        is_new_high = False
+        if not current_high or score > current_high.score:
+            is_new_high = True
+            # Mark previous high score as not high score
+            if current_high:
+                current_high.is_high_score = False
+
+        # Create new score record
+        new_score = GameScore(
+            user_id=user_id,
+            game_name=game_name,
+            score=score,
+            level=level,
+            is_high_score=is_new_high,
+            game_data=game_data
+        )
+
+        db.session.add(new_score)
+
+        try:
+            db.session.commit()
+            return is_new_high
+        except Exception as e:
+            db.session.rollback()
+            print(f"Failed to record game score: {e}")
+            return False
+
+    @staticmethod
+    def get_high_scores(game_name=None, limit=10):
+        """Get high scores, optionally filtered by game"""
+        query = GameScore.query.filter_by(is_high_score=True)
+
+        if game_name:
+            query = query.filter_by(game_name=game_name)
+
+        return query.order_by(GameScore.score.desc()).limit(limit).all()
+
+    def __repr__(self):
+        return f'<GameScore {self.user.username} - {self.game_name} - {self.score}>'
 
 
 print("📊 Database models loaded successfully")

@@ -1,448 +1,456 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    
+    <!-- Primary Meta Tags -->
+    <title>{% block title %}Pixel Pusher OS{% endblock %}</title>
+    <meta name="description" content="{% block description %}A modern web-based desktop environment built with Flask and JavaScript{% endblock %}">
+    <meta name="keywords" content="web desktop, online OS, pixel pusher, virtual desktop, web applications">
+    <meta name="author" content="Pixel Pusher OS Team">
 
-{% block title %}Sign In - Pixel Pusher OS{% endblock %}
-{% block description %}Sign in to your Pixel Pusher OS account to access your personal desktop environment.{% endblock %}
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ request.url }}">
+    <meta property="og:title" content="Pixel Pusher OS - Web Desktop Environment">
+    <meta property="og:description" content="A modern web-based desktop environment">
 
-{% block body_class %}login-page{% endblock %}
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="{{ request.url }}">
+    <meta property="twitter:title" content="Pixel Pusher OS - Web Desktop Environment">
+    <meta property="twitter:description" content="A modern web-based desktop environment">
 
-{% block extra_css %}
-<style>
-    /* Login-specific styles */
-    .login-page {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        min-height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-family: 'Inter', sans-serif;
-    }
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎨</text></svg>">
 
-    .login-container {
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(10px);
-        border-radius: 20px;
-        padding: 40px;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
-        width: 100%;
-        max-width: 400px;
-        margin: 20px;
-        animation: slideIn 0.6s ease-out;
-    }
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-    .login-header {
-        text-align: center;
-        margin-bottom: 30px;
-    }
+    <!-- Core CSS Variables -->
+    <style>
+        :root {
+            /* Color Palette */
+            --primary: #00d9ff;
+            --primary-dark: #00b4d8;
+            --primary-light: rgba(0, 217, 255, 0.1);
+            --secondary: #667eea;
+            --accent: #764ba2;
 
-    .login-logo {
-        font-size: 3rem;
-        margin-bottom: 16px;
-        animation: pulse 2s ease-in-out infinite;
-    }
+            /* Surface Colors */
+            --surface: rgba(255, 255, 255, 0.95);
+            --surface-light: rgba(255, 255, 255, 0.1);
+            --surface-dark: rgba(0, 0, 0, 0.8);
+            --background: #1a1a2e;
+            --background-light: #f8f9fa;
 
-    .login-title {
-        font-size: 28px;
-        font-weight: 700;
-        color: #2d3748;
-        margin-bottom: 8px;
-    }
+            /* Text Colors */
+            --text-primary: #ffffff;
+            --text-secondary: #b0b0b0;
+            --text-disabled: #6c757d;
+            --text-dark: #2d3748;
 
-    .login-subtitle {
-        color: #718096;
-        font-size: 16px;
-    }
+            /* Status Colors */
+            --error: #ff4757;
+            --success: #2ed573;
+            --warning: #ffa502;
+            --info: #3742fa;
 
-    .form-group {
-        margin-bottom: 20px;
-    }
+            /* Border & Dividers */
+            --border: rgba(255, 255, 255, 0.2);
+            --border-light: #e9ecef;
+            --divider: rgba(255, 255, 255, 0.1);
 
-    .form-label {
-        display: block;
-        margin-bottom: 8px;
-        font-weight: 600;
-        color: #4a5568;
-        font-size: 14px;
-    }
+            /* Radius */
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --radius-xl: 16px;
+            --radius-full: 9999px;
 
-    .form-input {
-        width: 100%;
-        padding: 12px 16px;
-        border: 2px solid #e2e8f0;
-        border-radius: 10px;
-        font-size: 16px;
-        transition: all 0.2s ease;
-        background: white;
-        box-sizing: border-box;
-    }
+            /* Shadows */
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.2);
+            --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.3);
+            --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.4);
 
-    .form-input:focus {
-        outline: none;
-        border-color: #667eea;
-        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-    }
+            /* Transitions */
+            --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-fast: all 0.1s ease;
+            --transition-slow: all 0.3s ease;
 
-    .form-input.error {
-        border-color: #e53e3e;
-        background-color: #fed7d7;
-    }
+            /* Typography */
+            --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            --font-mono: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
 
-    .error-message {
-        color: #e53e3e;
-        font-size: 12px;
-        margin-top: 4px;
-        display: none;
-    }
+            /* Z-Index Scale */
+            --z-dropdown: 1000;
+            --z-sticky: 1020;
+            --z-fixed: 1030;
+            --z-modal-backdrop: 1040;
+            --z-modal: 1050;
+            --z-popover: 1060;
+            --z-tooltip: 1070;
+            --z-toast: 1080;
+        }
 
-    .form-checkbox {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin: 20px 0;
-    }
+        /* Global Reset */
+        * {
+            box-sizing: border-box;
+        }
 
-    .form-checkbox input {
-        width: 16px;
-        height: 16px;
-    }
+        html {
+            font-size: 16px;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
 
-    .form-checkbox label {
-        font-size: 14px;
-        color: #4a5568;
-        margin: 0;
-    }
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: var(--font-family);
+            background: var(--background);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
 
-    .login-button {
-        width: 100%;
-        padding: 14px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        /* Selection Styles */
+        ::selection {
+            background: var(--primary);
+            color: white;
+        }
+
+        ::-moz-selection {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* Focus Styles */
+        :focus {
+            outline: 2px solid var(--primary);
+            outline-offset: 2px;
+        }
+
+        /* Scrollbar Styles */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--surface-dark);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: var(--radius-full);
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-secondary);
+        }
+
+        /* Firefox Scrollbar */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: var(--border) var(--surface-dark);
+        }
+
+        /* Reduced Motion */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body class="{% block body_class %}{% endblock %}">
+    <!-- Skip to Content Link for Accessibility -->
+    <a href="#main-content" class="skip-link" style="
+        position: absolute;
+        top: -40px;
+        left: 6px;
+        background: var(--primary);
         color: white;
-        border: none;
-        border-radius: 10px;
-        font-size: 16px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        position: relative;
-        overflow: hidden;
-    }
+        padding: 8px;
+        text-decoration: none;
+        border-radius: var(--radius-sm);
+        z-index: var(--z-tooltip);
+        transition: var(--transition);
+    " onfocus="this.style.top='6px'" onblur="this.style.top='-40px'">
+        Skip to main content
+    </a>
 
-    .login-button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
-    }
+    <!-- Main Content -->
+    <main id="main-content">
+        {% block content %}{% endblock %}
+    </main>
 
-    .login-button:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-        transform: none;
-    }
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div id="flash-messages" style="
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                z-index: var(--z-toast);
+                max-width: 400px;
+            ">
+                {% for category, message in messages %}
+                    <div class="flash-message flash-{{ category }}" style="
+                        padding: 12px 16px;
+                        margin-bottom: 8px;
+                        border-radius: var(--radius-md);
+                        box-shadow: var(--shadow-lg);
+                        color: white;
+                        font-weight: 500;
+                        font-size: 14px;
+                        animation: slideInRight 0.3s ease-out;
+                        {% if category == 'error' %}
+                            background: var(--error);
+                        {% elif category == 'success' %}
+                            background: var(--success);
+                        {% elif category == 'warning' %}
+                            background: var(--warning);
+                        {% else %}
+                            background: var(--info);
+                        {% endif %}
+                    ">
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <span>
+                                {% if category == 'error' %}❌{% elif category == 'success' %}✅{% elif category == 'warning' %}⚠️{% else %}ℹ️{% endif %}
+                                {{ message }}
+                            </span>
+                            <button onclick="this.parentElement.parentElement.remove()" style="
+                                background: none;
+                                border: none;
+                                color: white;
+                                cursor: pointer;
+                                font-size: 16px;
+                                padding: 0 0 0 8px;
+                            ">×</button>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
 
-    .loading-spinner {
+            <style>
+                @keyframes slideInRight {
+                    from {
+                        opacity: 0;
+                        transform: translateX(100px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateX(0);
+                    }
+                }
+
+                .flash-message {
+                    cursor: pointer;
+                }
+
+                .flash-message:hover {
+                    transform: translateX(-2px);
+                }
+            </style>
+
+            <script>
+                // Auto-hide flash messages after 5 seconds
+                document.addEventListener('DOMContentLoaded', function() {
+                    const flashMessages = document.querySelectorAll('.flash-message');
+                    flashMessages.forEach(function(message) {
+                        setTimeout(function() {
+                            message.style.opacity = '0';
+                            message.style.transform = 'translateX(100px)';
+                            setTimeout(function() {
+                                if (message.parentNode) {
+                                    message.remove();
+                                }
+                            }, 300);
+                        }, 5000);
+                    });
+                });
+            </script>
+        {% endif %}
+    {% endwith %}
+
+    <!-- Loading Indicator (Hidden by default) -->
+    <div id="global-loading" style="
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: var(--z-modal);
         display: none;
-        width: 20px;
-        height: 20px;
-        border: 2px solid rgba(255, 255, 255, 0.3);
-        border-top: 2px solid white;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-        margin: 0 auto;
-    }
-
-    .demo-accounts {
-        margin-top: 30px;
-        padding-top: 20px;
-        border-top: 1px solid #e2e8f0;
-    }
-
-    .demo-title {
+        background: var(--surface);
+        padding: 20px;
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-xl);
         text-align: center;
-        margin-bottom: 15px;
-        font-size: 14px;
-        color: #718096;
-        font-weight: 600;
-    }
-
-    .demo-buttons {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-        justify-content: center;
-    }
-
-    .demo-login {
-        padding: 8px 12px;
-        background: rgba(102, 126, 234, 0.1);
-        border: 1px solid rgba(102, 126, 234, 0.3);
-        border-radius: 6px;
-        color: #667eea;
-        font-size: 12px;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        text-decoration: none;
-    }
-
-    .demo-login:hover {
-        background: rgba(102, 126, 234, 0.2);
-        transform: translateY(-1px);
-    }
-
-    .register-link {
-        text-align: center;
-        margin-top: 20px;
-        padding-top: 20px;
-        border-top: 1px solid #e2e8f0;
-    }
-
-    .register-link a {
-        color: #667eea;
-        text-decoration: none;
-        font-weight: 600;
-    }
-
-    .register-link a:hover {
-        text-decoration: underline;
-    }
-
-    @keyframes slideIn {
-        from {
-            opacity: 0;
-            transform: translateY(30px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    @keyframes pulse {
-        0%, 100% { transform: scale(1); }
-        50% { transform: scale(1.1); }
-    }
-
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-
-    /* Mobile responsive */
-    @media (max-width: 480px) {
-        .login-container {
-            margin: 10px;
-            padding: 30px 20px;
-        }
-        
-        .login-title {
-            font-size: 24px;
-        }
-        
-        .demo-buttons {
-            flex-direction: column;
-        }
-        
-        .demo-login {
-            text-align: center;
-        }
-    }
-</style>
-{% endblock %}
-
-{% block content %}
-<div class="login-container">
-    <div class="login-header">
-        <div class="login-logo">🎨</div>
-        <h1 class="login-title">Welcome Back</h1>
-        <p class="login-subtitle">Sign in to Pixel Pusher OS</p>
+        min-width: 200px;
+    ">
+        <div style="
+            width: 32px;
+            height: 32px;
+            margin: 0 auto 12px;
+            border: 3px solid var(--border);
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        "></div>
+        <div style="color: var(--text-primary); font-weight: 500;">Loading...</div>
     </div>
 
-    <!-- Error/Success Messages -->
-    <div id="loginError" class="error-message" style="display: none; margin-bottom: 20px; padding: 12px; background: #fed7d7; border: 1px solid #e53e3e; border-radius: 8px; text-align: center;"></div>
-
-    <!-- Login Form -->
-    <form id="loginForm" method="POST" action="{{ url_for('auth.login') }}">
-        <div class="form-group">
-            <label for="username" class="form-label">Username</label>
-            <input type="text" 
-                   id="username" 
-                   name="username" 
-                   class="form-input" 
-                   placeholder="Enter your username"
-                   required 
-                   autocomplete="username"
-                   value="{{ request.form.username or '' }}">
-            <div id="usernameError" class="error-message"></div>
-        </div>
-
-        <div class="form-group">
-            <label for="password" class="form-label">Password</label>
-            <input type="password" 
-                   id="password" 
-                   name="password" 
-                   class="form-input" 
-                   placeholder="Enter your password"
-                   required 
-                   autocomplete="current-password">
-            <div id="passwordError" class="error-message"></div>
-        </div>
-
-        <div class="form-checkbox">
-            <input type="checkbox" id="remember" name="remember" value="1">
-            <label for="remember">Remember me for 30 days</label>
-        </div>
-
-        <button type="submit" id="loginButton" class="login-button">
-            <span id="loginButtonText">Sign In</span>
-            <div id="loadingSpinner" class="loading-spinner"></div>
-        </button>
-    </form>
-
-    <!-- Demo Accounts -->
-    <div class="demo-accounts">
-        <div class="demo-title">🚀 Try Demo Accounts</div>
-        <div class="demo-buttons">
-            <button class="demo-login" data-username="admin" data-password="admin">
-                👨‍💼 Admin Account
-            </button>
-            <button class="demo-login" data-username="user" data-password="user">
-                👤 User Account
-            </button>
-            <button class="demo-login" data-username="demo" data-password="demo">
-                🎮 Demo Account
-            </button>
-        </div>
-    </div>
-
-    <!-- Register Link -->
-    <div class="register-link">
-        Don't have an account? <a href="{{ url_for('auth.register') }}">Create Account</a>
-    </div>
-</div>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-    console.log('🎨 Pixel Pusher OS Login Interface');
-    console.log('💡 Try demo accounts: admin/admin, user/user, demo/demo');
-
-    // Login form handling
-    document.addEventListener('DOMContentLoaded', function() {
-        const loginForm = document.getElementById('loginForm');
-        const loginButton = document.getElementById('loginButton');
-        const loginButtonText = document.getElementById('loginButtonText');
-        const loadingSpinner = document.getElementById('loadingSpinner');
-        const usernameInput = document.getElementById('username');
-        const passwordInput = document.getElementById('password');
-        const loginError = document.getElementById('loginError');
-
-        // Focus username field
-        if (usernameInput) {
-            usernameInput.focus();
+    <style>
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
+    </style>
 
-        // Handle form submission
-        if (loginForm) {
-            loginForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-                submitLogin();
-            });
-        }
+    <!-- Core JavaScript -->
+    <script>
+        // Global utility functions
+        window.showLoading = function() {
+            document.getElementById('global-loading').style.display = 'block';
+        };
 
-        // Handle Enter key
-        if (passwordInput) {
-            passwordInput.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    submitLogin();
-                }
-            });
-        }
+        window.hideLoading = function() {
+            document.getElementById('global-loading').style.display = 'none';
+        };
 
-        // Demo login buttons
-        document.querySelectorAll('.demo-login').forEach(button => {
-            button.addEventListener('click', function(e) {
-                e.preventDefault();
-                const username = this.dataset.username;
-                const password = this.dataset.password;
-                
-                if (usernameInput && passwordInput) {
-                    usernameInput.value = username;
-                    passwordInput.value = password;
-                    
-                    // Add visual feedback
-                    this.style.background = 'rgba(102, 126, 234, 0.3)';
+        window.showNotification = function(message, type = 'info', duration = 5000) {
+            const colors = {
+                'info': 'var(--info)',
+                'success': 'var(--success)',
+                'warning': 'var(--warning)',
+                'error': 'var(--error)'
+            };
+
+            const icons = {
+                'info': 'ℹ️',
+                'success': '✅',
+                'warning': '⚠️',
+                'error': '❌'
+            };
+
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${colors[type] || colors.info};
+                color: white;
+                padding: 12px 16px;
+                border-radius: var(--radius-md);
+                box-shadow: var(--shadow-lg);
+                z-index: var(--z-toast);
+                animation: slideInRight 0.3s ease-out;
+                max-width: 350px;
+                font-weight: 500;
+                font-size: 14px;
+            `;
+
+            notification.innerHTML = `
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <span>${icons[type] || icons.info} ${message}</span>
+                    <button onclick="this.parentElement.parentElement.remove()" style="
+                        background: none; border: none; color: white;
+                        cursor: pointer; font-size: 16px; padding: 0 0 0 8px;
+                    ">×</button>
+                </div>
+            `;
+
+            document.body.appendChild(notification);
+
+            // Auto-remove
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.style.opacity = '0';
+                    notification.style.transform = 'translateX(100px)';
                     setTimeout(() => {
-                        submitLogin();
-                    }, 200);
+                        notification.remove();
+                    }, 300);
                 }
-            });
+            }, duration);
+
+            return notification;
+        };
+
+        // Error handling
+        window.addEventListener('error', function(e) {
+            console.error('Global error:', e.error);
         });
 
-        function setLoadingState(loading) {
-            if (loginButton && loginButtonText && loadingSpinner) {
-                loginButton.disabled = loading;
-                
-                if (loading) {
-                    loginButtonText.style.display = 'none';
-                    loadingSpinner.style.display = 'block';
-                } else {
-                    loginButtonText.style.display = 'block';
-                    loadingSpinner.style.display = 'none';
-                }
-            }
-        }
-
-        function showError(message) {
-            if (loginError) {
-                loginError.textContent = message;
-                loginError.style.display = 'block';
-                
-                // Auto-hide after 5 seconds
-                setTimeout(() => {
-                    loginError.style.display = 'none';
-                }, 5000);
-            }
-        }
-
-        function submitLogin() {
-            const username = usernameInput?.value?.trim();
-            const password = passwordInput?.value;
-
-            // Basic validation
-            if (!username || !password) {
-                showError('Please enter both username and password');
-                return;
-            }
-
-            // Set loading state
-            setLoadingState(true);
-
-            // Submit the form normally (let Flask handle it)
-            try {
-                loginForm.submit();
-            } catch (error) {
-                console.error('Login error:', error);
-                showError('Login failed. Please try again.');
-                setLoadingState(false);
-            }
-        }
-
-        // Auto-dismiss error messages
-        document.addEventListener('click', function(e) {
-            if (loginError && loginError.style.display === 'block' && !loginError.contains(e.target)) {
-                loginError.style.display = 'none';
-            }
+        // Basic performance monitoring
+        window.addEventListener('load', function() {
+            const loadTime = performance.now();
+            console.log(`Page loaded in ${Math.round(loadTime)}ms`);
         });
-    });
 
-    // Responsive handling
-    function handleResize() {
-        const container = document.querySelector('.login-container');
-        if (container && window.innerWidth < 768) {
-            container.style.margin = '10px';
-            container.style.padding = '30px 20px';
+        console.log('🎨 Pixel Pusher OS Base Template Loaded');
+    </script>
+
+    <!-- Core Application Scripts -->
+    <script>
+        // Load scripts safely with error handling
+        function loadScript(src, callback) {
+            const script = document.createElement('script');
+            script.src = src;
+            script.onload = callback;
+            script.onerror = function() {
+                console.warn('Failed to load script:', src);
+                if (callback) callback();
+            };
+            document.head.appendChild(script);
         }
-    }
 
-    window.addEventListener('resize', handleResize);
-    handleResize(); // Call once on load
-</script>
-{% endblock %}
+        // Load scripts in sequence to avoid dependency issues
+        const scripts = [
+            "{{ url_for('static', filename='js/utils/helpers.js') }}",
+            "{{ url_for('static', filename='js/utils/state.js') }}",
+            "{{ url_for('static', filename='js/core/auth.js') }}",
+            "{{ url_for('static', filename='js/core/desktop.js') }}",
+            "{{ url_for('static', filename='js/core/windows.js') }}",
+            "{{ url_for('static', filename='js/apps/terminal.js') }}",
+            "{{ url_for('static', filename='js/apps/explorer.js') }}",
+            "{{ url_for('static', filename='js/apps/games.js') }}",
+            "{{ url_for('static', filename='js/apps/settings.js') }}",
+            "{{ url_for('static', filename='js/core/app.js') }}"
+        ];
+
+        let scriptIndex = 0;
+        function loadNextScript() {
+            if (scriptIndex < scripts.length) {
+                loadScript(scripts[scriptIndex], () => {
+                    scriptIndex++;
+                    loadNextScript();
+                });
+            } else {
+                console.log('🚀 All scripts loaded');
+            }
+        }
+
+        // Start loading scripts when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', loadNextScript);
+        } else {
+            loadNextScript();
+        }
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

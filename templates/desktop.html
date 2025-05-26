@@ -1,0 +1,605 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Desktop - Pixel Pusher OS' if not show_login else 'Welcome - Pixel Pusher OS' }}{% endblock %}
+{% block description %}Your personalized web desktop environment with apps, games, and productivity tools.{% endblock %}
+
+{% block body_class %}desktop-environment{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Desktop Environment Styles */
+    .desktop-environment {
+        margin: 0;
+        padding: 0;
+        height: 100vh;
+        overflow: hidden;
+        font-family: 'Inter', sans-serif;
+        --primary: #00d9ff;
+        --primary-light: rgba(0, 217, 255, 0.1);
+        --surface: rgba(255, 255, 255, 0.95);
+        --surface-light: rgba(255, 255, 255, 0.1);
+        --surface-dark: rgba(0, 0, 0, 0.8);
+        --background: #1a1a2e;
+        --text-primary: #ffffff;
+        --text-secondary: #b0b0b0;
+        --border: rgba(255, 255, 255, 0.2);
+        --error: #ff4757;
+        --success: #2ed573;
+        --warning: #ffa502;
+        --radius-sm: 4px;
+        --radius-md: 8px;
+        --radius-lg: 12px;
+        --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.2);
+        --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.3);
+        --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.4);
+        --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        --font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    /* Desktop Container */
+    #desktop {
+        position: relative;
+        width: 100%;
+        height: 100vh;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background-size: cover;
+        background-position: center;
+        overflow: hidden;
+    }
+
+    /* Desktop Icons */
+    .desktop-icon {
+        position: absolute;
+        width: 80px;
+        height: 80px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 8px;
+        border-radius: var(--radius-md);
+        cursor: pointer;
+        user-select: none;
+        transition: var(--transition);
+        text-align: center;
+    }
+
+    .desktop-icon:hover {
+        background: var(--surface-light);
+        transform: scale(1.05);
+    }
+
+    .desktop-icon.selected {
+        background: var(--primary-light);
+        border: 2px solid var(--primary);
+    }
+
+    .icon-image {
+        font-size: 32px;
+        margin-bottom: 4px;
+        filter: drop-shadow(1px 1px 2px rgba(0, 0, 0, 0.3));
+    }
+
+    .icon-label {
+        font-size: 11px;
+        color: var(--text-primary);
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+        word-wrap: break-word;
+        line-height: 1.2;
+        max-width: 100%;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+    }
+
+    /* Context Menu */
+    .context-menu {
+        display: none;
+        position: fixed;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        padding: 8px 0;
+        min-width: 150px;
+        box-shadow: var(--shadow-lg);
+        z-index: 9999;
+        backdrop-filter: blur(10px);
+    }
+
+    .context-item {
+        padding: 8px 16px;
+        cursor: pointer;
+        color: var(--text-primary);
+        font-size: 14px;
+        transition: var(--transition);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .context-item:hover {
+        background: var(--primary);
+        color: white;
+    }
+
+    .context-separator {
+        height: 1px;
+        background: var(--border);
+        margin: 4px 0;
+    }
+
+    /* Taskbar */
+    #taskbar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 40px;
+        background: var(--surface-dark);
+        border-top: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        padding: 0 12px;
+        z-index: 9999;
+        backdrop-filter: blur(20px);
+    }
+
+    .taskbar-button {
+        padding: 6px 12px;
+        border: none;
+        border-radius: var(--radius-sm);
+        background: var(--surface);
+        color: var(--text-primary);
+        cursor: pointer;
+        font-size: 12px;
+        margin-right: 4px;
+        transition: var(--transition);
+        max-width: 150px;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
+
+    .taskbar-button:hover {
+        background: var(--surface-light);
+    }
+
+    .taskbar-button.active {
+        background: var(--primary);
+        color: white;
+    }
+
+    .taskbar-button.minimized {
+        opacity: 0.6;
+    }
+
+    /* System Tray */
+    .system-tray {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: var(--text-secondary);
+        font-size: 12px;
+    }
+
+    #systemTime {
+        font-family: 'Monaco', 'Menlo', monospace;
+        font-weight: 500;
+    }
+
+    /* Window Container */
+    #windowContainer {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 100;
+    }
+
+    #windowContainer > * {
+        pointer-events: auto;
+    }
+
+    /* Login Overlay (when not authenticated) */
+    #loginOverlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.9);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+        backdrop-filter: blur(10px);
+    }
+
+    .login-card {
+        background: var(--surface);
+        border-radius: var(--radius-lg);
+        padding: 40px;
+        box-shadow: var(--shadow-xl);
+        text-align: center;
+        max-width: 400px;
+        width: 90%;
+    }
+
+    .login-header h1 {
+        color: var(--text-primary);
+        margin-bottom: 10px;
+        font-size: 1.8rem;
+    }
+
+    .login-header p {
+        color: var(--text-secondary);
+        margin-bottom: 30px;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .desktop-icon {
+            width: 70px;
+            height: 70px;
+        }
+
+        .icon-image {
+            font-size: 28px;
+        }
+
+        .icon-label {
+            font-size: 10px;
+        }
+
+        #taskbar {
+            height: 50px;
+            padding: 0 8px;
+        }
+
+        .taskbar-button {
+            padding: 8px 10px;
+            font-size: 11px;
+        }
+    }
+
+    /* Theme Variations */
+    .theme-blue {
+        --primary: #3498db;
+        --background: #2c3e50;
+    }
+
+    .theme-green {
+        --primary: #27ae60;
+        --background: #1e3a8a;
+    }
+
+    .theme-red {
+        --primary: #e74c3c;
+        --background: #8b1538;
+    }
+
+    .theme-purple {
+        --primary: #9b59b6;
+        --background: #4c1d95;
+    }
+
+    /* Loading Animation */
+    .loading {
+        opacity: 0.5;
+        pointer-events: none;
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+
+    .pulse {
+        animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    /* Boot Animation */
+    .boot-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #000;
+        color: #00ff00;
+        font-family: 'Monaco', monospace;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 10001;
+        animation: fadeOut 2s ease-out 3s forwards;
+    }
+
+    .boot-screen.hidden {
+        display: none;
+    }
+
+    @keyframes fadeOut {
+        to {
+            opacity: 0;
+            visibility: hidden;
+        }
+    }
+
+    .boot-logo {
+        font-size: 4rem;
+        margin-bottom: 20px;
+        animation: bounce 1s ease-in-out infinite alternate;
+    }
+
+    @keyframes bounce {
+        to {
+            transform: translateY(-10px);
+        }
+    }
+
+    .boot-text {
+        font-size: 18px;
+        margin: 5px 0;
+        opacity: 0;
+        animation: typewriter 0.5s ease-out forwards;
+    }
+
+    @keyframes typewriter {
+        to {
+            opacity: 1;
+        }
+    }
+
+    .boot-text:nth-child(3) { animation-delay: 0.5s; }
+    .boot-text:nth-child(4) { animation-delay: 1s; }
+    .boot-text:nth-child(5) { animation-delay: 1.5s; }
+    .boot-text:nth-child(6) { animation-delay: 2s; }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Boot Screen (shown briefly on load) -->
+<div class="boot-screen" id="bootScreen">
+    <div class="boot-logo">🎨</div>
+    <div class="boot-text">Pixel Pusher OS v2.0</div>
+    <div class="boot-text">Initializing desktop environment...</div>
+    <div class="boot-text">Loading user interface...</div>
+    <div class="boot-text">Ready!</div>
+</div>
+
+<!-- Login Overlay (shown when not authenticated) -->
+{% if show_login %}
+<div id="loginOverlay">
+    <div class="login-card">
+        <div class="login-header">
+            <h1>🎨 Pixel Pusher OS</h1>
+            <p>Please sign in to access your desktop</p>
+        </div>
+        <div class="login-actions">
+            <a href="{{ url_for('auth.login') }}" class="btn btn-primary" style="margin-right: 10px;">
+                Sign In
+            </a>
+            <a href="{{ url_for('auth.register') }}" class="btn btn-secondary">
+                Create Account
+            </a>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Desktop Environment -->
+<div id="desktop">
+    <!-- Desktop icons will be dynamically generated here -->
+</div>
+
+<!-- Context Menu -->
+<div id="contextMenu" class="context-menu">
+    <div class="context-item" onclick="contextAction('terminal')">
+        💻 Open Terminal
+    </div>
+    <div class="context-item" onclick="contextAction('explorer')">
+        📁 Open File Explorer
+    </div>
+    <div class="context-separator"></div>
+    <div class="context-item" onclick="contextAction('newfile')">
+        📄 New File
+    </div>
+    <div class="context-item" onclick="contextAction('newfolder')">
+        📂 New Folder
+    </div>
+    <div class="context-separator"></div>
+    <div class="context-item" onclick="contextAction('refresh')">
+        🔄 Refresh Desktop
+    </div>
+</div>
+
+<!-- Window Container -->
+<div id="windowContainer"></div>
+
+<!-- Taskbar -->
+<div id="taskbar">
+    <!-- Taskbar buttons will be dynamically generated -->
+    <div class="system-tray">
+        <div id="systemTime"></div>
+    </div>
+</div>
+
+<!-- User Data for JavaScript -->
+{% if not show_login %}
+<script>
+    window.userData = {{ user_data | tojson }};
+</script>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Hide boot screen after load
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(() => {
+            const bootScreen = document.getElementById('bootScreen');
+            if (bootScreen) {
+                bootScreen.classList.add('hidden');
+            }
+        }, 5000);
+    });
+
+    // Global helper functions for effects and interactions
+    window.startVisualEffect = function(effectName) {
+        console.log('Starting visual effect:', effectName);
+        if (window.pixelPusher && window.pixelPusher.modules && window.pixelPusher.modules.settings) {
+            if (typeof window.pixelPusher.modules.settings.startEffect === 'function') {
+                window.pixelPusher.modules.settings.startEffect(effectName);
+            } else {
+                console.log('Visual effect:', effectName, '- Effect system not yet implemented');
+                window.showNotification(`${effectName} effect activated!`, 'info');
+            }
+        } else {
+            console.log('Settings module not ready, effect:', effectName);
+            window.showNotification(`${effectName} effect activated!`, 'info');
+        }
+    };
+
+    // Safe context action handler
+    window.contextAction = function(action) {
+        console.log('Context action:', action);
+
+        try {
+            switch(action) {
+                case 'terminal':
+                case 'explorer':
+                    if (window.pixelPusher && typeof window.pixelPusher.openApplication === 'function') {
+                        window.pixelPusher.openApplication(action);
+                    } else {
+                        console.log('Opening', action);
+                        window.showNotification(`Opening ${action}...`, 'info');
+                    }
+                    break;
+                case 'newfile':
+                    window.showNotification('Creating new file...', 'info');
+                    break;
+                case 'newfolder':
+                    window.showNotification('Creating new folder...', 'info');
+                    break;
+                case 'refresh':
+                    window.location.reload();
+                    break;
+                default:
+                    console.log('Unknown context action:', action);
+            }
+        } catch (error) {
+            console.error('Context action error:', error);
+            window.showNotification('Action failed', 'error');
+        }
+
+        // Close context menus
+        if (window.pixelPusher && typeof window.pixelPusher.closeAllContextMenus === 'function') {
+            window.pixelPusher.closeAllContextMenus();
+        } else {
+            // Fallback: manually close context menus
+            document.querySelectorAll('.context-menu').forEach(menu => {
+                menu.style.display = 'none';
+            });
+        }
+    };
+
+    // Safe window management functions
+    window.openWindow = function(windowId) {
+        console.log('Opening window:', windowId);
+        if (window.pixelPusher && typeof window.pixelPusher.openApplication === 'function') {
+            window.pixelPusher.openApplication(windowId);
+        } else {
+            window.showNotification(`Opening ${windowId}...`, 'info');
+        }
+    };
+
+    window.closeWindow = function(windowId) {
+        console.log('Closing window:', windowId);
+        if (window.pixelPusher && typeof window.pixelPusher.closeApplication === 'function') {
+            window.pixelPusher.closeApplication(windowId);
+        }
+    };
+
+    window.minimizeWindow = function(windowId) {
+        console.log('Minimizing window:', windowId);
+        if (window.pixelPusher && window.pixelPusher.modules && window.pixelPusher.modules.windows) {
+            if (typeof window.pixelPusher.modules.windows.minimize === 'function') {
+                window.pixelPusher.modules.windows.minimize(windowId);
+            }
+        }
+    };
+
+    window.maximizeWindow = function(windowId) {
+        console.log('Maximizing window:', windowId);
+        if (window.pixelPusher && window.pixelPusher.modules && window.pixelPusher.modules.windows) {
+            if (typeof window.pixelPusher.modules.windows.maximize === 'function') {
+                window.pixelPusher.modules.windows.maximize(windowId);
+            }
+        }
+    };
+
+    // Button styles for login actions
+    const buttonStyles = document.createElement('style');
+    buttonStyles.textContent = `
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            border-radius: var(--radius-md);
+            text-decoration: none;
+            font-weight: 500;
+            transition: var(--transition);
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #00b4d8;
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--primary);
+            border: 1px solid var(--primary);
+        }
+
+        .btn-secondary:hover {
+            background: var(--primary);
+            color: white;
+            transform: translateY(-1px);
+        }
+    `;
+    document.head.appendChild(buttonStyles);
+
+    console.log('🎨 Desktop environment loaded');
+    {% if not show_login %}
+    console.log('👤 Welcome back, {{ user.username }}!');
+    {% endif %}
+
+    // Wait for pixelPusher to initialize before logging module status
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(() => {
+            if (window.pixelPusher) {
+                console.log('✅ Pixel Pusher OS initialized');
+                console.log('📦 Available modules:', Object.keys(window.pixelPusher.modules || {}));
+            } else {
+                console.log('⚠️ Pixel Pusher OS not yet initialized');
+            }
+        }, 2000);
+    });
+</script>
+{% endblock %}
