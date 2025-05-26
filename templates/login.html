@@ -741,7 +741,7 @@
     }
     
     // Add pulse animation
-    const style = document.createElement('style');
+    const pulseStyle = document.createElement('style');
     style.textContent = `
         @keyframes pulse {
             0% { transform: scale(1); }
@@ -760,7 +760,7 @@
             }
         }
     `;
-    document.head.appendChild(style);
+    document.head.appendChild(pulseStyle);
     
     // Theme detection and adjustment
     function adjustThemeForLogin() {
