@@ -1,10 +1,495 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="default">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
 
+    <!-- SEO and Social Media Meta Tags -->
+    <title>{% block title %}Pixel Pusher OS - Modern Web Desktop Environment{% endblock %}</title>
+    <meta name="description" content="{% block description %}Pixel Pusher OS - A professional web-based desktop environment with terminal, file explorer, games, and customizable themes.{% endblock %}">
+    <meta name="keywords" content="web desktop, online OS, browser desktop, terminal, file manager, web apps">
+    <meta name="author" content="Pixel Pusher Team">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ request.url }}">
+    <meta property="og:title" content="{% block og_title %}{{ self.title() }}{% endblock %}">
+    <meta property="og:description" content="{{ self.description() }}">
+    <meta property="og:image" content="{{ url_for('static', filename='images/og-image.png') }}">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="{{ request.url }}">
+    <meta property="twitter:title" content="{{ self.title() }}">
+    <meta property="twitter:description" content="{{ self.description() }}">
+    <meta property="twitter:image" content="{{ url_for('static', filename='images/og-image.png') }}">
+
+    <!-- Favicon and App Icons -->
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='images/apple-touch-icon.png') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='images/favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='images/favicon-16x16.png') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+
+    <!-- PWA Support -->
+    <meta name="theme-color" content="#00d9ff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Pixel Pusher OS">
+
+    <!-- Preconnect for Performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <!-- Google Fonts - System Typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Core Stylesheets -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/themes.css') }}">
+
+    <!-- Page-specific CSS -->
+    {% block extra_css %}{% endblock %}
+
+    <!-- Inline Critical CSS for Performance -->
+    <style>
+        /* Critical loading styles */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #00d9ff, #533e85);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            color: white;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .loading-logo {
+            font-size: 4rem;
+            margin-bottom: 2rem;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .loading-text {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .loading-progress {
+            margin-top: 2rem;
+            text-align: center;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Hide loading screen once page loads */
+        .loaded .loading-screen {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease-out;
+        }
+    </style>
+</head>
+
+<body class="{% block body_class %}{% endblock %}">
+    <!-- Loading Screen -->
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loading-logo">🎨</div>
+        <div class="loading-text">Pixel Pusher OS</div>
+        <div class="loading-spinner"></div>
+        <div class="loading-progress">
+            <div id="loadingProgress">Initializing system...</div>
+        </div>
+    </div>
+
+    <!-- Flash Messages Container -->
+    <div class="flash-messages" id="flashMessages">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash-message {{ category }}" data-category="{{ category }}">
+                        <div class="flash-icon">
+                            {% if category == 'success' %}
+                                ✅
+                            {% elif category == 'error' %}
+                                ❌
+                            {% elif category == 'warning' %}
+                                ⚠️
+                            {% else %}
+                                ℹ️
+                            {% endif %}
+                        </div>
+                        <div class="flash-content">{{ message }}</div>
+                        <button class="flash-close" onclick="this.parentElement.remove()">&times;</button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Main Application Container -->
+    <div class="app-container" id="appContainer">
+        {% block content %}
+        <!-- Page content will be inserted here -->
+        {% endblock %}
+    </div>
+
+    <!-- Desktop Background (for themes and wallpapers) -->
+    <div class="desktop-background" id="desktopBackground"></div>
+
+    <!-- Visual Effects Container -->
+    <div class="effect-particles" id="effectParticles"></div>
+
+    <!-- Theme Transition Overlay -->
+    <div class="theme-transition" id="themeTransition"></div>
+
+    <!-- Context Menu Template -->
+    <div class="context-menu" id="contextMenu" style="display: none;">
+        <div class="context-menu-item" onclick="contextAction('terminal')">
+            <span class="context-menu-icon">💻</span>
+            Open Terminal
+        </div>
+        <div class="context-menu-item" onclick="contextAction('explorer')">
+            <span class="context-menu-icon">📁</span>
+            File Explorer
+        </div>
+        <div class="context-menu-separator"></div>
+        <div class="context-menu-item" onclick="contextAction('newfile')">
+            <span class="context-menu-icon">📄</span>
+            New File
+        </div>
+        <div class="context-menu-item" onclick="contextAction('newfolder')">
+            <span class="context-menu-icon">📁</span>
+            New Folder
+        </div>
+        <div class="context-menu-separator"></div>
+        <div class="context-menu-item" onclick="contextAction('refresh')">
+            <span class="context-menu-icon">🔄</span>
+            Refresh Desktop
+        </div>
+    </div>
+
+    <!-- JavaScript Libraries and Core Scripts -->
+
+    <!-- Core Application JavaScript -->
+    <script src="{{ url_for('static', filename='js/utils/helpers.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/utils/state.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/core/app.js') }}"></script>
+
+    <!-- Feature Modules (loaded conditionally) -->
+    {% if current_user.is_authenticated %}
+        <!-- Desktop environment modules -->
+        <script src="{{ url_for('static', filename='js/core/auth.js') }}"></script>
+        <script src="{{ url_for('static', filename='js/core/desktop.js') }}"></script>
+        <script src="{{ url_for('static', filename='js/core/windows.js') }}"></script>
+
+        <!-- Application modules -->
+        <script src="{{ url_for('static', filename='js/apps/terminal.js') }}"></script>
+        <script src="{{ url_for('static', filename='js/apps/explorer.js') }}"></script>
+        <script src="{{ url_for('static', filename='js/apps/games.js') }}"></script>
+        <script src="{{ url_for('static', filename='js/apps/settings.js') }}"></script>
+    {% else %}
+        <!-- Authentication module only -->
+        <script src="{{ url_for('static', filename='js/core/auth.js') }}"></script>
+    {% endif %}
+
+    <!-- Page-specific JavaScript -->
+    {% block extra_js %}{% endblock %}
+
+    <!-- Application Configuration -->
+    <script>
+        // Global application configuration
+        window.APP_CONFIG = {
+            version: '2.0.0',
+            name: 'Pixel Pusher OS',
+            user: {
+                {% if current_user.is_authenticated %}
+                    authenticated: true,
+                    username: '{{ current_user.username }}',
+                    group: '{{ current_user.group }}',
+                    isAdmin: {{ current_user.is_admin() | tojson }}
+                {% else %}
+                    authenticated: false,
+                    username: null,
+                    group: null,
+                    isAdmin: false
+                {% endif %}
+            },
+            api: {
+                baseUrl: '/api',
+                endpoints: {
+                    command: '/api/command/',
+                    files: '/api/files/',
+                    highscores: '/api/highscores/',
+                    status: '/api/status'
+                }
+            },
+            settings: {
+                theme: localStorage.getItem('pixelpusher_theme') || 'default',
+                language: 'en',
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+            }
+        };
+
+        // Initialize theme from localStorage
+        const savedTheme = localStorage.getItem('pixelpusher_theme');
+        if (savedTheme) {
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        }
+
+        // Loading screen management
+        const loadingMessages = [
+            'Initializing system...',
+            'Loading desktop environment...',
+            'Setting up user workspace...',
+            'Preparing applications...',
+            'Almost ready...'
+        ];
+
+        let loadingIndex = 0;
+        const loadingProgressElement = document.getElementById('loadingProgress');
+
+        // Simulate loading progress
+        const loadingInterval = setInterval(() => {
+            if (loadingIndex < loadingMessages.length - 1) {
+                loadingIndex++;
+                if (loadingProgressElement) {
+                    loadingProgressElement.textContent = loadingMessages[loadingIndex];
+                }
+            }
+        }, 800);
+
+        // Hide loading screen when page is fully loaded
+        window.addEventListener('load', () => {
+            clearInterval(loadingInterval);
+            setTimeout(() => {
+                document.body.classList.add('loaded');
+                setTimeout(() => {
+                    const loadingScreen = document.getElementById('loadingScreen');
+                    if (loadingScreen) {
+                        loadingScreen.style.display = 'none';
+                    }
+                }, 500);
+            }, 1000);
+        });
+
+        // Performance monitoring
+        window.addEventListener('load', () => {
+            if (window.performance && window.performance.timing) {
+                const loadTime = window.performance.timing.loadEventEnd - window.performance.timing.navigationStart;
+                console.log(`🚀 Pixel Pusher OS loaded in ${loadTime}ms`);
+
+                // Send performance metrics (optional)
+                if (loadTime > 5000) {
+                    console.warn('⚠️ Slow page load detected:', loadTime + 'ms');
+                }
+            }
+        });
+
+        // Error handling
+        window.addEventListener('error', (event) => {
+            console.error('🔥 Application Error:', event.error);
+
+            // Show user-friendly error message
+            if (window.pixelPusher && window.pixelPusher.showNotification) {
+                window.pixelPusher.showNotification(
+                    'An error occurred. Please refresh the page if problems persist.',
+                    'error'
+                );
+            }
+        });
+
+        // Unhandled promise rejection handling
+        window.addEventListener('unhandledrejection', (event) => {
+            console.error('🔥 Unhandled Promise Rejection:', event.reason);
+            event.preventDefault();
+        });
+
+        // Keyboard shortcuts (available globally)
+        document.addEventListener('keydown', (event) => {
+            // Prevent F12 developer tools in production (optional)
+            if (event.key === 'F12' && window.location.hostname !== 'localhost') {
+                event.preventDefault();
+                return false;
+            }
+
+            // Global shortcuts
+            if (event.ctrlKey && event.altKey) {
+                switch (event.key.toLowerCase()) {
+                    case 'h':
+                        event.preventDefault();
+                        if (window.pixelPusher) {
+                            window.pixelPusher.showModal('Keyboard Shortcuts', `
+                                <div style="text-align: left;">
+                                    <h4>🚀 Global Shortcuts</h4>
+                                    <p><kbd>Ctrl+Alt+T</kbd> - Open Terminal</p>
+                                    <p><kbd>Ctrl+Alt+E</kbd> - File Explorer</p>
+                                    <p><kbd>Ctrl+Alt+S</kbd> - Settings</p>
+                                    <p><kbd>Ctrl+Alt+G</kbd> - Games Menu</p>
+                                    <p><kbd>Ctrl+Alt+H</kbd> - This help</p>
+                                    <p><kbd>F11</kbd> - Toggle Fullscreen</p>
+                                    <p><kbd>Esc</kbd> - Close Dialogs</p>
+                                </div>
+                            `);
+                        }
+                        break;
+                }
+            }
+        });
+
+        // Service Worker registration for PWA support
+        if ('serviceWorker' in navigator && window.location.protocol === 'https:') {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then((registration) => {
+                        console.log('✅ Service Worker registered:', registration.scope);
+                    })
+                    .catch((error) => {
+                        console.log('❌ Service Worker registration failed:', error);
+                    });
+            });
+        }
+
+        // Online/offline detection
+        window.addEventListener('online', () => {
+            if (window.pixelPusher && window.pixelPusher.showNotification) {
+                window.pixelPusher.showNotification('Connection restored', 'success', 3000);
+            }
+        });
+
+        window.addEventListener('offline', () => {
+            if (window.pixelPusher && window.pixelPusher.showNotification) {
+                window.pixelPusher.showNotification('You are offline', 'warning', 5000);
+            }
+        });
+
+        // Auto-dismiss flash messages after 5 seconds
+        document.addEventListener('DOMContentLoaded', () => {
+            const flashMessages = document.querySelectorAll('.flash-message');
+            flashMessages.forEach((message, index) => {
+                setTimeout(() => {
+                    message.style.animation = 'slideOutRight 0.3s ease-in forwards';
+                    setTimeout(() => {
+                        if (message.parentNode) {
+                            message.remove();
+                        }
+                    }, 300);
+                }, 5000 + (index * 200)); // Stagger dismissal
+            });
+        });
+
+        // Add slide-out animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideOutRight {
+                from {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+                to {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+
+    <!-- Analytics and Tracking (optional) -->
+    {% block analytics %}
+    {% if config.ANALYTICS_ID %}
+        <!-- Google Analytics or other tracking code -->
+        <script async src="https://www.googletagmanager.com/gtag/js?id={{ config.ANALYTICS_ID }}"></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', '{{ config.ANALYTICS_ID }}', {
+                page_title: '{{ self.title() }}',
+                custom_map: {'custom_parameter_1': 'user_type'}
+            });
+        </script>
+    {% endif %}
+    {% endblock %}
+
+    <!-- Schema.org Structured Data -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Pixel Pusher OS",
+        "description": "A modern web-based desktop environment",
+        "url": "{{ request.url_root }}",
+        "applicationCategory": "UtilitiesApplication",
+        "operatingSystem": "Web Browser",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+        },
+        "author": {
+            "@type": "Organization",
+            "name": "Pixel Pusher Team"
+        }
+    }
+    </script>
+
+    <!-- Debug Information (Development Only) -->
+    {% if config.DEBUG %}
+        <script>
+            console.log('%c🎨 Pixel Pusher OS Debug Info', 'color: #00d9ff; font-size: 16px; font-weight: bold;');
+            console.log('Version:', window.APP_CONFIG.version);
+            console.log('Theme:', document.documentElement.getAttribute('data-theme'));
+            console.log('User:', window.APP_CONFIG.user);
+            console.log('Viewport:', window.innerWidth + 'x' + window.innerHeight);
+            console.log('User Agent:', navigator.userAgent);
+
+            // Performance timing
+            window.addEventListener('load', () => {
+                setTimeout(() => {
+                    const timing = performance.timing;
+                    const metrics = {
+                        'DNS Lookup': timing.domainLookupEnd - timing.domainLookupStart,
+                        'TCP Connection': timing.connectEnd - timing.connectStart,
+                        'Request': timing.responseStart - timing.requestStart,
+                        'Response': timing.responseEnd - timing.responseStart,
+                        'DOM Processing': timing.domComplete - timing.domLoading,
+                        'Total Load Time': timing.loadEventEnd - timing.navigationStart
+                    };
+
+                    console.table(metrics);
+                }, 1000);
+            });
+        </script>
+    {% endif %}
 </body>
 </html>
