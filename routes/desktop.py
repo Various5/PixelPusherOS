@@ -1,427 +1,313 @@
 #!/usr/bin/env python3
 """
 Pixel Pusher OS - Desktop Routes
-Flask blueprint for handling main desktop environment and application pages.
+Handles desktop environment and main application routes.
 """
 
-from flask import Blueprint, render_template, request, redirect, url_for, jsonify, session
+import os
+import time
+from flask import Blueprint, render_template, request, redirect, url_for, jsonify
 from flask_login import login_required, current_user
-from models import db, User, ApplicationLog
-from datetime import datetime
+
+from config import Config
 
 # Create desktop blueprint
 desktop_bp = Blueprint('desktop', __name__)
 
 
 @desktop_bp.route('/')
+@login_required
 def index():
     """
-    Main desktop entry point
-    Shows login overlay if not authenticated, otherwise shows desktop environment
+    Main desktop environment route.
+    Shows the full desktop interface with taskbar, desktop icons, and window manager.
     """
-    if not current_user.is_authenticated:
-        # Show login overlay on desktop
-        return render_template('desktop.html', show_login=True)
+    # Get user information
+    user_data = {
+        'username': current_user.username,
+        'group': current_user.group,
+        'login_time': time.time()
+    }
 
-    # Log desktop access
-    ApplicationLog.log_event(
-        level='INFO',
-        category='DESKTOP',
-        message=f'User {current_user.username} accessed desktop',
-        user_id=current_user.id,
-        ip_address=request.remote_addr
-    )
+    # Get system information
+    system_data = {
+        'version': '2.0.0',
+        'start_time': time.time(),
+        'base_dir': Config.BASE_DIR
+    }
 
-    # Show full desktop environment
     return render_template('desktop.html',
-                           show_login=False,
-                           user=current_user,
-                           user_data={
-                               'username': current_user.username,
-                               'group': current_user.group,
-                               'id': current_user.id
-                           })
-
-
-@desktop_bp.route('/desktop')
-@login_required
-def desktop():
-    """
-    Direct desktop access (requires authentication)
-    """
-    return redirect(url_for('desktop.index'))
+                           user=user_data,
+                           system=system_data)
 
 
 @desktop_bp.route('/browser')
 @login_required
 def browser():
     """
-    Web browser application page
+    Web browser application route.
+    Serves a basic web browser interface.
     """
-    ApplicationLog.log_event(
-        level='INFO',
-        category='APP',
-        message=f'User {current_user.username} opened browser app',
-        user_id=current_user.id,
-        ip_address=request.remote_addr
-    )
-
-    return render_template('apps/browser.html',
-                           user=current_user,
-                           app_name='Web Browser')
+    return render_template('apps/browser.html')
 
 
 @desktop_bp.route('/word')
 @login_required
 def word_processor():
     """
-    Word processor application page
+    Word processor application route.
+    Basic document editor interface.
     """
-    ApplicationLog.log_event(
-        level='INFO',
-        category='APP',
-        message=f'User {current_user.username} opened word processor',
-        user_id=current_user.id,
-        ip_address=request.remote_addr
-    )
-
-    return render_template('apps/word.html',
-                           user=current_user,
-                           app_name='Word Processor')
+    return render_template('apps/word.html')
 
 
 @desktop_bp.route('/excel')
 @login_required
 def spreadsheet():
     """
-    Spreadsheet application page
+    Spreadsheet application route.
+    Basic spreadsheet editor interface.
     """
-    ApplicationLog.log_event(
-        level='INFO',
-        category='APP',
-        message=f'User {current_user.username} opened spreadsheet app',
-        user_id=current_user.id,
-        ip_address=request.remote_addr
-    )
-
-    return render_template('apps/excel.html',
-                           user=current_user,
-                           app_name='Spreadsheet')
-
-
-@desktop_bp.route('/games')
-@login_required
-def games_center():
-    """
-    Games center page
-    """
-    ApplicationLog.log_event(
-        level='INFO',
-        category='GAMES',
-        message=f'User {current_user.username} accessed games center',
-        user_id=current_user.id,
-        ip_address=request.remote_addr
-    )
-
-    # Get user's high scores
-    from models import GameScore
-    high_scores = {}
-    try:
-        scores = GameScore.query.filter_by(
-            user_id=current_user.id,
-            is_high_score=True
-        ).all()
-
-        for score in scores:
-            high_scores[score.game_name] = {
-                'score': score.score,
-                'level': score.level,
-                'date': score.timestamp.strftime('%Y-%m-%d')
-            }
-    except Exception as e:
-        print(f"Error loading high scores: {e}")
-
-    return render_template('apps/games.html',
-                           user=current_user,
-                           app_name='Games Center',
-                           high_scores=high_scores)
+    return render_template('apps/excel.html')
 
 
 @desktop_bp.route('/settings')
 @login_required
-def system_settings():
+def settings():
     """
-    System settings page
+    System settings application route.
     """
-    ApplicationLog.log_event(
-        level='INFO',
-        category='SYSTEM',
-        message=f'User {current_user.username} accessed system settings',
-        user_id=current_user.id,
-        ip_address=request.remote_addr
-    )
+    return render_template('apps/settings.html')
 
-    return render_template('apps/settings.html',
-                           user=current_user,
-                           app_name='System Settings')
+
+@desktop_bp.route('/games')
+@login_required
+def games():
+    """
+    Games center route.
+    Shows available games and high scores.
+    """
+    return render_template('apps/games.html')
+
+
+@desktop_bp.route('/help')
+@login_required
+def help_system():
+    """
+    Help and documentation system.
+    """
+    return render_template('help.html')
+
+
+@desktop_bp.route('/about')
+@login_required
+def about():
+    """
+    About Pixel Pusher OS page.
+    """
+    return render_template('about.html')
+
+
+@desktop_bp.route('/status')
+@login_required
+def system_status():
+    """
+    System status and monitoring page.
+    """
+    try:
+        import psutil
+
+        status_data = {
+            'cpu_percent': psutil.cpu_percent(interval=1),
+            'memory': psutil.virtual_memory()._asdict(),
+            'disk': psutil.disk_usage('/')._asdict(),
+            'uptime': time.time() - psutil.boot_time(),
+            'user_count': len(psutil.users()),
+            'process_count': len(psutil.pids())
+        }
+    except ImportError:
+        status_data = {
+            'cpu_percent': 0,
+            'memory': {'total': 0, 'available': 0, 'percent': 0},
+            'disk': {'total': 0, 'free': 0, 'used': 0},
+            'uptime': 0,
+            'user_count': 1,
+            'process_count': 0
+        }
+
+    return render_template('status.html', status=status_data)
 
 
 @desktop_bp.route('/file-manager')
 @login_required
 def file_manager():
     """
-    File manager application page
+    Standalone file manager interface.
     """
-    ApplicationLog.log_event(
-        level='INFO',
-        category='APP',
-        message=f'User {current_user.username} opened file manager',
-        user_id=current_user.id,
-        ip_address=request.remote_addr
-    )
-
-    return render_template('apps/file-manager.html',
-                           user=current_user,
-                           app_name='File Manager')
+    return render_template('apps/file_manager.html')
 
 
 @desktop_bp.route('/terminal')
 @login_required
 def terminal():
     """
-    Terminal application page
+    Standalone terminal interface.
     """
-    ApplicationLog.log_event(
-        level='INFO',
-        category='TERMINAL',
-        message=f'User {current_user.username} opened terminal',
-        user_id=current_user.id,
-        ip_address=request.remote_addr
-    )
-
-    return render_template('apps/terminal.html',
-                           user=current_user,
-                           app_name='Terminal')
+    return render_template('apps/terminal.html')
 
 
-@desktop_bp.route('/about')
-def about():
-    """
-    About page for Pixel Pusher OS
-    """
-    return render_template('about.html',
-                           app_name='Pixel Pusher OS',
-                           version='2.0.0')
-
-
-@desktop_bp.route('/help')
-def help_page():
-    """
-    Help and documentation page
-    """
-    return render_template('help.html',
-                           app_name='Pixel Pusher OS Help')
-
-
-@desktop_bp.route('/user/dashboard')
+@desktop_bp.route('/text-editor')
 @login_required
-def user_dashboard():
+def text_editor():
     """
-    User dashboard with statistics and recent activity
+    Text editor application.
+    """
+    filename = request.args.get('file', '')
+    return render_template('apps/text_editor.html', filename=filename)
+
+
+@desktop_bp.route('/music-player')
+@login_required
+def music_player():
+    """
+    Music player application.
+    """
+    return render_template('apps/music_player.html')
+
+
+@desktop_bp.route('/image-viewer')
+@login_required
+def image_viewer():
+    """
+    Image viewer application.
+    """
+    image_path = request.args.get('image', '')
+    return render_template('apps/image_viewer.html', image_path=image_path)
+
+
+@desktop_bp.route('/calculator')
+@login_required
+def calculator():
+    """
+    Calculator application.
+    """
+    return render_template('apps/calculator.html')
+
+
+@desktop_bp.route('/notepad')
+@login_required
+def notepad():
+    """
+    Simple notepad application.
+    """
+    return render_template('apps/notepad.html')
+
+
+@desktop_bp.route('/task-manager')
+@login_required
+def task_manager():
+    """
+    Task manager application.
+    """
+    return render_template('apps/task_manager.html')
+
+
+@desktop_bp.route('/control-panel')
+@login_required
+def control_panel():
+    """
+    System control panel.
+    """
+    return render_template('apps/control_panel.html')
+
+
+@desktop_bp.route('/welcome')
+@login_required
+def welcome():
+    """
+    Welcome screen for new users.
+    """
+    return render_template('welcome.html', user=current_user)
+
+
+@desktop_bp.route('/demo')
+def demo():
+    """
+    Demo route for showcasing the system (accessible without login).
+    """
+    return render_template('demo.html')
+
+
+@desktop_bp.route('/api/user-info')
+@login_required
+def user_info():
+    """
+    API endpoint to get current user information.
+    """
+    return jsonify({
+        'username': current_user.username,
+        'group': current_user.group,
+        'is_admin': current_user.group.lower() == 'admin',
+        'login_time': current_user.created_at.isoformat() if hasattr(current_user, 'created_at') else None
+    })
+
+
+@desktop_bp.route('/api/system-info')
+@login_required
+def api_system_info():
+    """
+    API endpoint to get basic system information.
     """
     try:
-        # Get user statistics
-        from models import UserSession, GameScore
+        import platform
+        import psutil
 
-        # Recent sessions
-        recent_sessions = UserSession.query.filter_by(
-            user_id=current_user.id
-        ).order_by(UserSession.login_time.desc()).limit(5).all()
-
-        # Game statistics
-        game_stats = db.session.query(
-            GameScore.game_name,
-            db.func.max(GameScore.score).label('high_score'),
-            db.func.count(GameScore.id).label('games_played')
-        ).filter_by(user_id=current_user.id).group_by(GameScore.game_name).all()
-
-        # Recent activity logs
-        recent_logs = ApplicationLog.query.filter_by(
-            user_id=current_user.id
-        ).order_by(ApplicationLog.timestamp.desc()).limit(10).all()
-
-        dashboard_data = {
-            'user': current_user.to_dict(),
-            'recent_sessions': [
-                {
-                    'login_time': session.login_time.strftime('%Y-%m-%d %H:%M:%S'),
-                    'logout_time': session.logout_time.strftime(
-                        '%Y-%m-%d %H:%M:%S') if session.logout_time else 'Active',
-                    'ip_address': session.ip_address,
-                    'is_active': session.is_active
-                }
-                for session in recent_sessions
-            ],
-            'game_stats': [
-                {
-                    'game_name': stat.game_name,
-                    'high_score': stat.high_score,
-                    'games_played': stat.games_played
-                }
-                for stat in game_stats
-            ],
-            'recent_activity': [
-                {
-                    'timestamp': log.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
-                    'category': log.category,
-                    'message': log.message,
-                    'level': log.level
-                }
-                for log in recent_logs
-            ]
+        info = {
+            'os': platform.system(),
+            'version': platform.release(),
+            'architecture': platform.architecture()[0],
+            'cpu_count': psutil.cpu_count(),
+            'memory_total': psutil.virtual_memory().total,
+            'disk_total': psutil.disk_usage('/').total,
+            'uptime': time.time() - psutil.boot_time() if hasattr(psutil, 'boot_time') else 0
+        }
+    except ImportError:
+        info = {
+            'os': 'Unknown',
+            'version': 'Unknown',
+            'architecture': 'Unknown',
+            'cpu_count': 1,
+            'memory_total': 0,
+            'disk_total': 0,
+            'uptime': 0
         }
 
-        return jsonify(dashboard_data)
-
-    except Exception as e:
-        print(f"Dashboard error: {e}")
-        return jsonify({'error': 'Failed to load dashboard data'}), 500
+    return jsonify(info)
 
 
-@desktop_bp.route('/system/status')
-@login_required
-def system_status():
-    """
-    System status and health information
-    """
-    try:
-        # Basic system statistics
-        total_users = User.query.filter_by(is_active=True).count()
-        admin_users = User.query.filter_by(group='Admin', is_active=True).count()
-
-        # Recent activity
-        from models import UserSession
-        active_sessions = UserSession.query.filter_by(is_active=True).count()
-
-        # Application logs summary
-        recent_errors = ApplicationLog.query.filter_by(level='ERROR').count()
-        recent_warnings = ApplicationLog.query.filter_by(level='WARNING').count()
-
-        status_data = {
-            'system': {
-                'version': '2.0.0',
-                'status': 'online',
-                'uptime': str(datetime.utcnow() - datetime.min).split('.')[0]
-            },
-            'users': {
-                'total': total_users,
-                'admins': admin_users,
-                'active_sessions': active_sessions
-            },
-            'application': {
-                'recent_errors': recent_errors,
-                'recent_warnings': recent_warnings,
-                'database_status': 'connected'
-            },
-            'current_user': {
-                'username': current_user.username,
-                'group': current_user.group,
-                'is_admin': current_user.is_admin(),
-                'last_login': current_user.last_login.isoformat() if current_user.last_login else None
-            }
-        }
-
-        return jsonify(status_data)
-
-    except Exception as e:
-        print(f"System status error: {e}")
-        return jsonify({'error': 'Failed to load system status'}), 500
-
-
-@desktop_bp.route('/user/preferences', methods=['GET', 'POST'])
-@login_required
-def user_preferences():
-    """
-    Handle user preferences and settings
-    """
-    if request.method == 'POST':
-        try:
-            data = request.get_json() or request.form
-
-            # For now, we'll store preferences in session
-            # In a full implementation, you might want a UserPreferences table
-
-            preferences = {
-                'theme': data.get('theme', 'default'),
-                'wallpaper': data.get('wallpaper', ''),
-                'sound_enabled': data.get('sound_enabled', True),
-                'animations_enabled': data.get('animations_enabled', True),
-                'font_size': data.get('font_size', 14),
-                'desktop_layout': data.get('desktop_layout', 'grid')
-            }
-
-            # Store in session for now
-            session['user_preferences'] = preferences
-
-            # Log preference change
-            ApplicationLog.log_event(
-                level='INFO',
-                category='USER',
-                message=f'User {current_user.username} updated preferences',
-                user_id=current_user.id,
-                ip_address=request.remote_addr,
-                details=preferences
-            )
-
-            return jsonify({
-                'success': True,
-                'message': 'Preferences updated successfully'
-            })
-
-        except Exception as e:
-            print(f"Preferences update error: {e}")
-            return jsonify({
-                'success': False,
-                'error': 'Failed to update preferences'
-            }), 500
-
-    else:
-        # GET request - return current preferences
-        preferences = session.get('user_preferences', {
-            'theme': 'default',
-            'wallpaper': '',
-            'sound_enabled': True,
-            'animations_enabled': True,
-            'font_size': 14,
-            'desktop_layout': 'grid'
-        })
-
-        return jsonify(preferences)
-
-
-# Error handlers for desktop blueprint
+# Error handlers for desktop routes
 @desktop_bp.errorhandler(404)
-def not_found(error):
-    """Handle 404 errors in desktop context"""
+def desktop_not_found(error):
+    """Handle 404 errors in desktop routes"""
     return render_template('errors/404.html'), 404
 
 
 @desktop_bp.errorhandler(500)
-def internal_error(error):
-    """Handle 500 errors in desktop context"""
-    db.session.rollback()
+def desktop_server_error(error):
+    """Handle 500 errors in desktop routes"""
     return render_template('errors/500.html'), 500
 
 
-# Context processor to inject common variables
+# Context processor for desktop templates
 @desktop_bp.context_processor
-def inject_common_vars():
-    """Inject common variables into all desktop templates"""
+def inject_desktop_context():
+    """
+    Inject common context variables into desktop templates.
+    """
     return {
-        'current_time': datetime.utcnow().isoformat(),
+        'current_time': time.time(),
         'app_version': '2.0.0',
-        'is_authenticated': current_user.is_authenticated,
-        'user_preferences': session.get('user_preferences', {})
+        'user_base_dir': Config.BASE_DIR if current_user.is_authenticated else None
     }
 
 

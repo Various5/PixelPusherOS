@@ -1,1203 +1,902 @@
-/**
- * Pixel Pusher OS - File Explorer Manager
- * Handles file system navigation, file operations, and file management
- *
- * This module provides:
- * - File system navigation and browsing
- * - File and folder operations (create, delete, rename, move)
- * - File preview and media support
- * - File upload and download functionality
- * - Context menus and file selection
- * - Multiple explorer window support
- * - File search and filtering capabilities
- */
+#!/usr/bin/env python3
+"""
+Pixel Pusher OS - FileBrowser Utility Class (COMPLETE)
+Handles terminal command processing and file system operations.
+"""
 
-class ExplorerManager {
-    constructor() {
-        this.explorers = new Map(); // Active explorer instances
-        this.currentPath = '/';
-        this.navigationHistory = ['/'];
-        this.historyIndex = 0;
-        this.clipboard = null; // For cut/copy operations
-        this.selectedFiles = new Set();
-        this.viewMode = 'list'; // 'list' or 'grid'
-        this.sortBy = 'name'; // 'name', 'size', 'date', 'type'
-        this.sortOrder = 'asc'; // 'asc' or 'desc'
+import os
+import time
+import json
+import platform
+import psutil
+import logging
+import urllib.request
+import collections
+import shutil
+import stat
 
-        console.log('📁 File Explorer Manager initialized');
-    }
+from config import Config
 
-    /**
-     * Initialize file explorer system
-     */
-    async init() {
-        try {
-            // Load saved preferences
-            this.loadPreferences();
 
-            // Set up global explorer shortcuts
-            this.setupGlobalShortcuts();
+class FileBrowser:
+    """Complete file browser and terminal command processor for Pixel Pusher OS."""
 
-            // Initialize file type associations
-            this.initializeFileTypes();
+    def __init__(self):
+        """Initialize FileBrowser with secure defaults."""
+        self.current_dir = Config.BASE_DIR
+        self.command_history = []
+        self.max_history = 100
 
-            console.log('✅ File Explorer system ready');
+        print(f"📁 FileBrowser initialized - Base directory: {self.current_dir}")
 
-        } catch (error) {
-            console.error('❌ File Explorer initialization failed:', error);
-        }
-    }
+    def execute(self, raw_command):
+        """Execute a terminal command and return the result."""
+        command = raw_command.strip()
+        if not command:
+            return ""
 
-    /**
-     * Initialize an explorer window
-     */
-    async initializeWindow(appId) {
-        const explorerContainer = document.getElementById(`explorer-${appId}`);
-        if (!explorerContainer) {
-            console.error(`Explorer container not found: ${appId}`);
-            return;
-        }
+        self._add_to_history(command)
+        parts = command.split(maxsplit=1)
+        action = parts[0].lower()
+        argument = parts[1] if len(parts) > 1 else ""
 
-        // Create explorer instance
-        const explorer = {
-            id: appId,
-            container: explorerContainer,
-            toolbar: explorerContainer.querySelector('.explorer-toolbar'),
-            content: document.getElementById(`explorer-content-${appId}`),
-            pathInput: document.getElementById(`explorer-path-${appId}`),
-            currentPath: '/',
-            history: ['/'],
-            historyIndex: 0,
-            selectedFiles: new Set(),
-            viewMode: this.viewMode,
-            isLoading: false
-        };
+        print(f"🔧 Executing command: {action} {argument}")
 
-        // Store explorer instance
-        this.explorers.set(appId, explorer);
+        # Command routing
+        command_handlers = {
+            # Help and information
+            'help': self._help_command,
+            'menu': self._help_command,
+            'about': self._about_command,
+            'contact': self._contact_command,
 
-        // Set up explorer-specific event handlers
-        this.setupExplorerEventHandlers(explorer);
+            # System information
+            'sysinfo': self._system_info,
+            'time': lambda _: time.strftime("%H:%M:%S"),
+            'date': lambda _: time.strftime("%Y-%m-%d %A"),
+            'uptime': self._uptime_command,
+            'whoami': lambda _: os.environ.get('USER', 'pixel-pusher'),
 
-        // Apply explorer styling
-        this.applyExplorerStyling(explorer);
+            # Terminal control
+            'clear': lambda _: "__CLEAR__",
+            'echo': lambda arg: arg or "",
+            'pwd': self._pwd_command,
 
-        // Load initial directory
-        await this.navigateToPath(explorer, '/');
+            # Visual effects and themes
+            'color': self._color_command,
+            'effect': self._effect_command,
+            'wallpaper': self._wallpaper_command,
 
-        console.log(`📁 File Explorer initialized: ${appId}`);
-    }
+            # Network commands
+            'curl': self._curl_command,
+            'ping': self._ping_command,
 
-    /**
-     * Set up event handlers for an explorer instance
-     */
-    setupExplorerEventHandlers(explorer) {
-        // Path input navigation
-        explorer.pathInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                this.navigateToPath(explorer, explorer.pathInput.value);
-            }
-        });
+            # Application launchers
+            'explorer': lambda _: "__EXPLORER__",
+            'game': self._game_command,
 
-        // Content area events
-        explorer.content.addEventListener('click', (e) => {
-            this.handleContentClick(explorer, e);
-        });
+            # File system commands
+            'ls': self._list_command,
+            'dir': self._list_command,
+            'cd': self._change_directory,
+            'mkdir': self._make_directory,
+            'touch': self._create_file,
+            'del': self._delete_file,
+            'rm': self._delete_file,
+            'cat': self._read_file,
+            'edit': self._edit_file,
+            'rename': self._rename_file,
+            'mv': self._rename_file,
+            'cp': self._copy_file,
+            'properties': self._file_properties,
+            'find': self._find_files,
+            'tree': self._tree_command,
 
-        explorer.content.addEventListener('dblclick', (e) => {
-            this.handleContentDoubleClick(explorer, e);
-        });
-
-        explorer.content.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-            this.showContextMenu(explorer, e);
-        });
-
-        // Keyboard navigation
-        explorer.container.addEventListener('keydown', (e) => {
-            this.handleKeyboardNavigation(explorer, e);
-        });
-
-        // Drag and drop support
-        explorer.content.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'copy';
-        });
-
-        explorer.content.addEventListener('drop', (e) => {
-            e.preventDefault();
-            this.handleFileDrop(explorer, e);
-        });
-
-        // Selection handling
-        explorer.content.addEventListener('mousedown', (e) => {
-            this.handleSelectionStart(explorer, e);
-        });
-    }
-
-    /**
-     * Apply styling to explorer
-     */
-    applyExplorerStyling(explorer) {
-        // Style explorer container
-        explorer.container.style.cssText = `
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-            background: var(--background);
-            font-family: var(--font-family);
-        `;
-
-        // Style toolbar
-        explorer.toolbar.style.cssText = `
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 12px;
-            background: var(--surface-light);
-            border-bottom: 1px solid var(--border);
-            flex-shrink: 0;
-        `;
-
-        // Style toolbar buttons
-        explorer.toolbar.querySelectorAll('button').forEach(button => {
-            button.style.cssText = `
-                padding: 6px 12px;
-                border: 1px solid var(--border);
-                border-radius: 4px;
-                background: var(--surface);
-                color: var(--text-primary);
-                cursor: pointer;
-                font-size: 12px;
-                transition: all 0.2s ease;
-            `;
-        });
-
-        // Style path input
-        explorer.pathInput.style.cssText = `
-            flex: 1;
-            padding: 6px 8px;
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            background: var(--surface);
-            color: var(--text-primary);
-            font-size: 13px;
-            font-family: monospace;
-        `;
-
-        // Style content area
-        explorer.content.style.cssText = `
-            flex: 1;
-            overflow: auto;
-            padding: 12px;
-            background: var(--background);
-        `;
-    }
-
-    /**
-     * Navigate to a specific path
-     */
-    async navigateToPath(explorer, path) {
-        if (explorer.isLoading) return;
-
-        explorer.isLoading = true;
-        this.showLoadingState(explorer);
-
-        try {
-            // Normalize path
-            path = this.normalizePath(path);
-
-            // Fetch directory contents
-            const response = await fetch(`/api/explorer/${encodeURIComponent(path.substring(1))}`);
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.error || 'Failed to load directory');
-            }
-
-            // Update explorer state
-            explorer.currentPath = path;
-            explorer.pathInput.value = path;
-
-            // Update navigation history
-            if (path !== explorer.history[explorer.historyIndex]) {
-                // Remove any forward history
-                explorer.history = explorer.history.slice(0, explorer.historyIndex + 1);
-                explorer.history.push(path);
-                explorer.historyIndex = explorer.history.length - 1;
-            }
-
-            // Clear selection
-            explorer.selectedFiles.clear();
-
-            // Render directory contents
-            this.renderDirectoryContents(explorer, data.items);
-
-            // Update toolbar buttons
-            this.updateToolbarButtons(explorer);
-
-        } catch (error) {
-            console.error('Navigation error:', error);
-            this.showError(explorer, `Failed to load directory: ${error.message}`);
-        } finally {
-            explorer.isLoading = false;
-        }
-    }
-
-    /**
-     * Render directory contents
-     */
-    renderDirectoryContents(explorer, items) {
-        const content = explorer.content;
-        content.innerHTML = '';
-
-        if (!items || items.length === 0) {
-            this.showEmptyDirectory(explorer);
-            return;
+            # System commands
+            'ps': self._process_list,
+            'kill': self._kill_process,
+            'df': self._disk_usage,
+            'free': self._memory_info,
+            'history': self._show_history,
         }
 
-        // Sort items
-        const sortedItems = this.sortItems(items);
-
-        // Create file list container
-        const fileList = document.createElement('div');
-        fileList.className = `file-list file-list-${explorer.viewMode}`;
-        fileList.style.cssText = `
-            display: ${explorer.viewMode === 'grid' ? 'grid' : 'flex'};
-            ${explorer.viewMode === 'grid' ? 
-                'grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 16px;' : 
-                'flex-direction: column; gap: 2px;'
-            }
-        `;
-
-        // Render each item
-        sortedItems.forEach(item => {
-            const itemElement = this.createFileItem(explorer, item);
-            fileList.appendChild(itemElement);
-        });
-
-        content.appendChild(fileList);
-    }
-
-    /**
-     * Create a file/folder item element
-     */
-    createFileItem(explorer, item) {
-        const itemElement = document.createElement('div');
-        itemElement.className = 'file-item';
-        itemElement.dataset.name = item.name;
-        itemElement.dataset.type = item.type;
-        itemElement.dataset.size = item.size;
-        itemElement.dataset.modified = item.modified;
-
-        // Get file icon and color
-        const { icon, color } = this.getFileIcon(item);
-
-        if (explorer.viewMode === 'grid') {
-            // Grid view
-            itemElement.style.cssText = `
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                padding: 12px 8px;
-                border-radius: 8px;
-                cursor: pointer;
-                transition: all 0.2s ease;
-                text-align: center;
-                background: transparent;
-                border: 2px solid transparent;
-            `;
-
-            itemElement.innerHTML = `
-                <div class="file-icon" style="font-size: 32px; color: ${color}; margin-bottom: 8px;">
-                    ${icon}
-                </div>
-                <div class="file-name" style="
-                    font-size: 12px;
-                    color: var(--text-primary);
-                    word-break: break-word;
-                    line-height: 1.3;
-                    max-width: 100%;
-                    overflow: hidden;
-                    display: -webkit-box;
-                    -webkit-line-clamp: 2;
-                    -webkit-box-orient: vertical;
-                ">
-                    ${this.escapeHtml(item.name)}
-                </div>
-            `;
-        } else {
-            // List view
-            itemElement.style.cssText = `
-                display: flex;
-                align-items: center;
-                padding: 8px 12px;
-                border-radius: 4px;
-                cursor: pointer;
-                transition: all 0.2s ease;
-                background: transparent;
-                border: 1px solid transparent;
-            `;
-
-            const fileSize = item.type === 'file' ? this.formatFileSize(item.size) : '--';
-            const modifiedDate = new Date(item.modified * 1000).toLocaleDateString();
-
-            itemElement.innerHTML = `
-                <div class="file-icon" style="font-size: 20px; color: ${color}; margin-right: 12px; width: 24px;">
-                    ${icon}
-                </div>
-                <div class="file-name" style="
-                    flex: 1;
-                    color: var(--text-primary);
-                    font-weight: 500;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                    white-space: nowrap;
-                ">
-                    ${this.escapeHtml(item.name)}
-                </div>
-                <div class="file-size" style="
-                    width: 80px;
-                    color: var(--text-secondary);
-                    font-size: 12px;
-                    text-align: right;
-                    margin-right: 16px;
-                ">
-                    ${fileSize}
-                </div>
-                <div class="file-date" style="
-                    width: 100px;
-                    color: var(--text-secondary);
-                    font-size: 12px;
-                    text-align: right;
-                ">
-                    ${modifiedDate}
-                </div>
-            `;
-        }
-
-        // Add hover effects
-        itemElement.addEventListener('mouseenter', () => {
-            itemElement.style.backgroundColor = 'var(--surface-light)';
-            if (explorer.viewMode === 'grid') {
-                itemElement.style.borderColor = 'var(--border)';
-            }
-        });
-
-        itemElement.addEventListener('mouseleave', () => {
-            if (!explorer.selectedFiles.has(item.name)) {
-                itemElement.style.backgroundColor = 'transparent';
-                itemElement.style.borderColor = 'transparent';
-            }
-        });
-
-        return itemElement;
-    }
-
-    /**
-     * Get appropriate icon and color for file/folder
-     */
-    getFileIcon(item) {
-        if (item.type === 'dir') {
-            return { icon: '📁', color: '#ffd700' };
-        }
-
-        const ext = item.name.split('.').pop().toLowerCase();
-        const iconMap = {
-            // Images
-            'jpg': { icon: '🖼️', color: '#ff6b6b' },
-            'jpeg': { icon: '🖼️', color: '#ff6b6b' },
-            'png': { icon: '🖼️', color: '#ff6b6b' },
-            'gif': { icon: '🖼️', color: '#ff6b6b' },
-            'svg': { icon: '🎨', color: '#ff6b6b' },
-            'webp': { icon: '🖼️', color: '#ff6b6b' },
-
-            // Videos
-            'mp4': { icon: '🎥', color: '#4ecdc4' },
-            'avi': { icon: '🎥', color: '#4ecdc4' },
-            'mov': { icon: '🎥', color: '#4ecdc4' },
-            'mkv': { icon: '🎥', color: '#4ecdc4' },
-            'webm': { icon: '🎥', color: '#4ecdc4' },
-
-            // Audio
-            'mp3': { icon: '🎵', color: '#45b7d1' },
-            'wav': { icon: '🎵', color: '#45b7d1' },
-            'ogg': { icon: '🎵', color: '#45b7d1' },
-            'flac': { icon: '🎵', color: '#45b7d1' },
-            'm4a': { icon: '🎵', color: '#45b7d1' },
-
-            // Documents
-            'txt': { icon: '📄', color: '#6c5ce7' },
-            'md': { icon: '📝', color: '#6c5ce7' },
-            'pdf': { icon: '📕', color: '#e74c3c' },
-            'doc': { icon: '📘', color: '#3498db' },
-            'docx': { icon: '📘', color: '#3498db' },
-            'rtf': { icon: '📄', color: '#6c5ce7' },
-
-            // Spreadsheets
-            'xls': { icon: '📊', color: '#27ae60' },
-            'xlsx': { icon: '📊', color: '#27ae60' },
-            'csv': { icon: '📊', color: '#27ae60' },
-
-            // Presentations
-            'ppt': { icon: '📽️', color: '#e67e22' },
-            'pptx': { icon: '📽️', color: '#e67e22' },
-
-            // Code
-            'html': { icon: '🌐', color: '#e34c26' },
-            'css': { icon: '🎨', color: '#1572b6' },
-            'js': { icon: '📜', color: '#f7df1e' },
-            'py': { icon: '🐍', color: '#3776ab' },
-            'json': { icon: '📋', color: '#6c5ce7' },
-            'xml': { icon: '📋', color: '#6c5ce7' },
-            'sql': { icon: '🗃️', color: '#336791' },
-
-            // Archives
-            'zip': { icon: '📦', color: '#95a5a6' },
-            'rar': { icon: '📦', color: '#95a5a6' },
-            '7z': { icon: '📦', color: '#95a5a6' },
-            'tar': { icon: '📦', color: '#95a5a6' },
-            'gz': { icon: '📦', color: '#95a5a6' },
-
-            // Executables
-            'exe': { icon: '⚙️', color: '#2c3e50' },
-            'msi': { icon: '⚙️', color: '#2c3e50' },
-            'app': { icon: '⚙️', color: '#2c3e50' }
-        };
-
-        return iconMap[ext] || { icon: '📄', color: '#95a5a6' };
-    }
-
-    /**
-     * Handle content area clicks
-     */
-    handleContentClick(explorer, e) {
-        const fileItem = e.target.closest('.file-item');
-
-        if (!fileItem) {
-            // Clicked empty space - clear selection
-            this.clearSelection(explorer);
-            return;
-        }
-
-        const fileName = fileItem.dataset.name;
-        const isSelected = explorer.selectedFiles.has(fileName);
-
-        if (e.ctrlKey || e.metaKey) {
-            // Ctrl+Click - toggle selection
-            if (isSelected) {
-                this.deselectFile(explorer, fileName);
-            } else {
-                this.selectFile(explorer, fileName);
-            }
-        } else if (e.shiftKey && explorer.selectedFiles.size > 0) {
-            // Shift+Click - range selection
-            this.selectRange(explorer, fileName);
-        } else {
-            // Regular click - select only this file
-            this.clearSelection(explorer);
-            this.selectFile(explorer, fileName);
-        }
-    }
-
-    /**
-     * Handle content area double clicks
-     */
-    handleContentDoubleClick(explorer, e) {
-        const fileItem = e.target.closest('.file-item');
-        if (!fileItem) return;
-
-        const fileName = fileItem.dataset.name;
-        const fileType = fileItem.dataset.type;
-
-        if (fileType === 'dir') {
-            // Navigate into directory
-            const newPath = this.joinPath(explorer.currentPath, fileName);
-            this.navigateToPath(explorer, newPath);
-        } else {
-            // Open file
-            this.openFile(explorer, fileName);
-        }
-    }
-
-    /**
-     * Open a file
-     */
-    async openFile(explorer, fileName) {
-        const filePath = this.joinPath(explorer.currentPath, fileName);
-
-        try {
-            // Get file extension
-            const ext = fileName.split('.').pop().toLowerCase();
-
-            // Handle different file types
-            if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp'].includes(ext)) {
-                this.previewImage(filePath);
-            } else if (['mp4', 'avi', 'mov', 'mkv', 'webm'].includes(ext)) {
-                this.previewVideo(filePath);
-            } else if (['mp3', 'wav', 'ogg', 'flac', 'm4a'].includes(ext)) {
-                this.previewAudio(filePath);
-            } else if (['txt', 'md', 'json', 'css', 'js', 'py', 'html', 'xml'].includes(ext)) {
-                this.editTextFile(filePath);
-            } else {
-                // Download file
-                this.downloadFile(filePath);
-            }
-
-        } catch (error) {
-            console.error('Error opening file:', error);
-            this.showError(explorer, `Failed to open file: ${error.message}`);
-        }
-    }
-
-    /**
-     * Preview image file
-     */
-    previewImage(filePath) {
-        const modal = this.createModal('Image Preview', `
-            <div style="text-align: center;">
-                <img src="/api/files/${filePath.substring(1)}" 
-                     style="max-width: 100%; max-height: 70vh; border-radius: 8px;" 
-                     alt="Image preview">
-                <div style="margin-top: 16px; color: var(--text-secondary);">
-                    ${filePath}
-                </div>
-            </div>
-        `);
-    }
-
-    /**
-     * Preview video file
-     */
-    previewVideo(filePath) {
-        const modal = this.createModal('Video Preview', `
-            <div style="text-align: center;">
-                <video controls style="max-width: 100%; max-height: 70vh; border-radius: 8px;">
-                    <source src="/api/files/${filePath.substring(1)}" type="video/mp4">
-                    Your browser does not support the video tag.
-                </video>
-                <div style="margin-top: 16px; color: var(--text-secondary);">
-                    ${filePath}
-                </div>
-            </div>
-        `);
-    }
-
-    /**
-     * Preview audio file
-     */
-    previewAudio(filePath) {
-        const modal = this.createModal('Audio Preview', `
-            <div style="text-align: center;">
-                <div style="font-size: 48px; margin-bottom: 20px;">🎵</div>
-                <audio controls style="width: 100%; margin-bottom: 16px;">
-                    <source src="/api/files/${filePath.substring(1)}" type="audio/mpeg">
-                    Your browser does not support the audio element.
-                </audio>
-                <div style="color: var(--text-secondary);">
-                    ${filePath}
-                </div>
-            </div>
-        `);
-    }
-
-    /**
-     * Edit text file
-     */
-    editTextFile(filePath) {
-        // This would open a text editor window
-        console.log(`Opening text editor for: ${filePath}`);
-
-        if (window.pixelPusher?.modules?.windows) {
-            window.pixelPusher.modules.windows.open('editor', {
-                filename: filePath.split('/').pop(),
-                path: filePath
-            });
-        }
-    }
-
-    /**
-     * Download file
-     */
-    downloadFile(filePath) {
-        const link = document.createElement('a');
-        link.href = `/api/files/${filePath.substring(1)}`;
-        link.download = filePath.split('/').pop();
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }
-
-    /**
-     * Select a file
-     */
-    selectFile(explorer, fileName) {
-        explorer.selectedFiles.add(fileName);
-        this.updateFileSelection(explorer, fileName, true);
-    }
-
-    /**
-     * Deselect a file
-     */
-    deselectFile(explorer, fileName) {
-        explorer.selectedFiles.delete(fileName);
-        this.updateFileSelection(explorer, fileName, false);
-    }
-
-    /**
-     * Clear all selections
-     */
-    clearSelection(explorer) {
-        explorer.selectedFiles.forEach(fileName => {
-            this.updateFileSelection(explorer, fileName, false);
-        });
-        explorer.selectedFiles.clear();
-    }
-
-    /**
-     * Update visual selection state of a file
-     */
-    updateFileSelection(explorer, fileName, selected) {
-        const fileItem = explorer.content.querySelector(`[data-name="${fileName}"]`);
-        if (!fileItem) return;
-
-        if (selected) {
-            fileItem.style.backgroundColor = 'var(--primary)';
-            fileItem.style.borderColor = 'var(--primary)';
-            fileItem.style.color = 'white';
-
-            // Update text colors in list view
-            if (explorer.viewMode === 'list') {
-                fileItem.querySelectorAll('.file-name, .file-size, .file-date').forEach(el => {
-                    el.style.color = 'white';
-                });
-            } else {
-                fileItem.querySelector('.file-name').style.color = 'white';
-            }
-        } else {
-            fileItem.style.backgroundColor = 'transparent';
-            fileItem.style.borderColor = 'transparent';
-            fileItem.style.color = '';
-
-            // Reset text colors
-            if (explorer.viewMode === 'list') {
-                fileItem.querySelector('.file-name').style.color = 'var(--text-primary)';
-                fileItem.querySelectorAll('.file-size, .file-date').forEach(el => {
-                    el.style.color = 'var(--text-secondary)';
-                });
-            } else {
-                fileItem.querySelector('.file-name').style.color = 'var(--text-primary)';
-            }
-        }
-    }
-
-    /**
-     * Navigate back in history
-     */
-    navigateBack(explorer) {
-        if (!explorer) {
-            explorer = Array.from(this.explorers.values())[0];
-        }
-
-        if (explorer && explorer.historyIndex > 0) {
-            explorer.historyIndex--;
-            const path = explorer.history[explorer.historyIndex];
-            this.navigateToPath(explorer, path);
-        }
-    }
-
-    /**
-     * Navigate up one directory level
-     */
-    navigateUp(explorer) {
-        if (!explorer) {
-            explorer = Array.from(this.explorers.values())[0];
-        }
-
-        if (explorer && explorer.currentPath !== '/') {
-            const parentPath = explorer.currentPath.split('/').slice(0, -1).join('/') || '/';
-            this.navigateToPath(explorer, parentPath);
-        }
-    }
-
-    /**
-     * Refresh current directory
-     */
-    refresh(explorer) {
-        if (!explorer) {
-            explorer = Array.from(this.explorers.values())[0];
-        }
-
-        if (explorer) {
-            this.navigateToPath(explorer, explorer.currentPath);
-        }
-    }
-
-    /**
-     * Show context menu
-     */
-    showContextMenu(explorer, e) {
-        const fileItem = e.target.closest('.file-item');
-
-        let menuItems;
-        if (fileItem) {
-            // File/folder context menu
-            const fileName = fileItem.dataset.name;
-            const fileType = fileItem.dataset.type;
-
-            menuItems = [
-                { text: '📂 Open', action: () => this.openFile(explorer, fileName) },
-                { separator: true },
-                { text: '✂️ Cut', action: () => this.cutFile(explorer, fileName) },
-                { text: '📋 Copy', action: () => this.copyFile(explorer, fileName) },
-                { text: '🗑️ Delete', action: () => this.deleteFile(explorer, fileName) },
-                { text: '✏️ Rename', action: () => this.renameFile(explorer, fileName) },
-                { separator: true },
-                { text: 'ℹ️ Properties', action: () => this.showFileProperties(explorer, fileName) }
-            ];
-        } else {
-            // Empty space context menu
-            menuItems = [
-                { text: '📄 New File', action: () => this.createNewFile(explorer) },
-                { text: '📁 New Folder', action: () => this.createNewFolder(explorer) },
-                { separator: true },
-                { text: '📎 Paste', action: () => this.pasteFile(explorer), enabled: !!this.clipboard },
-                { separator: true },
-                { text: '🔄 Refresh', action: () => this.refresh(explorer) }
-            ];
-        }
-
-        this.showContextMenuItems(e.clientX, e.clientY, menuItems);
-    }
-
-    /**
-     * Show context menu with items
-     */
-    showContextMenuItems(x, y, items) {
-        // Remove existing context menu
-        const existingMenu = document.querySelector('.explorer-context-menu');
-        if (existingMenu) {
-            existingMenu.remove();
-        }
-
-        const menu = document.createElement('div');
-        menu.className = 'explorer-context-menu';
-        menu.style.cssText = `
-            position: fixed;
-            left: ${Math.min(x, window.innerWidth - 200)}px;
-            top: ${Math.min(y, window.innerHeight - items.length * 32)}px;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 4px 0;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-            z-index: 10000;
-            min-width: 150px;
-        `;
-
-        items.forEach(item => {
-            if (item.separator) {
-                const separator = document.createElement('div');
-                separator.style.cssText = `
-                    height: 1px;
-                    background: var(--border);
-                    margin: 4px 0;
-                `;
-                menu.appendChild(separator);
-            } else {
-                const menuItem = document.createElement('div');
-                menuItem.textContent = item.text;
-                menuItem.style.cssText = `
-                    padding: 8px 16px;
-                    cursor: ${item.enabled !== false ? 'pointer' : 'not-allowed'};
-                    color: ${item.enabled !== false ? 'var(--text-primary)' : 'var(--text-disabled)'};
-                    font-size: 14px;
-                    transition: background-color 0.2s;
-                `;
-
-                if (item.enabled !== false) {
-                    menuItem.addEventListener('mouseenter', () => {
-                        menuItem.style.backgroundColor = 'var(--primary)';
-                        menuItem.style.color = 'white';
-                    });
-
-                    menuItem.addEventListener('mouseleave', () => {
-                        menuItem.style.backgroundColor = 'transparent';
-                        menuItem.style.color = 'var(--text-primary)';
-                    });
-
-                    menuItem.addEventListener('click', () => {
-                        menu.remove();
-                        item.action();
-                    });
-                }
-
-                menu.appendChild(menuItem);
-            }
-        });
-
-        document.body.appendChild(menu);
-
-        // Close menu when clicking elsewhere
-        setTimeout(() => {
-            document.addEventListener('click', function closeMenu() {
-                menu.remove();
-                document.removeEventListener('click', closeMenu);
-            });
-        }, 0);
-    }
-
-    /**
-     * Create new file
-     */
-    async createNewFile(explorer) {
-        const fileName = prompt('Enter file name:');
-        if (!fileName) return;
-
-        try {
-            const response = await fetch('/api/save', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    filename: this.joinPath(explorer.currentPath, fileName),
-                    content: ''
-                })
-            });
-
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || 'Failed to create file');
-            }
-
-            // Refresh directory
-            this.refresh(explorer);
-
-            // Show success message
-            this.showSuccess(explorer, `File created: ${fileName}`);
-
-        } catch (error) {
-            console.error('Error creating file:', error);
-            this.showError(explorer, `Failed to create file: ${error.message}`);
-        }
-    }
-
-    /**
-     * Create new folder
-     */
-    async createNewFolder(explorer) {
-        const folderName = prompt('Enter folder name:');
-        if (!folderName) return;
-
-        try {
-            // Use mkdir command through terminal API
-            const command = `mkdir "${folderName}"`;
-            const response = await fetch(`/api/command/${encodeURIComponent(command)}`);
-            const result = await response.json();
-
-            if (!response.ok) {
-                throw new Error(result.message || 'Failed to create folder');
-            }
-
-            // Refresh directory
-            this.refresh(explorer);
-
-            // Show success message
-            this.showSuccess(explorer, `Folder created: ${folderName}`);
-
-        } catch (error) {
-            console.error('Error creating folder:', error);
-            this.showError(explorer, `Failed to create folder: ${error.message}`);
-        }
-    }
-
-    /**
-     * Delete file
-     */
-    async deleteFile(explorer, fileName) {
-        if (!confirm(`Are you sure you want to delete "${fileName}"?`)) {
-            return;
-        }
-
-        try {
-            // Use rm command through terminal API
-            const command = `rm "${fileName}"`;
-            const response = await fetch(`/api/command/${encodeURIComponent(command)}`);
-            const result = await response.json();
-
-            if (!response.ok) {
-                throw new Error(result.message || 'Failed to delete file');
-            }
-
-            // Refresh directory
-            this.refresh(explorer);
-
-            // Show success message
-            this.showSuccess(explorer, `Deleted: ${fileName}`);
-
-        } catch (error) {
-            console.error('Error deleting file:', error);
-            this.showError(explorer, `Failed to delete file: ${error.message}`);
-        }
-    }
-
-    /**
-     * Rename file
-     */
-    async renameFile(explorer, oldFileName) {
-        const newFileName = prompt('Enter new name:', oldFileName);
-        if (!newFileName || newFileName === oldFileName) return;
-
-        try {
-            // Use mv command through terminal API
-            const command = `mv "${oldFileName}" "${newFileName}"`;
-            const response = await fetch(`/api/command/${encodeURIComponent(command)}`);
-            const result = await response.json();
-
-            if (!response.ok) {
-                throw new Error(result.message || 'Failed to rename file');
-            }
-
-            // Refresh directory
-            this.refresh(explorer);
-
-            // Show success message
-            this.showSuccess(explorer, `Renamed: ${oldFileName} → ${newFileName}`);
-
-        } catch (error) {
-            console.error('Error renaming file:', error);
-            this.showError(explorer, `Failed to rename file: ${error.message}`);
-        }
-    }
-
-    /**
-     * Show file properties
-     */
-    showFileProperties(explorer, fileName) {
-        const fileItem = explorer.content.querySelector(`[data-name="${fileName}"]`);
-        if (!fileItem) return;
-
-        const fileType = fileItem.dataset.type;
-        const fileSize = fileItem.dataset.size;
-        const modifiedTime = new Date(fileItem.dataset.modified * 1000);
-
-        const propertiesHTML = `
-            <div style="text-align: left;">
-                <h3>${fileName}</h3>
-                <table style="width: 100%; border-collapse: collapse;">
-                    <tr>
-                        <td style="padding: 8px; font-weight: bold;">Type:</td>
-                        <td style="padding: 8px;">${fileType === 'dir' ? 'Folder' : 'File'}</td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 8px; font-weight: bold;">Size:</td>
-                        <td style="padding: 8px;">${fileType === 'file' ? this.formatFileSize(fileSize) : '--'}</td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 8px; font-weight: bold;">Modified:</td>
-                        <td style="padding: 8px;">${modifiedTime.toLocaleString()}</td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 8px; font-weight: bold;">Location:</td>
-                        <td style="padding: 8px;">${explorer.currentPath}</td>
-                    </tr>
-                </table>
-            </div>
-        `;
-
-        this.createModal(`Properties - ${fileName}`, propertiesHTML);
-    }
-
-    /**
-     * Utility functions
-     */
-    normalizePath(path) {
-        if (!path || path === '/') return '/';
-        return path.startsWith('/') ? path : '/' + path;
-    }
-
-    joinPath(basePath, fileName) {
-        if (basePath === '/') return '/' + fileName;
-        return basePath + '/' + fileName;
-    }
-
-    formatFileSize(bytes) {
-        if (bytes === 0) return '0 B';
-        const k = 1024;
-        const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-    }
-
-    escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
-
-    sortItems(items) {
-        return items.sort((a, b) => {
-            // Folders first
-            if (a.type !== b.type) {
-                return a.type === 'dir' ? -1 : 1;
-            }
-
-            // Then by sort criteria
-            let compareValue = 0;
-            switch (this.sortBy) {
-                case 'name':
-                    compareValue = a.name.localeCompare(b.name);
-                    break;
-                case 'size':
-                    compareValue = (a.size || 0) - (b.size || 0);
-                    break;
-                case 'date':
-                    compareValue = (a.modified || 0) - (b.modified || 0);
-                    break;
-                case 'type':
-                    const extA = a.name.split('.').pop() || '';
-                    const extB = b.name.split('.').pop() || '';
-                    compareValue = extA.localeCompare(extB);
-                    break;
-            }
-
-            return this.sortOrder === 'desc' ? -compareValue : compareValue;
-        });
-    }
-
-    createModal(title, content) {
-        return window.pixelPusher ?
-            window.pixelPusher.showModal(title, content) :
-            alert(content);
-    }
-
-    showError(explorer, message) {
-        if (window.pixelPusher) {
-            window.pixelPusher.showNotification(message, 'error');
-        } else {
-            alert(message);
-        }
-    }
-
-    showSuccess(explorer, message) {
-        if (window.pixelPusher) {
-            window.pixelPusher.showNotification(message, 'success');
-        } else {
-            console.log(message);
-        }
-    }
-
-    showLoadingState(explorer) {
-        explorer.content.innerHTML = `
-            <div style="
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                height: 200px;
-                color: var(--text-secondary);
-                font-size: 16px;
-            ">
-                <div>🔄 Loading...</div>
-            </div>
-        `;
-    }
-
-    showEmptyDirectory(explorer) {
-        explorer.content.innerHTML = `
-            <div style="
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                height: 200px;
-                color: var(--text-secondary);
-                font-size: 16px;
-                text-align: center;
-            ">
-                <div style="font-size: 48px; margin-bottom: 16px;">📁</div>
-                <div>This folder is empty</div>
-                <div style="font-size: 14px; margin-top: 8px;">Right-click to create new files or folders</div>
-            </div>
-        `;
-    }
-
-    updateToolbarButtons(explorer) {
-        // Update back button state
-        const backButton = explorer.toolbar.querySelector('button');
-        if (backButton) {
-            backButton.disabled = explorer.historyIndex <= 0;
-        }
-    }
-
-    setupGlobalShortcuts() {
-        document.addEventListener('keydown', (e) => {
-            // Ctrl+Alt+E - Focus explorer or open new one
-            if (e.ctrlKey && e.altKey && e.key.toLowerCase() === 'e') {
-                e.preventDefault();
-                this.focusOrCreateExplorer();
-            }
-        });
-    }
-
-    focusOrCreateExplorer() {
-        const existingExplorer = Array.from(this.explorers.values())[0];
-        if (existingExplorer) {
-            // Focus existing explorer window
-            if (window.pixelPusher?.modules?.windows) {
-                window.pixelPusher.modules.windows.focus(existingExplorer.id);
-            }
-        } else {
-            // Open new explorer
-            if (window.pixelPusher?.modules?.windows) {
-                window.pixelPusher.modules.windows.open('explorer');
-            }
-        }
-    }
-
-    initializeFileTypes() {
-        // File type associations would be set up here
-        console.log('📄 File type associations initialized');
-    }
-
-    loadPreferences() {
-        // Load saved preferences from storage
-        const stateManager = window.pixelPusher?.modules?.state;
-        if (stateManager) {
-            this.viewMode = stateManager.getPreference('explorerViewMode', 'list');
-            this.sortBy = stateManager.getPreference('explorerSortBy', 'name');
-            this.sortOrder = stateManager.getPreference('explorerSortOrder', 'asc');
-        }
-    }
-
-    savePreferences() {
-        // Save preferences to storage
-        const stateManager = window.pixelPusher?.modules?.state;
-        if (stateManager) {
-            stateManager.setPreference('explorerViewMode', this.viewMode);
-            stateManager.setPreference('explorerSortBy', this.sortBy);
-            stateManager.setPreference('explorerSortOrder', this.sortOrder);
-        }
-    }
-
-    handleResize() {
-        // Handle window resize for explorer windows
-        this.explorers.forEach(explorer => {
-            // Could adjust layout based on new window size
-        });
-    }
-
-    destroy() {
-        // Clean up explorer manager
-        this.explorers.clear();
-        console.log('📁 File Explorer Manager destroyed');
-    }
-}
-
-// Export for module systems
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = ExplorerManager;
-}
-
-console.log('📁 File Explorer manager loaded successfully');
+        if action in command_handlers:
+            try:
+                return command_handlers[action](argument)
+            except Exception as e:
+                logging.error(f"Command execution error: {action}", exc_info=e)
+                return f"Error executing '{action}': {str(e)}"
+        else:
+            return f"Command '{action}' not found. Type 'help' for available commands."
+
+    def _add_to_history(self, command):
+        """Add command to history with size limit"""
+        self.command_history.append({
+            'command': command,
+            'timestamp': time.time(),
+            'working_dir': self.current_dir
+        })
+
+        if len(self.command_history) > self.max_history:
+            self.command_history = self.command_history[-self.max_history:]
+
+    def _help_command(self, _):
+        """Generate comprehensive help documentation"""
+        command_groups = collections.OrderedDict([
+            ("📋 General Commands", [
+                ("help", "Show this help menu"),
+                ("about", "About Pixel Pusher OS"),
+                ("contact", "Contact information"),
+                ("clear", "Clear terminal screen"),
+                ("history", "Show command history"),
+                ("echo <text>", "Display text"),
+            ]),
+            ("🕐 Date & Time", [
+                ("time", "Show current time"),
+                ("date", "Show current date"),
+                ("uptime", "System uptime"),
+            ]),
+            ("📁 File Operations", [
+                ("ls/dir [path]", "List directory contents"),
+                ("cd <dir>", "Change directory"),
+                ("pwd", "Show current directory"),
+                ("mkdir <name>", "Create directory"),
+                ("touch <file>", "Create empty file"),
+                ("del/rm <file>", "Delete file or directory"),
+                ("cat <file>", "Display file content"),
+                ("edit <file>", "Edit text file"),
+                ("rename <old> <new>", "Rename file/folder"),
+                ("cp <src> <dest>", "Copy file or directory"),
+                ("properties <item>", "Show item properties"),
+                ("find <pattern>", "Search for files"),
+                ("tree [path]", "Show directory tree"),
+            ]),
+            ("💻 System Information", [
+                ("sysinfo", "Detailed system information"),
+                ("whoami", "Current user"),
+                ("ps", "Running processes"),
+                ("df", "Disk usage"),
+                ("free", "Memory information"),
+            ]),
+            ("🎨 Visual & Themes", [
+                ("color <theme>", "Change color theme"),
+                ("effect <name>", "Start visual effect"),
+                ("wallpaper <file>", "Set desktop wallpaper"),
+            ]),
+            ("🌐 Network", [
+                ("curl <url>", "Fetch web content"),
+                ("ping <host>", "Network connectivity test"),
+            ]),
+            ("🎮 Applications", [
+                ("explorer", "Open file explorer"),
+                ("game <name>", "Launch game (snake, dino, memory, clicker)"),
+            ]),
+        ])
+
+        max_cmd_width = max(len(cmd) for cmds in command_groups.values() for cmd, _ in cmds)
+        max_desc_width = max(len(desc) for cmds in command_groups.values() for _, desc in cmds)
+        total_width = max_cmd_width + max_desc_width + 10
+
+        help_lines = []
+        help_lines.append("=" * total_width)
+        help_lines.append(f"{'PIXEL PUSHER OS TERMINAL':^{total_width}}")
+        help_lines.append("=" * total_width)
+
+        for group_name, commands in command_groups.items():
+            help_lines.append("")
+            help_lines.append(f"{group_name}")
+            help_lines.append("-" * len(group_name))
+
+            for cmd, desc in commands:
+                help_lines.append(f"  {cmd:<{max_cmd_width}} │ {desc}")
+
+        help_lines.append("")
+        help_lines.append("=" * total_width)
+        help_lines.append("💡 Tip: Use TAB for command completion, ↑↓ for history")
+        help_lines.append("🎯 Type command names for detailed usage information")
+
+        return "\n".join(help_lines)
+
+    def _about_command(self, _):
+        """About Pixel Pusher OS information"""
+        return """
+╔══════════════════════════════════════════════╗
+║            PIXEL PUSHER OS v2.0              ║
+╠══════════════════════════════════════════════╣
+║  A Modern Web-Based Desktop Environment      ║
+║                                              ║
+║  🎨 Features:                                ║
+║  • Professional desktop interface           ║
+║  • Built-in terminal with 50+ commands      ║
+║  • File explorer with media support         ║
+║  • Gaming center with 4 complete games      ║
+║  • 12+ customizable themes                  ║
+║  • Task manager and system tools            ║
+║  • Responsive design for all devices        ║
+║                                              ║
+║  🔧 Built with: Flask + JavaScript + CSS    ║
+║  📅 Version: 2.0.0 (2024)                   ║
+║  📜 License: MIT License                     ║
+╚══════════════════════════════════════════════╝
+        """.strip()
+
+    def _contact_command(self, _):
+        """Contact information"""
+        return """
+📧 Contact Information:
+
+  Support: support@pixelpusher.dev
+  Website: https://pixelpusher.dev
+  GitHub:  https://github.com/pixelpusher/os
+
+  For technical support, please include:
+  • Your browser version
+  • Error messages (if any)
+  • Steps to reproduce the issue
+        """.strip()
+
+    def _system_info(self, _):
+        """Comprehensive system information"""
+        try:
+            cpu_percent = psutil.cpu_percent(interval=1)
+            memory = psutil.virtual_memory()
+            disk = psutil.disk_usage('/')
+
+            info_sections = [
+                "🖥️  SYSTEM INFORMATION",
+                "=" * 40,
+                f"Operating System: {platform.system()} {platform.release()}",
+                f"Platform: {platform.platform()}",
+                f"Processor: {platform.processor() or 'Unknown'}",
+                f"Architecture: {platform.architecture()[0]}",
+                "",
+                "💾 MEMORY & STORAGE",
+                "=" * 40,
+                f"Total RAM: {self._format_bytes(memory.total)}",
+                f"Available RAM: {self._format_bytes(memory.available)}",
+                f"RAM Usage: {memory.percent}%",
+                f"Total Disk: {self._format_bytes(disk.total)}",
+                f"Free Disk: {self._format_bytes(disk.free)}",
+                f"Disk Usage: {(disk.used / disk.total * 100):.1f}%",
+                "",
+                "⚡ PERFORMANCE",
+                "=" * 40,
+                f"CPU Usage: {cpu_percent}%",
+                f"CPU Cores: {psutil.cpu_count(logical=False)} physical, {psutil.cpu_count()} logical",
+                f"Load Average: {os.getloadavg() if hasattr(os, 'getloadavg') else 'N/A'}",
+                "",
+                "🌐 NETWORK",
+                "=" * 40,
+                f"Hostname: {platform.node()}",
+                f"User: {os.environ.get('USER', 'unknown')}",
+                f"Python Version: {platform.python_version()}",
+            ]
+
+            return "\n".join(info_sections)
+
+        except Exception as e:
+            return f"Error gathering system information: {e}"
+
+    def _uptime_command(self, _):
+        """System uptime information"""
+        try:
+            if hasattr(psutil, 'boot_time'):
+                boot_time = psutil.boot_time()
+                uptime_seconds = time.time() - boot_time
+
+                days, remainder = divmod(int(uptime_seconds), 86400)
+                hours, remainder = divmod(remainder, 3600)
+                minutes, seconds = divmod(remainder, 60)
+
+                uptime_parts = []
+                if days > 0:
+                    uptime_parts.append(f"{days} day{'s' if days != 1 else ''}")
+                if hours > 0:
+                    uptime_parts.append(f"{hours} hour{'s' if hours != 1 else ''}")
+                if minutes > 0:
+                    uptime_parts.append(f"{minutes} minute{'s' if minutes != 1 else ''}")
+
+                return f"System uptime: {', '.join(uptime_parts)}"
+            else:
+                return "Uptime information not available"
+        except:
+            return "Unable to determine system uptime"
+
+    def _pwd_command(self, _):
+        """Print working directory"""
+        relative_path = os.path.relpath(self.current_dir, Config.BASE_DIR)
+        return f"/{relative_path}" if relative_path != '.' else "/"
+
+    def _show_history(self, _):
+        """Show command history"""
+        if not self.command_history:
+            return "No command history available."
+        
+        lines = ["Command History:"]
+        lines.append("-" * 40)
+        
+        for i, entry in enumerate(self.command_history[-20:], 1):  # Show last 20
+            timestamp = time.strftime("%H:%M:%S", time.localtime(entry['timestamp']))
+            lines.append(f"{i:2}: [{timestamp}] {entry['command']}")
+        
+        return "\n".join(lines)
+
+    # File system operations
+    def _list_command(self, path):
+        """List directory contents with detailed information"""
+        target_dir = os.path.join(self.current_dir, path) if path else self.current_dir
+        target_dir = os.path.normpath(target_dir)
+
+        if not target_dir.startswith(Config.BASE_DIR):
+            return "❌ Access denied: Path outside allowed directory"
+
+        if not os.path.exists(target_dir):
+            return f"❌ Directory not found: {path or '.'}"
+
+        if not os.path.isdir(target_dir):
+            return f"❌ Not a directory: {path}"
+
+        try:
+            items = []
+            total_size = 0
+
+            for item_name in sorted(os.listdir(target_dir)):
+                item_path = os.path.join(target_dir, item_name)
+                stat_info = os.stat(item_path)
+
+                if os.path.isdir(item_path):
+                    item_type = "📁 DIR "
+                    size_str = "     --"
+                else:
+                    item_type = "📄 FILE"
+                    size = stat_info.st_size
+                    size_str = self._format_file_size(size)
+                    total_size += size
+
+                mod_time = time.strftime("%Y-%m-%d %H:%M", time.localtime(stat_info.st_mtime))
+                permissions = oct(stat_info.st_mode)[-3:]
+
+                items.append(f"{item_type} {size_str:>8} {permissions} {mod_time} {item_name}")
+
+            header = f"📁 Contents of {self._pwd_command('')}"
+            separator = "─" * 60
+            footer = f"\n📊 Total: {len(items)} items"
+            if total_size > 0:
+                footer += f" • {self._format_file_size(total_size)} total size"
+
+            if items:
+                return f"{header}\n{separator}\n" + "\n".join(items) + footer
+            else:
+                return f"{header}\n{separator}\n(empty directory)"
+
+        except PermissionError:
+            return f"❌ Permission denied: Cannot access {path or 'current directory'}"
+        except Exception as e:
+            return f"❌ Error listing directory: {str(e)}"
+
+    def _change_directory(self, path):
+        """Change current working directory"""
+        if not path:
+            return "Usage: cd <directory>\nExample: cd documents"
+
+        if path == "..":
+            parent_dir = os.path.dirname(self.current_dir)
+            if parent_dir and parent_dir.startswith(Config.BASE_DIR):
+                self.current_dir = parent_dir
+                return f"📁 Changed to: {self._pwd_command('')}"
+            else:
+                return "❌ Already at root directory"
+
+        new_path = os.path.join(self.current_dir, path)
+        new_path = os.path.normpath(new_path)
+
+        if not new_path.startswith(Config.BASE_DIR):
+            return "❌ Access denied: Path outside allowed directory"
+
+        if not os.path.exists(new_path):
+            return f"❌ Directory not found: {path}"
+
+        if not os.path.isdir(new_path):
+            return f"❌ Not a directory: {path}"
+
+        self.current_dir = new_path
+        return f"📁 Changed to: {self._pwd_command('')}"
+
+    def _make_directory(self, dirname):
+        """Create a new directory"""
+        if not dirname:
+            return "Usage: mkdir <directory_name>\nExample: mkdir new_folder"
+
+        new_dir_path = os.path.join(self.current_dir, dirname)
+        new_dir_path = os.path.normpath(new_dir_path)
+
+        if not new_dir_path.startswith(Config.BASE_DIR):
+            return "❌ Access denied: Path outside allowed directory"
+
+        if os.path.exists(new_dir_path):
+            return f"❌ Directory already exists: {dirname}"
+
+        try:
+            os.makedirs(new_dir_path)
+            return f"✅ Directory created: {dirname}"
+        except PermissionError:
+            return f"❌ Permission denied: Cannot create directory {dirname}"
+        except Exception as e:
+            return f"❌ Error creating directory: {str(e)}"
+
+    def _create_file(self, filename):
+        """Create a new empty file"""
+        if not filename:
+            return "Usage: touch <filename>\nExample: touch document.txt"
+
+        file_path = os.path.join(self.current_dir, filename)
+        file_path = os.path.normpath(file_path)
+
+        if not file_path.startswith(Config.BASE_DIR):
+            return "❌ Access denied: Path outside allowed directory"
+
+        if os.path.exists(file_path):
+            # Update modification time
+            os.utime(file_path, None)
+            return f"✅ Updated timestamp: {filename}"
+
+        try:
+            with open(file_path, 'w') as f:
+                f.write("")
+            return f"✅ File created: {filename}"
+        except PermissionError:
+            return f"❌ Permission denied: Cannot create file {filename}"
+        except Exception as e:
+            return f"❌ Error creating file: {str(e)}"
+
+    def _delete_file(self, filename):
+        """Delete a file or directory"""
+        if not filename:
+            return "Usage: rm <filename>\nExample: rm document.txt"
+
+        file_path = os.path.join(self.current_dir, filename)
+        file_path = os.path.normpath(file_path)
+
+        if not file_path.startswith(Config.BASE_DIR):
+            return "❌ Access denied: Path outside allowed directory"
+
+        if not os.path.exists(file_path):
+            return f"❌ File or directory not found: {filename}"
+
+        try:
+            if os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+                return f"✅ Directory deleted: {filename}"
+            else:
+                os.remove(file_path)
+                return f"✅ File deleted: {filename}"
+        except PermissionError:
+            return f"❌ Permission denied: Cannot delete {filename}"
+        except Exception as e:
+            return f"❌ Error deleting: {str(e)}"
+
+    def _copy_file(self, args):
+        """Copy file or directory"""
+        if not args:
+            return "Usage: cp <source> <destination>\nExample: cp file.txt backup.txt"
+
+        parts = args.split()
+        if len(parts) != 2:
+            return "Usage: cp <source> <destination>"
+
+        src, dest = parts
+        src_path = os.path.join(self.current_dir, src)
+        dest_path = os.path.join(self.current_dir, dest)
+        
+        src_path = os.path.normpath(src_path)
+        dest_path = os.path.normpath(dest_path)
+
+        if not src_path.startswith(Config.BASE_DIR) or not dest_path.startswith(Config.BASE_DIR):
+            return "❌ Access denied: Path outside allowed directory"
+
+        if not os.path.exists(src_path):
+            return f"❌ Source not found: {src}"
+
+        try:
+            if os.path.isdir(src_path):
+                shutil.copytree(src_path, dest_path)
+                return f"✅ Directory copied: {src} → {dest}"
+            else:
+                shutil.copy2(src_path, dest_path)
+                return f"✅ File copied: {src} → {dest}"
+        except Exception as e:
+            return f"❌ Error copying: {str(e)}"
+
+    def _rename_file(self, args):
+        """Rename file or directory"""
+        if not args:
+            return "Usage: rename <old_name> <new_name>\nExample: rename old.txt new.txt"
+
+        parts = args.split()
+        if len(parts) != 2:
+            return "Usage: rename <old_name> <new_name>"
+
+        old_name, new_name = parts
+        old_path = os.path.join(self.current_dir, old_name)
+        new_path = os.path.join(self.current_dir, new_name)
+        
+        old_path = os.path.normpath(old_path)
+        new_path = os.path.normpath(new_path)
+
+        if not old_path.startswith(Config.BASE_DIR) or not new_path.startswith(Config.BASE_DIR):
+            return "❌ Access denied: Path outside allowed directory"
+
+        if not os.path.exists(old_path):
+            return f"❌ File not found: {old_name}"
+
+        if os.path.exists(new_path):
+            return f"❌ Destination already exists: {new_name}"
+
+        try:
+            os.rename(old_path, new_path)
+            return f"✅ Renamed: {old_name} → {new_name}"
+        except Exception as e:
+            return f"❌ Error renaming: {str(e)}"
+
+    def _read_file(self, filename):
+        """Display file content"""
+        if not filename:
+            return "Usage: cat <filename>\nExample: cat readme.txt"
+
+        file_path = os.path.join(self.current_dir, filename)
+        file_path = os.path.normpath(file_path)
+
+        if not file_path.startswith(Config.BASE_DIR):
+            return "❌ Access denied: File outside allowed directory"
+
+        if not os.path.exists(file_path):
+            return f"❌ File not found: {filename}"
+
+        if not os.path.isfile(file_path):
+            return f"❌ Not a file: {filename}"
+
+        _, ext = os.path.splitext(filename.lower())
+
+        if ext in ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp']:
+            return f"__IMAGE__::{os.path.relpath(file_path, Config.BASE_DIR)}"
+        elif ext in ['.mp4', '.avi', '.mov', '.mkv', '.webm']:
+            return f"__VIDEO__::{os.path.relpath(file_path, Config.BASE_DIR)}"
+        elif ext in ['.mp3', '.wav', '.ogg', '.m4a', '.flac']:
+            return f"__AUDIO__::{os.path.relpath(file_path, Config.BASE_DIR)}"
+        else:
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+
+                if len(content) > 5000:
+                    content = content[:5000] + "\n... (file truncated, use editor to view full content)"
+
+                return f"📄 Content of {filename}:\n{'─' * 40}\n{content}"
+
+            except UnicodeDecodeError:
+                return f"❌ Cannot display binary file: {filename}"
+            except Exception as e:
+                return f"❌ Error reading file: {str(e)}"
+
+    def _edit_file(self, filename):
+        """Open file for editing"""
+        if not filename:
+            return "Usage: edit <filename>\nExample: edit document.txt"
+
+        return f"__EDITOR__::{filename}"
+
+    def _file_properties(self, filename):
+        """Show file properties"""
+        if not filename:
+            return "Usage: properties <filename>\nExample: properties document.txt"
+
+        file_path = os.path.join(self.current_dir, filename)
+        file_path = os.path.normpath(file_path)
+
+        if not file_path.startswith(Config.BASE_DIR):
+            return "❌ Access denied: Path outside allowed directory"
+
+        if not os.path.exists(file_path):
+            return f"❌ File not found: {filename}"
+
+        try:
+            stat_info = os.stat(file_path)
+            file_type = "Directory" if os.path.isdir(file_path) else "File"
+            
+            properties = [
+                f"📄 Properties of {filename}",
+                "=" * 40,
+                f"Type: {file_type}",
+                f"Size: {self._format_file_size(stat_info.st_size) if not os.path.isdir(file_path) else 'N/A'}",
+                f"Created: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(stat_info.st_ctime))}",
+                f"Modified: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(stat_info.st_mtime))}",
+                f"Accessed: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(stat_info.st_atime))}",
+                f"Permissions: {oct(stat_info.st_mode)[-3:]}",
+                f"Full Path: {file_path}",
+            ]
+
+            return "\n".join(properties)
+
+        except Exception as e:
+            return f"❌ Error getting properties: {str(e)}"
+
+    def _find_files(self, pattern):
+        """Search for files matching pattern"""
+        if not pattern:
+            return "Usage: find <pattern>\nExample: find *.txt"
+
+        matches = []
+        try:
+            for root, dirs, files in os.walk(self.current_dir):
+                # Skip directories outside our base
+                if not root.startswith(Config.BASE_DIR):
+                    continue
+                    
+                for file in files:
+                    if pattern.lower() in file.lower():
+                        rel_path = os.path.relpath(os.path.join(root, file), self.current_dir)
+                        matches.append(rel_path)
+
+            if matches:
+                return f"🔍 Found {len(matches)} matches:\n" + "\n".join(matches)
+            else:
+                return f"🔍 No files found matching '{pattern}'"
+
+        except Exception as e:
+            return f"❌ Error searching: {str(e)}"
+
+    def _tree_command(self, path):
+        """Show directory tree structure"""
+        target_dir = os.path.join(self.current_dir, path) if path else self.current_dir
+        target_dir = os.path.normpath(target_dir)
+
+        if not target_dir.startswith(Config.BASE_DIR):
+            return "❌ Access denied: Path outside allowed directory"
+
+        if not os.path.exists(target_dir):
+            return f"❌ Directory not found: {path or '.'}"
+
+        try:
+            lines = [f"📁 {os.path.basename(target_dir) or 'root'}"]
+            self._build_tree(target_dir, "", lines, max_depth=3)
+            return "\n".join(lines)
+        except Exception as e:
+            return f"❌ Error building tree: {str(e)}"
+
+    def _build_tree(self, directory, prefix, lines, max_depth=3, current_depth=0):
+        """Recursively build directory tree"""
+        if current_depth >= max_depth:
+            return
+
+        try:
+            items = sorted(os.listdir(directory))
+            for i, item in enumerate(items):
+                item_path = os.path.join(directory, item)
+                is_last = i == len(items) - 1
+                
+                if os.path.isdir(item_path):
+                    lines.append(f"{prefix}{'└── ' if is_last else '├── '}📁 {item}")
+                    extension = "    " if is_last else "│   "
+                    self._build_tree(item_path, prefix + extension, lines, max_depth, current_depth + 1)
+                else:
+                    lines.append(f"{prefix}{'└── ' if is_last else '├── '}📄 {item}")
+        except PermissionError:
+            lines.append(f"{prefix}└── ❌ Permission denied")
+
+    # System commands
+    def _process_list(self, _):
+        """List running processes"""
+        try:
+            processes = []
+            for proc in psutil.process_iter(['pid', 'name', 'cpu_percent', 'memory_percent']):
+                try:
+                    pinfo = proc.info
+                    processes.append({
+                        'pid': pinfo['pid'],
+                        'name': pinfo['name'][:20],
+                        'cpu': f"{pinfo['cpu_percent']:.1f}%",
+                        'memory': f"{pinfo['memory_percent']:.1f}%"
+                    })
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    pass
+
+            lines = ["📊 Running Processes", "=" * 60]
+            lines.append(f"{'PID':<8} {'NAME':<20} {'CPU':<8} {'MEMORY':<8}")
+            lines.append("-" * 60)
+
+            for proc in processes[:20]:  # Show top 20
+                lines.append(f"{proc['pid']:<8} {proc['name']:<20} {proc['cpu']:<8} {proc['memory']:<8}")
+
+            return "\n".join(lines)
+
+        except Exception as e:
+            return f"❌ Error listing processes: {str(e)}"
+
+    def _kill_process(self, pid_str):
+        """Kill a process by PID"""
+        if not pid_str:
+            return "Usage: kill <pid>\nExample: kill 1234"
+
+        try:
+            pid = int(pid_str)
+            proc = psutil.Process(pid)
+            proc.kill()
+            return f"✅ Process {pid} terminated"
+        except ValueError:
+            return "❌ Invalid PID (must be a number)"
+        except psutil.NoSuchProcess:
+            return f"❌ Process {pid_str} not found"
+        except psutil.AccessDenied:
+            return f"❌ Permission denied: Cannot kill process {pid_str}"
+        except Exception as e:
+            return f"❌ Error killing process: {str(e)}"
+
+    def _disk_usage(self, _):
+        """Show disk usage information"""
+        try:
+            disk = psutil.disk_usage('/')
+            used_percent = (disk.used / disk.total) * 100
+
+            lines = [
+                "💾 Disk Usage Information",
+                "=" * 30,
+                f"Total Space: {self._format_bytes(disk.total)}",
+                f"Used Space:  {self._format_bytes(disk.used)} ({used_percent:.1f}%)",
+                f"Free Space:  {self._format_bytes(disk.free)}",
+            ]
+
+            # Visual bar
+            bar_width = 30
+            used_blocks = int((used_percent / 100) * bar_width)
+            free_blocks = bar_width - used_blocks
+            
+            lines.append("")
+            lines.append(f"Usage: [{'█' * used_blocks}{'░' * free_blocks}] {used_percent:.1f}%")
+
+            return "\n".join(lines)
+
+        except Exception as e:
+            return f"❌ Error getting disk usage: {str(e)}"
+
+    def _memory_info(self, _):
+        """Show memory usage information"""
+        try:
+            memory = psutil.virtual_memory()
+
+            lines = [
+                "🧠 Memory Information",
+                "=" * 25,
+                f"Total RAM:     {self._format_bytes(memory.total)}",
+                f"Available RAM: {self._format_bytes(memory.available)}",
+                f"Used RAM:      {self._format_bytes(memory.used)} ({memory.percent:.1f}%)",
+                f"Free RAM:      {self._format_bytes(memory.free)}",
+            ]
+
+            # Visual bar
+            bar_width = 30
+            used_blocks = int((memory.percent / 100) * bar_width)
+            free_blocks = bar_width - used_blocks
+            
+            lines.append("")
+            lines.append(f"Usage: [{'█' * used_blocks}{'░' * free_blocks}] {memory.percent:.1f}%")
+
+            return "\n".join(lines)
+
+        except Exception as e:
+            return f"❌ Error getting memory info: {str(e)}"
+
+    # Visual and network commands
+    def _color_command(self, theme_name):
+        """Change terminal/desktop color theme"""
+        valid_themes = [
+            'default', 'blue', 'green', 'red', 'yellow',
+            'magenta', 'cyan', 'white', 'matrix', 'neon',
+            'ocean', 'sunset', 'forest'
+        ]
+
+        if not theme_name:
+            return f"Available themes: {', '.join(valid_themes)}\nUsage: color <theme_name>"
+
+        theme = theme_name.lower()
+        if theme in valid_themes:
+            return f"__COLOR__::{theme}"
+        else:
+            return f"Unknown theme '{theme_name}'. Available: {', '.join(valid_themes)}"
+
+    def _effect_command(self, effect_name):
+        """Start visual effects"""
+        valid_effects = ['matrix', 'rain', 'stars', 'snow', 'particles']
+
+        if not effect_name:
+            return f"Available effects: {', '.join(valid_effects)}\nUsage: effect <effect_name>"
+
+        effect = effect_name.lower()
+        if effect in valid_effects:
+            return f"__EFFECT__::{effect}"
+        else:
+            return f"Unknown effect '{effect_name}'. Available: {', '.join(valid_effects)}"
+
+    def _wallpaper_command(self, filename):
+        """Set desktop wallpaper"""
+        if not filename:
+            return "Usage: wallpaper <filename>\nExample: wallpaper sunset.jpg"
+
+        return f"__WALLPAPER__::{filename}"
+
+    def _curl_command(self, url):
+        """Fetch content from URL"""
+        if not url:
+            return "Usage: curl <url>\nExample: curl https://api.github.com"
+
+        if not url.startswith(('http://', 'https://')):
+            url = 'https://' + url
+
+        try:
+            with urllib.request.urlopen(url, timeout=10) as response:
+                content = response.read().decode('utf-8', errors='ignore')
+
+                if len(content) > 2000:
+                    content = content[:2000] + "\n... (content truncated)"
+
+                return f"📡 Response from {url}:\n{'-' * 40}\n{content}"
+
+        except Exception as e:
+            return f"❌ Failed to fetch {url}: {str(e)}"
+
+    def _ping_command(self, host):
+        """Network connectivity test"""
+        if not host:
+            return "Usage: ping <hostname>\nExample: ping google.com"
+
+        try:
+            test_url = f"https://{host}" if not host.startswith('http') else host
+            start_time = time.time()
+
+            with urllib.request.urlopen(test_url, timeout=5) as response:
+                elapsed = (time.time() - start_time) * 1000
+                return f"✅ {host} is reachable (response time: {elapsed:.0f}ms)"
+
+        except Exception as e:
+            return f"❌ {host} is unreachable: {str(e)}"
+
+    def _game_command(self, game_name):
+        """Launch game application"""
+        valid_games = ['snake', 'dino', 'memory', 'clicker']
+
+        if not game_name:
+            return f"Available games: {', '.join(valid_games)}\nUsage: game <game_name>"
+
+        game = game_name.lower()
+        if game in valid_games:
+            return f"__GAME__::{game}"
+        else:
+            return f"Unknown game '{game_name}'. Available: {', '.join(valid_games)}"
+
+    # Utility methods
+    def _format_bytes(self, bytes_value):
+        """Format bytes into human-readable format"""
+        for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+            if bytes_value < 1024:
+                return f"{bytes_value:.1f} {unit}"
+            bytes_value /= 1024
+        return f"{bytes_value:.1f} PB"
+
+    def _format_file_size(self, size):
+        """Format file size for display"""
+        if size == 0:
+            return "0 B"
+
+        units = ['B', 'KB', 'MB', 'GB']
+        unit_index = 0
+
+        while size >= 1024 and unit_index < len(units) - 1:
+            size /= 1024
+            unit_index += 1
+
+        if unit_index == 0:
+            return f"{size} {units[unit_index]}"
+        else:
+            return f"{size:.1f} {units[unit_index]}"
+
+
+print("🔧 Complete FileBrowser utility loaded successfully")

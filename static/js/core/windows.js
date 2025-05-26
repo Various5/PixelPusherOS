@@ -1,50 +1,32 @@
 /**
- * Pixel Pusher OS - Window Manager
+ * Pixel Pusher OS - Window Manager (FIXED)
  * Handles application windows, positioning, and window management system
- *
- * This module provides:
- * - Window creation and management
- * - Window positioning and resizing
- * - Window focus and layering (z-index)
- * - Window minimize/maximize/close functionality
- * - Multi-window task management
  */
 
 class WindowManager {
     constructor() {
-        this.windows = new Map(); // Active windows storage
-        this.zIndexCounter = 1000; // Starting z-index for windows
+        this.windows = new Map();
+        this.zIndexCounter = 1000;
         this.activeWindow = null;
         this.windowConfigs = this.getWindowConfigurations();
         this.taskbar = null;
+        this.isDragging = false;
+        this.dragData = null;
 
         console.log('🪟 Window Manager initialized');
     }
 
-    /**
-     * Initialize window management system
-     */
     async init() {
         try {
-            // Set up taskbar
             this.setupTaskbar();
-
-            // Set up global window event handlers
             this.setupGlobalEventHandlers();
-
-            // Create window container if not exists
             this.setupWindowContainer();
-
             console.log('✅ Window management system ready');
-
         } catch (error) {
             console.error('❌ Window Manager initialization failed:', error);
         }
     }
 
-    /**
-     * Get window configurations for different applications
-     */
     getWindowConfigurations() {
         return {
             terminal: {
@@ -145,11 +127,7 @@ class WindowManager {
         };
     }
 
-    /**
-     * Open a new application window
-     */
     open(appId, options = {}) {
-        // Check if window is already open
         if (this.windows.has(appId)) {
             this.focus(appId);
             return this.windows.get(appId);
@@ -161,41 +139,30 @@ class WindowManager {
             return null;
         }
 
-        // Create window
         const window = this.createWindow(appId, config, options);
-
-        // Store window
         this.windows.set(appId, window);
 
-        // Add to state management
         if (window.pixelPusher?.modules?.state) {
             window.pixelPusher.modules.state.addWindow(appId);
         }
 
-        // Update taskbar
         this.updateTaskbar();
-
-        // Focus the new window
         this.focus(appId);
 
         console.log(`🪟 Opened window: ${appId}`);
         return window;
     }
 
-    /**
-     * Create a new window element
-     */
     createWindow(appId, config, options = {}) {
         const windowContainer = document.getElementById('windowContainer') || document.body;
-
-        // Calculate position (cascade windows)
         const position = this.calculateWindowPosition(config, options);
 
-        // Create window element
         const windowElement = document.createElement('div');
         windowElement.className = 'window';
         windowElement.id = `window-${appId}`;
         windowElement.dataset.appId = appId;
+
+        // Ensure proper styling for dragging
         windowElement.style.cssText = `
             position: fixed;
             left: ${position.x}px;
@@ -210,10 +177,10 @@ class WindowManager {
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            transition: all 0.2s ease;
+            transition: none;
+            pointer-events: auto;
         `;
 
-        // Create window structure
         windowElement.innerHTML = `
             <div class="window-header" style="
                 display: flex;
@@ -225,6 +192,7 @@ class WindowManager {
                 cursor: move;
                 user-select: none;
                 min-height: 32px;
+                pointer-events: auto;
             ">
                 <div class="window-title" style="
                     font-weight: 600;
@@ -234,33 +202,38 @@ class WindowManager {
                     overflow: hidden;
                     white-space: nowrap;
                     text-overflow: ellipsis;
+                    pointer-events: none;
                 ">
                     ${config.title}
                 </div>
                 <div class="window-controls" style="
                     display: flex;
                     gap: 4px;
+                    pointer-events: auto;
                 ">
-                    <button class="window-btn minimize-btn" onclick="window.pixelPusher.modules.windows.minimize('${appId}')" 
+                    <button class="window-btn minimize-btn" data-action="minimize" 
                             title="Minimize" style="
                         width: 24px; height: 24px; border: none; border-radius: 4px;
                         background: var(--warning); color: white; cursor: pointer;
                         display: flex; align-items: center; justify-content: center;
                         font-size: 12px; transition: opacity 0.2s;
+                        pointer-events: auto;
                     ">−</button>
-                    <button class="window-btn maximize-btn" onclick="window.pixelPusher.modules.windows.maximize('${appId}')" 
+                    <button class="window-btn maximize-btn" data-action="maximize" 
                             title="Maximize" style="
                         width: 24px; height: 24px; border: none; border-radius: 4px;
                         background: var(--success); color: white; cursor: pointer;
                         display: flex; align-items: center; justify-content: center;
                         font-size: 12px; transition: opacity 0.2s;
+                        pointer-events: auto;
                     ">□</button>
-                    <button class="window-btn close-btn" onclick="window.pixelPusher.modules.windows.close('${appId}')" 
+                    <button class="window-btn close-btn" data-action="close" 
                             title="Close" style="
                         width: 24px; height: 24px; border: none; border-radius: 4px;
                         background: var(--error); color: white; cursor: pointer;
                         display: flex; align-items: center; justify-content: center;
                         font-size: 12px; transition: opacity 0.2s;
+                        pointer-events: auto;
                     ">✕</button>
                 </div>
             </div>
@@ -269,63 +242,236 @@ class WindowManager {
                 overflow: auto;
                 position: relative;
                 background: var(--background);
+                pointer-events: auto;
             ">
                 ${this.generateWindowContent(appId, config)}
             </div>
         `;
 
-        // Add window to container
         windowContainer.appendChild(windowElement);
-
-        // Set up window event handlers
         this.setupWindowEventHandlers(windowElement, appId, config);
-
-        // Initialize window content
         this.initializeWindowContent(appId, config);
 
         return windowElement;
     }
 
-    /**
-     * Generate content for different window types
-     */
+    setupWindowEventHandlers(windowElement, appId, config) {
+        const header = windowElement.querySelector('.window-header');
+
+        // Window controls
+        windowElement.addEventListener('click', (e) => {
+            if (e.target.classList.contains('window-btn')) {
+                const action = e.target.dataset.action;
+                switch (action) {
+                    case 'minimize':
+                        this.minimize(appId);
+                        break;
+                    case 'maximize':
+                        this.maximize(appId);
+                        break;
+                    case 'close':
+                        this.close(appId);
+                        break;
+                }
+                e.stopPropagation();
+                return;
+            }
+        });
+
+        // Focus on click
+        windowElement.addEventListener('mousedown', (e) => {
+            this.focus(appId);
+        });
+
+        // Double-click header to maximize
+        header.addEventListener('dblclick', (e) => {
+            if (!e.target.classList.contains('window-btn')) {
+                this.maximize(appId);
+            }
+        });
+
+        // Dragging functionality
+        let isDragging = false;
+        let dragOffset = { x: 0, y: 0 };
+
+        header.addEventListener('mousedown', (e) => {
+            // Don't drag if clicking on window controls
+            if (e.target.classList.contains('window-btn') ||
+                e.target.closest('.window-controls')) {
+                return;
+            }
+
+            isDragging = true;
+            this.isDragging = true;
+
+            const rect = windowElement.getBoundingClientRect();
+            dragOffset.x = e.clientX - rect.left;
+            dragOffset.y = e.clientY - rect.top;
+
+            this.dragData = {
+                element: windowElement,
+                appId: appId,
+                offset: dragOffset
+            };
+
+            windowElement.style.transition = 'none';
+            windowElement.style.cursor = 'grabbing';
+            header.style.cursor = 'grabbing';
+
+            // Prevent text selection during drag
+            document.body.style.userSelect = 'none';
+
+            e.preventDefault();
+            e.stopPropagation();
+        });
+
+        // Global mouse events for dragging
+        const handleMouseMove = (e) => {
+            if (!isDragging || !this.dragData) return;
+
+            const x = e.clientX - this.dragData.offset.x;
+            const y = e.clientY - this.dragData.offset.y;
+
+            // Keep window within viewport bounds
+            const maxX = window.innerWidth - windowElement.offsetWidth;
+            const maxY = window.innerHeight - windowElement.offsetHeight;
+
+            const constrainedX = Math.max(0, Math.min(x, maxX));
+            const constrainedY = Math.max(0, Math.min(y, maxY));
+
+            windowElement.style.left = constrainedX + 'px';
+            windowElement.style.top = constrainedY + 'px';
+        };
+
+        const handleMouseUp = () => {
+            if (isDragging) {
+                isDragging = false;
+                this.isDragging = false;
+                this.dragData = null;
+
+                windowElement.style.transition = 'all 0.2s ease';
+                windowElement.style.cursor = '';
+                header.style.cursor = 'move';
+                document.body.style.userSelect = '';
+            }
+        };
+
+        // Store references for cleanup
+        windowElement._mouseMoveHandler = handleMouseMove;
+        windowElement._mouseUpHandler = handleMouseUp;
+
+        // Window resizing (if resizable)
+        if (config.resizable) {
+            this.makeWindowResizable(windowElement, config);
+        }
+    }
+
+    setupGlobalEventHandlers() {
+        // Global mouse events for window dragging
+        document.addEventListener('mousemove', (e) => {
+            if (this.isDragging && this.dragData) {
+                const x = e.clientX - this.dragData.offset.x;
+                const y = e.clientY - this.dragData.offset.y;
+
+                const maxX = window.innerWidth - this.dragData.element.offsetWidth;
+                const maxY = window.innerHeight - this.dragData.element.offsetHeight;
+
+                const constrainedX = Math.max(0, Math.min(x, maxX));
+                const constrainedY = Math.max(0, Math.min(y, maxY));
+
+                this.dragData.element.style.left = constrainedX + 'px';
+                this.dragData.element.style.top = constrainedY + 'px';
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (this.isDragging) {
+                this.isDragging = false;
+                if (this.dragData) {
+                    this.dragData.element.style.transition = 'all 0.2s ease';
+                    this.dragData.element.style.cursor = '';
+                    const header = this.dragData.element.querySelector('.window-header');
+                    if (header) header.style.cursor = 'move';
+                    document.body.style.userSelect = '';
+                    this.dragData = null;
+                }
+            }
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            this.handleGlobalResize();
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            this.handleKeyboardShortcuts(e);
+        });
+    }
+
     generateWindowContent(appId, config) {
         switch (config.content) {
             case 'terminal':
                 return `
-                    <div id="terminal-${appId}" class="terminal-container">
-                        <div class="terminal-output" id="terminal-output-${appId}"></div>
-                        <div class="terminal-input-line">
-                            <span class="terminal-prompt">pixel@pusher:~$ </span>
+                    <div id="terminal-${appId}" class="terminal-container" style="display: flex; flex-direction: column; height: 100%; font-family: 'Courier New', monospace; background: #1a1a1a; color: #00ff00; padding: 16px;">
+                        <div class="terminal-output" id="terminal-output-${appId}" style="flex: 1; overflow-y: auto; margin-bottom: 8px; white-space: pre-wrap; line-height: 1.4; font-size: 14px;"></div>
+                        <div class="terminal-input-line" style="display: flex; align-items: center; gap: 8px; padding: 4px 0; border-top: 1px solid #333;">
+                            <span class="terminal-prompt" style="color: #00d9ff; font-weight: bold;">pixel@pusher:~$ </span>
                             <input type="text" class="terminal-input" id="terminal-input-${appId}" 
-                                   placeholder="Type 'help' for commands..." autocomplete="off">
+                                   placeholder="Type 'help' for commands..." autocomplete="off"
+                                   style="flex: 1; background: transparent; border: none; outline: none; color: #00ff00; font-family: inherit; font-size: 14px;">
                         </div>
                     </div>
                 `;
 
             case 'explorer':
                 return `
-                    <div id="explorer-${appId}" class="explorer-container">
-                        <div class="explorer-toolbar">
-                            <button onclick="window.pixelPusher.modules.explorer.navigateBack()">← Back</button>
-                            <button onclick="window.pixelPusher.modules.explorer.navigateUp()">↑ Up</button>
+                    <div id="explorer-${appId}" class="explorer-container" style="display: flex; flex-direction: column; height: 100%;">
+                        <div class="explorer-toolbar" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--surface-light); border-bottom: 1px solid var(--border);">
+                            <button onclick="window.pixelPusher.modules.explorer.navigateBack()" style="padding: 6px 12px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); color: var(--text-primary); cursor: pointer;">← Back</button>
+                            <button onclick="window.pixelPusher.modules.explorer.navigateUp()" style="padding: 6px 12px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); color: var(--text-primary); cursor: pointer;">↑ Up</button>
                             <input type="text" class="explorer-path" id="explorer-path-${appId}" 
-                                   value="/" readonly>
-                            <button onclick="window.pixelPusher.modules.explorer.refresh()">🔄 Refresh</button>
+                                   value="/" readonly style="flex: 1; padding: 6px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); color: var(--text-primary); font-family: monospace;">
+                            <button onclick="window.pixelPusher.modules.explorer.refresh()" style="padding: 6px 12px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); color: var(--text-primary); cursor: pointer;">🔄 Refresh</button>
                         </div>
-                        <div class="explorer-content" id="explorer-content-${appId}">
+                        <div class="explorer-content" id="explorer-content-${appId}" style="flex: 1; overflow: auto; padding: 12px;">
                             Loading...
+                        </div>
+                    </div>
+                `;
+
+            case 'settings':
+                return `
+                    <div id="settings-${appId}" class="settings-container" style="display: flex; height: 100%;">
+                        <div class="settings-sidebar" style="width: 200px; background: var(--surface-dark); border-right: 1px solid var(--border); padding: 16px 0;">
+                            <div class="settings-nav-item active" data-section="appearance" style="padding: 12px 20px; cursor: pointer; color: var(--text-secondary); font-size: 14px; font-weight: 500;">🎨 Appearance</div>
+                            <div class="settings-nav-item" data-section="system" style="padding: 12px 20px; cursor: pointer; color: var(--text-secondary); font-size: 14px; font-weight: 500;">⚙️ System</div>
+                            <div class="settings-nav-item" data-section="games" style="padding: 12px 20px; cursor: pointer; color: var(--text-secondary); font-size: 14px; font-weight: 500;">🎮 Games</div>
+                            <div class="settings-nav-item" data-section="about" style="padding: 12px 20px; cursor: pointer; color: var(--text-secondary); font-size: 14px; font-weight: 500;">ℹ️ About</div>
+                        </div>
+                        <div class="settings-content" id="settings-content-${appId}" style="flex: 1; padding: 24px; overflow-y: auto;">
+                            Loading settings...
+                        </div>
+                    </div>
+                `;
+
+            case 'game':
+                return `
+                    <div id="game-${appId}" class="game-container" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #000;">
+                        <div class="game-content" id="game-content-${appId}" style="width: 100%; height: 100%;">
+                            Loading ${config.gameType} game...
                         </div>
                     </div>
                 `;
 
             case 'browser':
                 return `
-                    <div id="browser-${appId}" class="browser-container">
-                        <div class="browser-toolbar">
+                    <div id="browser-${appId}" class="browser-container" style="display: flex; flex-direction: column; height: 100%;">
+                        <div class="browser-toolbar" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--surface-light); border-bottom: 1px solid var(--border);">
                             <input type="url" class="browser-address" id="browser-address-${appId}" 
-                                   placeholder="Enter URL or search..." value="https://duckduckgo.com">
-                            <button onclick="window.pixelPusher.modules.windows.loadBrowserPage('${appId}')">Go</button>
+                                   placeholder="Enter URL or search..." value="https://duckduckgo.com" 
+                                   style="flex: 1; padding: 6px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); color: var(--text-primary);">
+                            <button onclick="window.pixelPusher.modules.windows.loadBrowserPage('${appId}')" style="padding: 6px 12px; border: 1px solid var(--border); border-radius: 4px; background: var(--primary); color: white; cursor: pointer;">Go</button>
                         </div>
                         <iframe class="browser-frame" id="browser-frame-${appId}" 
                                 src="https://duckduckgo.com" 
@@ -334,67 +480,29 @@ class WindowManager {
                     </div>
                 `;
 
-            case 'settings':
-                return `
-                    <div id="settings-${appId}" class="settings-container">
-                        <div class="settings-sidebar">
-                            <div class="settings-nav-item active" data-section="appearance">🎨 Appearance</div>
-                            <div class="settings-nav-item" data-section="system">⚙️ System</div>
-                            <div class="settings-nav-item" data-section="games">🎮 Games</div>
-                            <div class="settings-nav-item" data-section="about">ℹ️ About</div>
-                        </div>
-                        <div class="settings-content" id="settings-content-${appId}">
-                            Loading settings...
-                        </div>
-                    </div>
-                `;
-
-            case 'taskmanager':
-                return `
-                    <div id="taskmanager-${appId}" class="taskmanager-container">
-                        <div class="taskmanager-tabs">
-                            <div class="tab active" data-tab="processes">Processes</div>
-                            <div class="tab" data-tab="performance">Performance</div>
-                            <div class="tab" data-tab="network">Network</div>
-                        </div>
-                        <div class="taskmanager-content" id="taskmanager-content-${appId}">
-                            Loading task manager...
-                        </div>
-                    </div>
-                `;
-
             case 'musicplayer':
                 return `
-                    <div id="musicplayer-${appId}" class="musicplayer-container">
-                        <div class="music-controls">
-                            <button class="music-btn" onclick="window.pixelPusher.modules.settings.musicPrevious()">⏮️</button>
-                            <button class="music-btn play-pause" onclick="window.pixelPusher.modules.settings.musicToggle()">▶️</button>
-                            <button class="music-btn" onclick="window.pixelPusher.modules.settings.musicNext()">⏭️</button>
+                    <div id="musicplayer-${appId}" class="musicplayer-container" style="padding: 20px; text-align: center;">
+                        <div class="music-controls" style="margin-bottom: 20px;">
+                            <button class="music-btn" onclick="window.pixelPusher.modules.settings.musicPrevious()" style="padding: 10px; margin: 0 5px; border: none; border-radius: 50%; background: var(--primary); color: white; cursor: pointer;">⏮️</button>
+                            <button class="music-btn play-pause" onclick="window.pixelPusher.modules.settings.musicToggle()" style="padding: 10px; margin: 0 5px; border: none; border-radius: 50%; background: var(--primary); color: white; cursor: pointer;">▶️</button>
+                            <button class="music-btn" onclick="window.pixelPusher.modules.settings.musicNext()" style="padding: 10px; margin: 0 5px; border: none; border-radius: 50%; background: var(--primary); color: white; cursor: pointer;">⏭️</button>
                         </div>
                         <div class="music-info">
-                            <div class="music-title">No music playing</div>
-                            <div class="music-progress">
-                                <div class="progress-bar"></div>
+                            <div class="music-title" style="font-weight: bold; margin-bottom: 10px;">No music playing</div>
+                            <div class="music-progress" style="margin-bottom: 15px;">
+                                <div class="progress-bar" style="width: 100%; height: 4px; background: var(--border); border-radius: 2px;"></div>
                             </div>
                         </div>
                         <div class="music-volume">
-                            <input type="range" class="volume-slider" min="0" max="100" value="50">
-                        </div>
-                    </div>
-                `;
-
-            case 'game':
-                return `
-                    <div id="game-${appId}" class="game-container">
-                        <div class="game-content" id="game-content-${appId}">
-                            Loading ${config.gameType} game...
+                            <input type="range" class="volume-slider" min="0" max="100" value="50" style="width: 100%;">
                         </div>
                     </div>
                 `;
 
             default:
                 return `
-                    <div class="default-window-content">
+                    <div class="default-window-content" style="padding: 20px; text-align: center;">
                         <h2>Application: ${appId}</h2>
                         <p>Window content goes here.</p>
                     </div>
@@ -402,25 +510,19 @@ class WindowManager {
         }
     }
 
-    /**
-     * Calculate optimal window position
-     */
     calculateWindowPosition(config, options) {
         const viewportWidth = window.innerWidth;
         const viewportHeight = window.innerHeight;
 
-        // Default to center
         let x = Math.max(0, (viewportWidth - config.width) / 2);
         let y = Math.max(0, (viewportHeight - config.height) / 2);
 
-        // Cascade windows if multiple are open
         const windowCount = this.windows.size;
         if (windowCount > 0) {
             const offset = windowCount * 30;
             x += offset;
             y += offset;
 
-            // Wrap around if going off screen
             if (x + config.width > viewportWidth) {
                 x = 50;
             }
@@ -429,78 +531,12 @@ class WindowManager {
             }
         }
 
-        // Override with provided options
         if (options.x !== undefined) x = options.x;
         if (options.y !== undefined) y = options.y;
 
         return { x, y };
     }
 
-    /**
-     * Set up event handlers for a window
-     */
-    setupWindowEventHandlers(windowElement, appId, config) {
-        const header = windowElement.querySelector('.window-header');
-
-        // Window dragging
-        let isDragging = false;
-        let dragOffset = { x: 0, y: 0 };
-
-        header.addEventListener('mousedown', (e) => {
-            if (e.target.classList.contains('window-btn')) return;
-
-            isDragging = true;
-            this.focus(appId);
-
-            const rect = windowElement.getBoundingClientRect();
-            dragOffset.x = e.clientX - rect.left;
-            dragOffset.y = e.clientY - rect.top;
-
-            windowElement.style.transition = 'none';
-            document.addEventListener('mousemove', handleDrag);
-            document.addEventListener('mouseup', handleDragEnd);
-        });
-
-        const handleDrag = (e) => {
-            if (!isDragging) return;
-
-            const x = e.clientX - dragOffset.x;
-            const y = e.clientY - dragOffset.y;
-
-            // Keep window within viewport bounds
-            const maxX = window.innerWidth - windowElement.offsetWidth;
-            const maxY = window.innerHeight - windowElement.offsetHeight;
-
-            windowElement.style.left = Math.max(0, Math.min(x, maxX)) + 'px';
-            windowElement.style.top = Math.max(0, Math.min(y, maxY)) + 'px';
-        };
-
-        const handleDragEnd = () => {
-            isDragging = false;
-            windowElement.style.transition = 'all 0.2s ease';
-            document.removeEventListener('mousemove', handleDrag);
-            document.removeEventListener('mouseup', handleDragEnd);
-        };
-
-        // Window focus on click
-        windowElement.addEventListener('mousedown', () => {
-            this.focus(appId);
-        });
-
-        // Window resizing (if resizable)
-        if (config.resizable) {
-            this.makeWindowResizable(windowElement, config);
-        }
-
-        // Double-click header to maximize
-        header.addEventListener('dblclick', () => {
-            this.maximize(appId);
-        });
-    }
-
-    /**
-     * Make window resizable
-     */
     makeWindowResizable(windowElement, config) {
         // Add resize handles
         const resizeHandles = ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw'];
@@ -515,15 +551,10 @@ class WindowManager {
             `;
 
             windowElement.appendChild(handle);
-
-            // Add resize functionality
             this.addResizeHandling(handle, windowElement, direction, config);
         });
     }
 
-    /**
-     * Get CSS styles for resize handles
-     */
     getResizeHandleStyles(direction) {
         const styles = {
             n: 'top: -2px; left: 2px; right: 2px; height: 4px; cursor: n-resize;',
@@ -539,9 +570,6 @@ class WindowManager {
         return styles[direction] || '';
     }
 
-    /**
-     * Add resize handling to a resize handle
-     */
     addResizeHandling(handle, windowElement, direction, config) {
         handle.addEventListener('mousedown', (e) => {
             e.preventDefault();
@@ -559,7 +587,6 @@ class WindowManager {
                     startRect, deltaX, deltaY, direction, config
                 );
 
-                // Apply new size and position
                 windowElement.style.left = newRect.x + 'px';
                 windowElement.style.top = newRect.y + 'px';
                 windowElement.style.width = newRect.width + 'px';
@@ -576,16 +603,12 @@ class WindowManager {
         });
     }
 
-    /**
-     * Calculate new window size during resize
-     */
     calculateNewWindowSize(startRect, deltaX, deltaY, direction, config) {
         let newWidth = startRect.width;
         let newHeight = startRect.height;
         let newX = startRect.left;
         let newY = startRect.top;
 
-        // Apply deltas based on resize direction
         if (direction.includes('e')) newWidth += deltaX;
         if (direction.includes('w')) {
             newWidth -= deltaX;
@@ -597,7 +620,6 @@ class WindowManager {
             newY += deltaY;
         }
 
-        // Enforce minimum size
         if (newWidth < config.minWidth) {
             if (direction.includes('w')) {
                 newX = startRect.right - config.minWidth;
@@ -612,18 +634,13 @@ class WindowManager {
             newHeight = config.minHeight;
         }
 
-        // Keep within viewport
         newX = Math.max(0, Math.min(newX, window.innerWidth - newWidth));
         newY = Math.max(0, Math.min(newY, window.innerHeight - newHeight));
 
         return { x: newX, y: newY, width: newWidth, height: newHeight };
     }
 
-    /**
-     * Initialize window content after creation
-     */
     initializeWindowContent(appId, config) {
-        // Delay initialization to allow DOM to settle
         setTimeout(() => {
             switch (config.content) {
                 case 'terminal':
@@ -650,77 +667,60 @@ class WindowManager {
         }, 100);
     }
 
-    /**
-     * Focus a window (bring to front)
-     */
     focus(appId) {
         const windowElement = this.windows.get(appId);
         if (!windowElement) return;
 
-        // Update z-index
         windowElement.style.zIndex = ++this.zIndexCounter;
-
-        // Update active window
         this.activeWindow = appId;
 
-        // Update visual state
         document.querySelectorAll('.window').forEach(win => {
             win.classList.remove('active');
         });
         windowElement.classList.add('active');
 
-        // Update state management
         if (window.pixelPusher?.modules?.state) {
             window.pixelPusher.modules.state.setActiveWindow(appId);
         }
 
-        // Update taskbar
         this.updateTaskbar();
     }
 
-    /**
-     * Close a window
-     */
     close(appId) {
         const windowElement = this.windows.get(appId);
         if (!windowElement) return;
 
-        // Remove from DOM
-        windowElement.remove();
+        // Clean up event listeners
+        if (windowElement._mouseMoveHandler) {
+            document.removeEventListener('mousemove', windowElement._mouseMoveHandler);
+        }
+        if (windowElement._mouseUpHandler) {
+            document.removeEventListener('mouseup', windowElement._mouseUpHandler);
+        }
 
-        // Remove from storage
+        windowElement.remove();
         this.windows.delete(appId);
 
-        // Update active window
         if (this.activeWindow === appId) {
             this.activeWindow = null;
-
-            // Focus next available window
             const remainingWindows = Array.from(this.windows.keys());
             if (remainingWindows.length > 0) {
                 this.focus(remainingWindows[remainingWindows.length - 1]);
             }
         }
 
-        // Update state management
         if (window.pixelPusher?.modules?.state) {
             window.pixelPusher.modules.state.removeWindow(appId);
         }
 
-        // Update taskbar
         this.updateTaskbar();
-
         console.log(`🪟 Closed window: ${appId}`);
     }
 
-    /**
-     * Minimize a window
-     */
     minimize(appId) {
         const windowElement = this.windows.get(appId);
         if (!windowElement) return;
 
-        // Hide window with animation
         windowElement.style.transform = 'scale(0)';
         windowElement.style.opacity = '0';
 
@@ -728,20 +728,14 @@ class WindowManager {
             windowElement.style.display = 'none';
         }, 200);
 
-        // Update taskbar
         this.updateTaskbar();
-
         console.log(`🪟 Minimized window: ${appId}`);
     }
 
-    /**
-     * Restore a minimized window
-     */
     restore(appId) {
         const windowElement = this.windows.get(appId);
         if (!windowElement) return;
 
-        // Show and animate window
         windowElement.style.display = 'flex';
 
         setTimeout(() => {
@@ -749,47 +743,34 @@ class WindowManager {
             windowElement.style.opacity = '1';
         }, 10);
 
-        // Focus the window
         this.focus(appId);
-
         console.log(`🪟 Restored window: ${appId}`);
     }
 
-    /**
-     * Maximize a window
-     */
     maximize(appId) {
         const windowElement = this.windows.get(appId);
         if (!windowElement) return;
 
         if (windowElement.dataset.maximized === 'true') {
-            // Restore from maximized
             this.restoreFromMaximized(windowElement);
         } else {
-            // Maximize window
             this.maximizeWindow(windowElement);
         }
     }
 
-    /**
-     * Maximize a window to full screen
-     */
     maximizeWindow(windowElement) {
-        // Store original dimensions
         windowElement.dataset.originalLeft = windowElement.style.left;
         windowElement.dataset.originalTop = windowElement.style.top;
         windowElement.dataset.originalWidth = windowElement.style.width;
         windowElement.dataset.originalHeight = windowElement.style.height;
         windowElement.dataset.maximized = 'true';
 
-        // Set to full screen
         windowElement.style.left = '0px';
         windowElement.style.top = '0px';
         windowElement.style.width = '100vw';
         windowElement.style.height = '100vh';
         windowElement.style.borderRadius = '0';
 
-        // Update maximize button
         const maximizeBtn = windowElement.querySelector('.maximize-btn');
         if (maximizeBtn) {
             maximizeBtn.innerHTML = '⧉';
@@ -797,11 +778,7 @@ class WindowManager {
         }
     }
 
-    /**
-     * Restore window from maximized state
-     */
     restoreFromMaximized(windowElement) {
-        // Restore original dimensions
         windowElement.style.left = windowElement.dataset.originalLeft;
         windowElement.style.top = windowElement.dataset.originalTop;
         windowElement.style.width = windowElement.dataset.originalWidth;
@@ -809,7 +786,6 @@ class WindowManager {
         windowElement.style.borderRadius = '8px';
         windowElement.dataset.maximized = 'false';
 
-        // Update maximize button
         const maximizeBtn = windowElement.querySelector('.maximize-btn');
         if (maximizeBtn) {
             maximizeBtn.innerHTML = '□';
@@ -817,9 +793,6 @@ class WindowManager {
         }
     }
 
-    /**
-     * Set up taskbar for window management
-     */
     setupTaskbar() {
         let taskbar = document.getElementById('taskbar');
 
@@ -846,16 +819,11 @@ class WindowManager {
         this.taskbar = taskbar;
     }
 
-    /**
-     * Update taskbar with current windows
-     */
     updateTaskbar() {
         if (!this.taskbar) return;
 
-        // Clear taskbar
         this.taskbar.innerHTML = '';
 
-        // Add window buttons
         this.windows.forEach((windowElement, appId) => {
             const config = this.windowConfigs[appId];
             const isMinimized = windowElement.style.display === 'none';
@@ -915,7 +883,6 @@ class WindowManager {
             font-size: 12px;
         `;
 
-        // Add clock
         const clock = document.createElement('div');
         clock.id = 'systemTime';
         clock.textContent = new Date().toLocaleTimeString([], {
@@ -927,9 +894,6 @@ class WindowManager {
         this.taskbar.appendChild(systemTray);
     }
 
-    /**
-     * Set up window container
-     */
     setupWindowContainer() {
         let container = document.getElementById('windowContainer');
 
@@ -946,41 +910,16 @@ class WindowManager {
                 z-index: 100;
             `;
 
-            // Allow pointer events on child windows
-            container.addEventListener('mousedown', (e) => {
-                e.target.style.pointerEvents = 'auto';
-            });
-
             document.body.appendChild(container);
         }
     }
 
-    /**
-     * Set up global event handlers
-     */
-    setupGlobalEventHandlers() {
-        // Handle window resize
-        window.addEventListener('resize', () => {
-            this.handleGlobalResize();
-        });
-
-        // Handle keyboard shortcuts
-        document.addEventListener('keydown', (e) => {
-            this.handleKeyboardShortcuts(e);
-        });
-    }
-
-    /**
-     * Handle global window resize
-     */
     handleGlobalResize() {
-        // Ensure all windows stay within viewport
         this.windows.forEach((windowElement, appId) => {
             const rect = windowElement.getBoundingClientRect();
             const viewportWidth = window.innerWidth;
             const viewportHeight = window.innerHeight;
 
-            // Adjust position if window is off-screen
             let newLeft = parseInt(windowElement.style.left);
             let newTop = parseInt(windowElement.style.top);
 
@@ -999,17 +938,12 @@ class WindowManager {
         });
     }
 
-    /**
-     * Handle keyboard shortcuts
-     */
     handleKeyboardShortcuts(e) {
-        // Alt+Tab - Cycle through windows
         if (e.altKey && e.key === 'Tab') {
             e.preventDefault();
             this.cycleWindows();
         }
 
-        // Alt+F4 - Close active window
         if (e.altKey && e.key === 'F4') {
             e.preventDefault();
             if (this.activeWindow) {
@@ -1018,9 +952,6 @@ class WindowManager {
         }
     }
 
-    /**
-     * Cycle through open windows
-     */
     cycleWindows() {
         const windowIds = Array.from(this.windows.keys());
         if (windowIds.length === 0) return;
@@ -1029,7 +960,6 @@ class WindowManager {
         const nextIndex = (currentIndex + 1) % windowIds.length;
         const nextWindowId = windowIds[nextIndex];
 
-        // Restore if minimized, then focus
         const windowElement = this.windows.get(nextWindowId);
         if (windowElement.style.display === 'none') {
             this.restore(nextWindowId);
@@ -1038,9 +968,6 @@ class WindowManager {
         }
     }
 
-    /**
-     * Load browser page (for browser windows)
-     */
     loadBrowserPage(appId) {
         const addressInput = document.getElementById(`browser-address-${appId}`);
         const browserFrame = document.getElementById(`browser-frame-${appId}`);
@@ -1048,7 +975,6 @@ class WindowManager {
         if (addressInput && browserFrame) {
             let url = addressInput.value.trim();
 
-            // Add protocol if missing
             if (url && !url.startsWith('http://') && !url.startsWith('https://')) {
                 url = 'https://' + url;
             }
@@ -1059,35 +985,25 @@ class WindowManager {
         }
     }
 
-    /**
-     * Get window manager statistics
-     */
     getStats() {
         return {
             openWindows: this.windows.size,
             activeWindow: this.activeWindow,
             zIndexCounter: this.zIndexCounter,
-            windowList: Array.from(this.windows.keys())
+            windowList: Array.from(this.windows.keys()),
+            isDragging: this.isDragging
         };
     }
 
-    /**
-     * Handle window resize
-     */
     handleResize() {
         this.handleGlobalResize();
     }
 
-    /**
-     * Clean up window manager
-     */
     destroy() {
-        // Close all windows
         Array.from(this.windows.keys()).forEach(appId => {
             this.close(appId);
         });
 
-        // Remove taskbar
         if (this.taskbar) {
             this.taskbar.remove();
         }
@@ -1096,9 +1012,8 @@ class WindowManager {
     }
 }
 
-// Export for module systems
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = WindowManager;
 }
 
-console.log('🪟 Window manager loaded successfully');
+console.log('🪟 Fixed Window manager loaded successfully');

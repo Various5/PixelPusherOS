@@ -1,0 +1,44 @@
+/* Pixel Pusher OS - Basic Styles */
+:root {
+    --primary: #00d9ff;
+    --background: #f8f9fa;
+    --surface: #ffffff;
+    --text-primary: #202124;
+    --border: #dadce0;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--background);
+    color: var(--text-primary);
+}
+
+/* Basic button styles */
+.btn {
+    padding: 8px 16px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--surface);
+    color: var(--text-primary);
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.btn:hover {
+    background: var(--primary);
+    color: white;
+}
+
+/* Loading indicator */
+.loading {
+    text-align: center;
+    padding: 20px;
+    color: #666;
+}

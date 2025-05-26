@@ -1,113 +1,110 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="default">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    
-    <!-- Primary Meta Tags -->
-    <title>{% block title %}Pixel Pusher OS{% endblock %}</title>
-    <meta name="description" content="{% block description %}A modern web-based desktop environment built with Flask and JavaScript{% endblock %}">
-    <meta name="keywords" content="web desktop, online OS, pixel pusher, virtual desktop, web applications">
+    <meta name="description" content="{% block description %}Pixel Pusher OS - Modern Web-Based Desktop Environment{% endblock %}">
     <meta name="author" content="Pixel Pusher OS Team">
+    <meta name="robots" content="noindex, nofollow">
 
-    <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="{{ request.url }}">
-    <meta property="og:title" content="Pixel Pusher OS - Web Desktop Environment">
-    <meta property="og:description" content="A modern web-based desktop environment">
-
-    <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image">
-    <meta property="twitter:url" content="{{ request.url }}">
-    <meta property="twitter:title" content="Pixel Pusher OS - Web Desktop Environment">
-    <meta property="twitter:description" content="A modern web-based desktop environment">
+    <title>{% block title %}Pixel Pusher OS{% endblock %}</title>
 
     <!-- Favicon -->
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎨</text></svg>">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎨</text></svg>">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-    <!-- Core CSS Variables -->
+    <!-- Base CSS Variables -->
     <style>
         :root {
-            /* Color Palette */
+            /* Color System */
             --primary: #00d9ff;
-            --primary-dark: #00b4d8;
-            --primary-light: rgba(0, 217, 255, 0.1);
+            --primary-light: #33e1ff;
+            --primary-dark: #00b8e6;
             --secondary: #667eea;
-            --accent: #764ba2;
+            --success: #00b894;
+            --warning: #fdcb6e;
+            --error: #e84393;
+            --info: #74b9ff;
 
-            /* Surface Colors */
-            --surface: rgba(255, 255, 255, 0.95);
-            --surface-light: rgba(255, 255, 255, 0.1);
-            --surface-dark: rgba(0, 0, 0, 0.8);
-            --background: #1a1a2e;
-            --background-light: #f8f9fa;
+            /* Neutral Colors */
+            --background: #ffffff;
+            --surface: #f8f9fa;
+            --surface-light: #ffffff;
+            --surface-dark: #e9ecef;
+            --border: #dee2e6;
 
             /* Text Colors */
-            --text-primary: #ffffff;
-            --text-secondary: #b0b0b0;
-            --text-disabled: #6c757d;
-            --text-dark: #2d3748;
+            --text-primary: #2d3748;
+            --text-secondary: #718096;
+            --text-disabled: #a0aec0;
+            --text-inverse: #ffffff;
 
-            /* Status Colors */
-            --error: #ff4757;
-            --success: #2ed573;
-            --warning: #ffa502;
-            --info: #3742fa;
+            /* Spacing */
+            --space-xs: 0.25rem;
+            --space-sm: 0.5rem;
+            --space-md: 1rem;
+            --space-lg: 1.5rem;
+            --space-xl: 2rem;
+            --space-2xl: 3rem;
 
-            /* Border & Dividers */
-            --border: rgba(255, 255, 255, 0.2);
-            --border-light: #e9ecef;
-            --divider: rgba(255, 255, 255, 0.1);
-
-            /* Radius */
-            --radius-sm: 4px;
-            --radius-md: 8px;
-            --radius-lg: 12px;
-            --radius-xl: 16px;
-            --radius-full: 9999px;
+            /* Border Radius */
+            --radius-sm: 0.25rem;
+            --radius-md: 0.5rem;
+            --radius-lg: 1rem;
+            --radius-xl: 1.5rem;
 
             /* Shadows */
-            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.1);
-            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.2);
-            --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.3);
-            --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.4);
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+            --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1);
 
             /* Transitions */
             --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             --transition-fast: all 0.1s ease;
-            --transition-slow: all 0.3s ease;
+            --transition-slow: all 0.4s ease;
 
             /* Typography */
-            --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            --font-mono: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-
-            /* Z-Index Scale */
-            --z-dropdown: 1000;
-            --z-sticky: 1020;
-            --z-fixed: 1030;
-            --z-modal-backdrop: 1040;
-            --z-modal: 1050;
-            --z-popover: 1060;
-            --z-tooltip: 1070;
-            --z-toast: 1080;
+            --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --font-mono: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
         }
 
-        /* Global Reset */
+        /* Dark Theme */
+        [data-theme="dark"] {
+            --background: #1a202c;
+            --surface: #2d3748;
+            --surface-light: #4a5568;
+            --surface-dark: #171923;
+            --border: #4a5568;
+            --text-primary: #f7fafc;
+            --text-secondary: #e2e8f0;
+            --text-disabled: #a0aec0;
+        }
+
+        /* Theme Colors */
+        .theme-blue { --primary: #3498db; }
+        .theme-green { --primary: #27ae60; }
+        .theme-red { --primary: #e74c3c; }
+        .theme-purple { --primary: #9b59b6; }
+        .theme-orange { --primary: #e67e22; }
+        .theme-pink { --primary: #e91e63; }
+        .theme-cyan { --primary: #1abc9c; }
+        .theme-yellow { --primary: #f1c40f; }
+        .theme-matrix { --primary: #00ff41; --background: #000000; --surface: #001100; }
+        .theme-neon { --primary: #ff0080; --background: #0a0a0a; --surface: #1a001a; }
+
+        /* Base Styles */
         * {
             box-sizing: border-box;
         }
 
         html {
             font-size: 16px;
-            line-height: 1.5;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
+            line-height: 1.6;
         }
 
         body {
@@ -116,53 +113,132 @@
             font-family: var(--font-family);
             background: var(--background);
             color: var(--text-primary);
-            min-height: 100vh;
-            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
 
-        /* Selection Styles */
-        ::selection {
+        /* Utility Classes */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-sm);
+            padding: var(--space-sm) var(--space-md);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            background: var(--surface);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.875rem;
+            font-weight: 500;
+            line-height: 1;
+            text-decoration: none;
+            cursor: pointer;
+            transition: var(--transition);
+            user-select: none;
+        }
+
+        .btn:hover {
+            background: var(--surface-light);
+            border-color: var(--primary);
+        }
+
+        .btn.primary {
             background: var(--primary);
+            border-color: var(--primary);
             color: white;
         }
 
-        ::-moz-selection {
-            background: var(--primary);
+        .btn.primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn.secondary {
+            background: var(--secondary);
+            border-color: var(--secondary);
             color: white;
         }
 
-        /* Focus Styles */
-        :focus {
-            outline: 2px solid var(--primary);
-            outline-offset: 2px;
+        .btn.success {
+            background: var(--success);
+            border-color: var(--success);
+            color: white;
         }
 
-        /* Scrollbar Styles */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
+        .btn.warning {
+            background: var(--warning);
+            border-color: var(--warning);
+            color: white;
         }
 
-        ::-webkit-scrollbar-track {
-            background: var(--surface-dark);
+        .btn.danger {
+            background: var(--error);
+            border-color: var(--error);
+            color: white;
         }
 
-        ::-webkit-scrollbar-thumb {
-            background: var(--border);
-            border-radius: var(--radius-full);
+        /* Flash Messages */
+        .flash-messages {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            max-width: 400px;
         }
 
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--text-secondary);
+        .flash-message {
+            padding: 12px 16px;
+            margin-bottom: 10px;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-lg);
+            animation: slideInRight 0.3s ease-out;
         }
 
-        /* Firefox Scrollbar */
-        * {
-            scrollbar-width: thin;
-            scrollbar-color: var(--border) var(--surface-dark);
+        .flash-message.success {
+            background: var(--success);
+            color: white;
         }
 
-        /* Reduced Motion */
+        .flash-message.error {
+            background: var(--error);
+            color: white;
+        }
+
+        .flash-message.info {
+            background: var(--info);
+            color: white;
+        }
+
+        .flash-message.warning {
+            background: var(--warning);
+            color: white;
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(100px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            html {
+                font-size: 14px;
+            }
+
+            .flash-messages {
+                left: 10px;
+                right: 10px;
+                max-width: none;
+            }
+        }
+
+        /* Accessibility */
         @media (prefers-reduced-motion: reduce) {
             * {
                 animation-duration: 0.01ms !important;
@@ -170,285 +246,93 @@
                 transition-duration: 0.01ms !important;
             }
         }
+
+        /* Focus Styles */
+        :focus-visible {
+            outline: 2px solid var(--primary);
+            outline-offset: 2px;
+        }
+
+        /* Selection */
+        ::selection {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--surface);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: var(--radius-sm);
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-secondary);
+        }
     </style>
 
     {% block extra_css %}{% endblock %}
 </head>
-
 <body class="{% block body_class %}{% endblock %}">
-    <!-- Skip to Content Link for Accessibility -->
-    <a href="#main-content" class="skip-link" style="
-        position: absolute;
-        top: -40px;
-        left: 6px;
-        background: var(--primary);
-        color: white;
-        padding: 8px;
-        text-decoration: none;
-        border-radius: var(--radius-sm);
-        z-index: var(--z-tooltip);
-        transition: var(--transition);
-    " onfocus="this.style.top='6px'" onblur="this.style.top='-40px'">
-        Skip to main content
-    </a>
-
-    <!-- Main Content -->
-    <main id="main-content">
-        {% block content %}{% endblock %}
-    </main>
-
     <!-- Flash Messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
-            <div id="flash-messages" style="
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                z-index: var(--z-toast);
-                max-width: 400px;
-            ">
+            <div class="flash-messages">
                 {% for category, message in messages %}
-                    <div class="flash-message flash-{{ category }}" style="
-                        padding: 12px 16px;
-                        margin-bottom: 8px;
-                        border-radius: var(--radius-md);
-                        box-shadow: var(--shadow-lg);
-                        color: white;
-                        font-weight: 500;
-                        font-size: 14px;
-                        animation: slideInRight 0.3s ease-out;
-                        {% if category == 'error' %}
-                            background: var(--error);
-                        {% elif category == 'success' %}
-                            background: var(--success);
-                        {% elif category == 'warning' %}
-                            background: var(--warning);
-                        {% else %}
-                            background: var(--info);
-                        {% endif %}
-                    ">
-                        <div style="display: flex; align-items: center; justify-content: space-between;">
-                            <span>
-                                {% if category == 'error' %}❌{% elif category == 'success' %}✅{% elif category == 'warning' %}⚠️{% else %}ℹ️{% endif %}
-                                {{ message }}
-                            </span>
-                            <button onclick="this.parentElement.parentElement.remove()" style="
-                                background: none;
-                                border: none;
-                                color: white;
-                                cursor: pointer;
-                                font-size: 16px;
-                                padding: 0 0 0 8px;
-                            ">×</button>
-                        </div>
+                    <div class="flash-message {{ category }}" onclick="this.remove()">
+                        {{ message }}
                     </div>
                 {% endfor %}
             </div>
-
-            <style>
-                @keyframes slideInRight {
-                    from {
-                        opacity: 0;
-                        transform: translateX(100px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateX(0);
-                    }
-                }
-
-                .flash-message {
-                    cursor: pointer;
-                }
-
-                .flash-message:hover {
-                    transform: translateX(-2px);
-                }
-            </style>
-
-            <script>
-                // Auto-hide flash messages after 5 seconds
-                document.addEventListener('DOMContentLoaded', function() {
-                    const flashMessages = document.querySelectorAll('.flash-message');
-                    flashMessages.forEach(function(message) {
-                        setTimeout(function() {
-                            message.style.opacity = '0';
-                            message.style.transform = 'translateX(100px)';
-                            setTimeout(function() {
-                                if (message.parentNode) {
-                                    message.remove();
-                                }
-                            }, 300);
-                        }, 5000);
-                    });
-                });
-            </script>
         {% endif %}
     {% endwith %}
 
-    <!-- Loading Indicator (Hidden by default) -->
-    <div id="global-loading" style="
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        z-index: var(--z-modal);
-        display: none;
-        background: var(--surface);
-        padding: 20px;
-        border-radius: var(--radius-lg);
-        box-shadow: var(--shadow-xl);
-        text-align: center;
-        min-width: 200px;
-    ">
-        <div style="
-            width: 32px;
-            height: 32px;
-            margin: 0 auto 12px;
-            border: 3px solid var(--border);
-            border-top: 3px solid var(--primary);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        "></div>
-        <div style="color: var(--text-primary); font-weight: 500;">Loading...</div>
-    </div>
+    <!-- Main Content -->
+    {% block content %}{% endblock %}
 
-    <style>
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-    </style>
-
-    <!-- Core JavaScript -->
+    <!-- Base JavaScript -->
     <script>
-        // Global utility functions
-        window.showLoading = function() {
-            document.getElementById('global-loading').style.display = 'block';
+        // Global configuration
+        window.PIXELPUSHER_CONFIG = {
+            version: '2.0.0',
+            apiBase: '/api',
+            user: {% if current_user.is_authenticated %}{
+                username: '{{ current_user.username }}',
+                group: '{{ current_user.group }}',
+                isAuthenticated: true
+            }{% else %}null{% endif %},
+            debug: {{ 'true' if config.DEBUG else 'false' }}
         };
 
-        window.hideLoading = function() {
-            document.getElementById('global-loading').style.display = 'none';
-        };
+        // Theme management
+        function setTheme(themeName) {
+            document.documentElement.setAttribute('data-theme', themeName);
+            localStorage.setItem('pixelpusher_theme', themeName);
+        }
 
-        window.showNotification = function(message, type = 'info', duration = 5000) {
-            const colors = {
-                'info': 'var(--info)',
-                'success': 'var(--success)',
-                'warning': 'var(--warning)',
-                'error': 'var(--error)'
-            };
+        // Load saved theme
+        const savedTheme = localStorage.getItem('pixelpusher_theme');
+        if (savedTheme) {
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        }
 
-            const icons = {
-                'info': 'ℹ️',
-                'success': '✅',
-                'warning': '⚠️',
-                'error': '❌'
-            };
-
-            const notification = document.createElement('div');
-            notification.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: ${colors[type] || colors.info};
-                color: white;
-                padding: 12px 16px;
-                border-radius: var(--radius-md);
-                box-shadow: var(--shadow-lg);
-                z-index: var(--z-toast);
-                animation: slideInRight 0.3s ease-out;
-                max-width: 350px;
-                font-weight: 500;
-                font-size: 14px;
-            `;
-
-            notification.innerHTML = `
-                <div style="display: flex; align-items: center; justify-content: space-between;">
-                    <span>${icons[type] || icons.info} ${message}</span>
-                    <button onclick="this.parentElement.parentElement.remove()" style="
-                        background: none; border: none; color: white;
-                        cursor: pointer; font-size: 16px; padding: 0 0 0 8px;
-                    ">×</button>
-                </div>
-            `;
-
-            document.body.appendChild(notification);
-
-            // Auto-remove
-            setTimeout(() => {
-                if (notification.parentNode) {
-                    notification.style.opacity = '0';
-                    notification.style.transform = 'translateX(100px)';
-                    setTimeout(() => {
-                        notification.remove();
-                    }, 300);
-                }
-            }, duration);
-
-            return notification;
-        };
-
-        // Error handling
-        window.addEventListener('error', function(e) {
-            console.error('Global error:', e.error);
-        });
-
-        // Basic performance monitoring
-        window.addEventListener('load', function() {
-            const loadTime = performance.now();
-            console.log(`Page loaded in ${Math.round(loadTime)}ms`);
-        });
+        // Auto-hide flash messages
+        setTimeout(() => {
+            document.querySelectorAll('.flash-message').forEach(msg => {
+                msg.style.opacity = '0';
+                setTimeout(() => msg.remove(), 300);
+            });
+        }, 5000);
 
         console.log('🎨 Pixel Pusher OS Base Template Loaded');
-    </script>
-
-    <!-- Core Application Scripts -->
-    <script>
-        // Load scripts safely with error handling
-        function loadScript(src, callback) {
-            const script = document.createElement('script');
-            script.src = src;
-            script.onload = callback;
-            script.onerror = function() {
-                console.warn('Failed to load script:', src);
-                if (callback) callback();
-            };
-            document.head.appendChild(script);
-        }
-
-        // Load scripts in sequence to avoid dependency issues
-        const scripts = [
-            "{{ url_for('static', filename='js/utils/helpers.js') }}",
-            "{{ url_for('static', filename='js/utils/state.js') }}",
-            "{{ url_for('static', filename='js/core/auth.js') }}",
-            "{{ url_for('static', filename='js/core/desktop.js') }}",
-            "{{ url_for('static', filename='js/core/windows.js') }}",
-            "{{ url_for('static', filename='js/apps/terminal.js') }}",
-            "{{ url_for('static', filename='js/apps/explorer.js') }}",
-            "{{ url_for('static', filename='js/apps/games.js') }}",
-            "{{ url_for('static', filename='js/apps/settings.js') }}",
-            "{{ url_for('static', filename='js/core/app.js') }}"
-        ];
-
-        let scriptIndex = 0;
-        function loadNextScript() {
-            if (scriptIndex < scripts.length) {
-                loadScript(scripts[scriptIndex], () => {
-                    scriptIndex++;
-                    loadNextScript();
-                });
-            } else {
-                console.log('🚀 All scripts loaded');
-            }
-        }
-
-        // Start loading scripts when DOM is ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', loadNextScript);
-        } else {
-            loadNextScript();
-        }
     </script>
     
     {% block extra_js %}{% endblock %}
