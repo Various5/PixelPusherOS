@@ -1,0 +1,737 @@
+{% extends "base.html" %}
+
+{% block title %}{{ user }} - Pixel Pusher OS Desktop{% endblock %}
+{% block description %}Your personal desktop environment in Pixel Pusher OS with applications, games, and productivity tools.{% endblock %}
+
+{% block body_class %}desktop-environment{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Desktop-specific critical CSS */
+    .desktop-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: var(--background);
+    }
+
+    .desktop-main {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 60px; /* Space for taskbar */
+        overflow: hidden;
+    }
+
+    .taskbar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 60px;
+        background: var(--surface);
+        border-top: 1px solid var(--border);
+        backdrop-filter: blur(10px);
+        z-index: 1000;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Main Desktop Container -->
+<div class="desktop-container" id="desktopContainer">
+
+    <!-- Desktop Main Area -->
+    <div class="desktop-main" id="desktop">
+
+        <!-- Desktop Icons Container -->
+        <div class="desktop-icons" id="desktopIcons">
+            <!-- System Applications -->
+            <div class="desktop-icon system-app" data-app="terminal" style="left: 60px; top: 80px;">
+                <div class="icon-image">💻</div>
+                <div class="icon-label">Terminal</div>
+            </div>
+
+            <div class="desktop-icon system-app" data-app="explorer" style="left: 60px; top: 200px;">
+                <div class="icon-image">📁</div>
+                <div class="icon-label">File Explorer</div>
+            </div>
+
+            <div class="desktop-icon system-app" data-app="browser" style="left: 60px; top: 320px;">
+                <div class="icon-image">🌐</div>
+                <div class="icon-label">Web Browser</div>
+            </div>
+
+            <!-- Games Section -->
+            <div class="desktop-icon game-app" data-app="snake" style="left: 180px; top: 80px;">
+                <div class="icon-image">🐍</div>
+                <div class="icon-label">Snake Game</div>
+            </div>
+
+            <div class="desktop-icon game-app" data-app="dino" style="left: 180px; top: 200px;">
+                <div class="icon-image">🦕</div>
+                <div class="icon-label">Dino Runner</div>
+            </div>
+
+            <div class="desktop-icon game-app" data-app="clicker" style="left: 180px; top: 320px;">
+                <div class="icon-image">🏘️</div>
+                <div class="icon-label">Village Builder</div>
+            </div>
+
+            <div class="desktop-icon game-app" data-app="memory" style="left: 300px; top: 80px;">
+                <div class="icon-image">🧠</div>
+                <div class="icon-label">Memory Match</div>
+            </div>
+
+            <!-- Media and Tools -->
+            <div class="desktop-icon media-app" data-app="musicplayer" style="left: 300px; top: 200px;">
+                <div class="icon-image">🎵</div>
+                <div class="icon-label">Music Player</div>
+            </div>
+
+            <div class="desktop-icon system-app" data-app="settings" style="left: 300px; top: 320px;">
+                <div class="icon-image">⚙️</div>
+                <div class="icon-label">Settings</div>
+            </div>
+
+            <div class="desktop-icon system-app" data-app="taskmanager" style="left: 420px; top: 80px;">
+                <div class="icon-image">📊</div>
+                <div class="icon-label">Task Manager</div>
+            </div>
+
+            <!-- System Actions -->
+            {% if is_admin %}
+            <div class="desktop-icon admin-app" data-app="admin" style="left: 420px; top: 200px;">
+                <div class="icon-image">👨‍💼</div>
+                <div class="icon-label">Admin Panel</div>
+            </div>
+            {% endif %}
+
+            <div class="desktop-icon system-action" data-action="logout" style="left: 420px; top: {{ '320px' if not is_admin else '280px' }};">
+                <div class="icon-image">🚪</div>
+                <div class="icon-label">Sign Out</div>
+            </div>
+        </div>
+
+        <!-- Windows Container -->
+        <div class="windows-container" id="windowsContainer">
+            <!-- Dynamic windows will be created here -->
+        </div>
+
+        <!-- Welcome Message (shown on first visit) -->
+        <div class="welcome-overlay" id="welcomeOverlay" style="display: none;">
+            <div class="welcome-content">
+                <div class="welcome-header">
+                    <div class="welcome-logo">🎨</div>
+                    <h1>Welcome to Pixel Pusher OS!</h1>
+                    <p>Your modern web-based desktop environment is ready to use.</p>
+                </div>
+
+                <div class="welcome-features">
+                    <div class="feature-grid">
+                        <div class="feature-item">
+                            <div class="feature-icon">💻</div>
+                            <h3>Powerful Terminal</h3>
+                            <p>50+ commands for file management and system control</p>
+                        </div>
+
+                        <div class="feature-item">
+                            <div class="feature-icon">📁</div>
+                            <h3>File Explorer</h3>
+                            <p>Browse, edit, and manage your files with ease</p>
+                        </div>
+
+                        <div class="feature-item">
+                            <div class="feature-icon">🎮</div>
+                            <h3>Gaming Center</h3>
+                            <p>Built-in games including Snake, Dino, and more</p>
+                        </div>
+
+                        <div class="feature-item">
+                            <div class="feature-icon">🎨</div>
+                            <h3>12+ Themes</h3>
+                            <p>Customize your experience with beautiful themes</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="welcome-shortcuts">
+                    <h3>🚀 Quick Shortcuts</h3>
+                    <div class="shortcuts-grid">
+                        <div class="shortcut-item">
+                            <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>T</kbd>
+                            <span>Open Terminal</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>E</kbd>
+                            <span>File Explorer</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>S</kbd>
+                            <span>Settings</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <kbd>F11</kbd>
+                            <span>Fullscreen</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="welcome-actions">
+                    <button class="btn btn-primary" onclick="closeWelcome()">
+                        Get Started! 🚀
+                    </button>
+                    <button class="btn btn-secondary" onclick="openApplication('terminal')">
+                        Open Terminal
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Taskbar -->
+    <div class="taskbar" id="taskbar">
+        <div class="taskbar-content">
+
+            <!-- Start Menu / App Launcher -->
+            <div class="taskbar-start">
+                <button class="start-button" id="startButton" onclick="toggleStartMenu()">
+                    <span class="start-icon">🎨</span>
+                    <span class="start-text">Start</span>
+                </button>
+
+                <!-- Start Menu Dropdown -->
+                <div class="start-menu" id="startMenu" style="display: none;">
+                    <div class="start-header">
+                        <div class="user-info">
+                            <div class="user-avatar">{{ user[0].upper() }}</div>
+                            <div class="user-details">
+                                <div class="user-name">{{ user }}</div>
+                                <div class="user-role">{{ group }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="start-apps">
+                        <div class="app-category">
+                            <h4>System</h4>
+                            <div class="app-grid">
+                                <div class="app-item" onclick="openApplication('terminal')">
+                                    <div class="app-icon">💻</div>
+                                    <div class="app-name">Terminal</div>
+                                </div>
+                                <div class="app-item" onclick="openApplication('explorer')">
+                                    <div class="app-icon">📁</div>
+                                    <div class="app-name">Explorer</div>
+                                </div>
+                                <div class="app-item" onclick="openApplication('settings')">
+                                    <div class="app-icon">⚙️</div>
+                                    <div class="app-name">Settings</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="app-category">
+                            <h4>Games</h4>
+                            <div class="app-grid">
+                                <div class="app-item" onclick="openApplication('snake')">
+                                    <div class="app-icon">🐍</div>
+                                    <div class="app-name">Snake</div>
+                                </div>
+                                <div class="app-item" onclick="openApplication('dino')">
+                                    <div class="app-icon">🦕</div>
+                                    <div class="app-name">Dino</div>
+                                </div>
+                                <div class="app-item" onclick="openApplication('memory')">
+                                    <div class="app-icon">🧠</div>
+                                    <div class="app-name">Memory</div>
+                                </div>
+                                <div class="app-item" onclick="openApplication('clicker')">
+                                    <div class="app-icon">🏘️</div>
+                                    <div class="app-name">Village</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="start-footer">
+                        <button class="start-action" onclick="openApplication('settings')">
+                            <span class="action-icon">⚙️</span>
+                            Settings
+                        </button>
+                        <button class="start-action" onclick="confirmLogout()">
+                            <span class="action-icon">🚪</span>
+                            Sign Out
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Windows / Taskbar Buttons -->
+            <div class="taskbar-windows" id="taskbarWindows">
+                <!-- Dynamic window buttons will appear here -->
+            </div>
+
+            <!-- System Tray -->
+            <div class="taskbar-tray">
+
+                <!-- Quick Actions -->
+                <div class="tray-section">
+                    <button class="tray-button" id="themeToggle" onclick="toggleTheme()" title="Toggle Theme">
+                        <span class="tray-icon">🎨</span>
+                    </button>
+
+                    <button class="tray-button" id="notificationsToggle" onclick="toggleNotifications()" title="Notifications">
+                        <span class="tray-icon">🔔</span>
+                        <span class="notification-badge" id="notificationBadge" style="display: none;">0</span>
+                    </button>
+
+                    <button class="tray-button" id="volumeToggle" onclick="toggleVolume()" title="Volume">
+                        <span class="tray-icon">🔊</span>
+                    </button>
+                </div>
+
+                <!-- System Information -->
+                <div class="tray-section">
+                    <div class="system-info">
+                        <div class="system-time" id="systemTime">00:00:00</div>
+                        <div class="system-date" id="systemDate">January 1, 2024</div>
+                    </div>
+                </div>
+
+                <!-- Connection Status -->
+                <div class="tray-section">
+                    <div class="connection-status" id="connectionStatus" title="Online">
+                        <span class="status-icon online">🟢</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Window Templates (Hidden) -->
+    <template id="windowTemplate">
+        <div class="window" data-window-id="">
+            <div class="window-header">
+                <div class="window-title">
+                    <span class="icon"></span>
+                    <span class="title-text"></span>
+                </div>
+                <div class="window-controls">
+                    <button class="window-control minimize" onclick="minimizeWindow(this)" title="Minimize">
+                        <span>−</span>
+                    </button>
+                    <button class="window-control maximize" onclick="maximizeWindow(this)" title="Maximize">
+                        <span>□</span>
+                    </button>
+                    <button class="window-control close" onclick="closeWindow(this)" title="Close">
+                        <span>×</span>
+                    </button>
+                </div>
+            </div>
+            <div class="window-content"></div>
+
+            <!-- Resize handles -->
+            <div class="resize-handle n"></div>
+            <div class="resize-handle s"></div>
+            <div class="resize-handle e"></div>
+            <div class="resize-handle w"></div>
+            <div class="resize-handle ne"></div>
+            <div class="resize-handle nw"></div>
+            <div class="resize-handle se"></div>
+            <div class="resize-handle sw"></div>
+        </div>
+    </template>
+
+    <!-- Notification Center -->
+    <div class="notification-center" id="notificationCenter" style="display: none;">
+        <div class="notification-header">
+            <h3>Notifications</h3>
+            <button class="notification-clear" onclick="clearAllNotifications()">Clear All</button>
+        </div>
+        <div class="notification-list" id="notificationList">
+            <div class="no-notifications">
+                <div class="no-notifications-icon">🔔</div>
+                <p>No notifications</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Desktop-specific JavaScript -->
+<script>
+    // Desktop initialization
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeDesktop();
+        setupDesktopIcons();
+        setupTaskbar();
+        startSystemServices();
+
+        // Show welcome message for new users
+        if (!localStorage.getItem('pixelpusher_welcome_shown')) {
+            setTimeout(showWelcome, 2000);
+        }
+    });
+
+    // Desktop initialization
+    function initializeDesktop() {
+        console.log('🖥️ Initializing desktop environment...');
+
+        // Set up desktop icon interactions
+        const icons = document.querySelectorAll('.desktop-icon');
+        icons.forEach(icon => {
+            // Double-click to open
+            icon.addEventListener('dblclick', function() {
+                const app = this.dataset.app;
+                const action = this.dataset.action;
+
+                if (app) {
+                    openApplication(app);
+                } else if (action) {
+                    handleSystemAction(action);
+                }
+            });
+
+            // Make icons draggable
+            makeIconDraggable(icon);
+        });
+
+        // Close start menu when clicking elsewhere
+        document.addEventListener('click', function(e) {
+            const startMenu = document.getElementById('startMenu');
+            const startButton = document.getElementById('startButton');
+
+            if (!startButton.contains(e.target) && !startMenu.contains(e.target)) {
+                startMenu.style.display = 'none';
+            }
+        });
+    }
+
+    // Make desktop icons draggable
+    function makeIconDraggable(icon) {
+        let isDragging = false;
+        let startX, startY, initialX, initialY;
+
+        icon.addEventListener('mousedown', function(e) {
+            if (e.detail === 2) return; // Ignore if double-click
+
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            initialX = icon.offsetLeft;
+            initialY = icon.offsetTop;
+
+            icon.style.zIndex = '1000';
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+        });
+
+        function onMouseMove(e) {
+            if (!isDragging) return;
+
+            const deltaX = e.clientX - startX;
+            const deltaY = e.clientY - startY;
+
+            icon.style.left = (initialX + deltaX) + 'px';
+            icon.style.top = (initialY + deltaY) + 'px';
+        }
+
+        function onMouseUp() {
+            isDragging = false;
+            icon.style.zIndex = '';
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+
+            // Save icon position
+            saveIconPosition(icon);
+        }
+    }
+
+    // Save icon position to localStorage
+    function saveIconPosition(icon) {
+        const positions = JSON.parse(localStorage.getItem('desktop_icon_positions') || '{}');
+        const id = icon.dataset.app || icon.dataset.action;
+
+        positions[id] = {
+            left: icon.style.left,
+            top: icon.style.top
+        };
+
+        localStorage.setItem('desktop_icon_positions', JSON.stringify(positions));
+    }
+
+    // Load saved icon positions
+    function loadIconPositions() {
+        const positions = JSON.parse(localStorage.getItem('desktop_icon_positions') || '{}');
+
+        Object.keys(positions).forEach(id => {
+            const icon = document.querySelector(`[data-app="${id}"], [data-action="${id}"]`);
+            if (icon) {
+                icon.style.left = positions[id].left;
+                icon.style.top = positions[id].top;
+            }
+        });
+    }
+
+    // Setup desktop icons
+    function setupDesktopIcons() {
+        loadIconPositions();
+
+        // Add hover effects
+        const icons = document.querySelectorAll('.desktop-icon');
+        icons.forEach(icon => {
+            icon.addEventListener('mouseenter', function() {
+                this.style.transform = 'scale(1.1)';
+            });
+
+            icon.addEventListener('mouseleave', function() {
+                this.style.transform = 'scale(1)';
+            });
+        });
+    }
+
+    // Setup taskbar functionality
+    function setupTaskbar() {
+        // Update system time
+        updateSystemTime();
+        setInterval(updateSystemTime, 1000);
+
+        // Setup connection status monitoring
+        updateConnectionStatus();
+        window.addEventListener('online', updateConnectionStatus);
+        window.addEventListener('offline', updateConnectionStatus);
+    }
+
+    // Update system time and date
+    function updateSystemTime() {
+        const now = new Date();
+        const timeElement = document.getElementById('systemTime');
+        const dateElement = document.getElementById('systemDate');
+
+        if (timeElement) {
+            timeElement.textContent = now.toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        }
+
+        if (dateElement) {
+            dateElement.textContent = now.toLocaleDateString([], {
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+    }
+
+    // Update connection status
+    function updateConnectionStatus() {
+        const statusElement = document.getElementById('connectionStatus');
+        const iconElement = statusElement.querySelector('.status-icon');
+
+        if (navigator.onLine) {
+            iconElement.textContent = '🟢';
+            iconElement.className = 'status-icon online';
+            statusElement.title = 'Online';
+        } else {
+            iconElement.textContent = '🔴';
+            iconElement.className = 'status-icon offline';
+            statusElement.title = 'Offline';
+        }
+    }
+
+    // Start menu functionality
+    function toggleStartMenu() {
+        const startMenu = document.getElementById('startMenu');
+        const isVisible = startMenu.style.display !== 'none';
+        startMenu.style.display = isVisible ? 'none' : 'block';
+
+        if (!isVisible) {
+            // Add entrance animation
+            startMenu.style.animation = 'slideUpFadeIn 0.2s ease-out';
+        }
+    }
+
+    // Handle system actions
+    function handleSystemAction(action) {
+        switch (action) {
+            case 'logout':
+                confirmLogout();
+                break;
+            default:
+                console.log('Unknown system action:', action);
+        }
+    }
+
+    // Logout confirmation
+    function confirmLogout() {
+        if (window.pixelPusher && window.pixelPusher.showModal) {
+            window.pixelPusher.showModal('Sign Out', `
+                <div style="text-align: center; padding: 20px;">
+                    <div style="font-size: 48px; margin-bottom: 16px;">👋</div>
+                    <h3>Ready to sign out?</h3>
+                    <p>Make sure your work is saved before signing out.</p>
+                    <div style="display: flex; gap: 12px; justify-content: center; margin-top: 24px;">
+                        <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">
+                            Cancel
+                        </button>
+                        <button class="btn btn-error" onclick="performLogout()">
+                            Sign Out
+                        </button>
+                    </div>
+                </div>
+            `);
+        } else {
+            performLogout();
+        }
+    }
+
+    // Perform logout
+    function performLogout() {
+        // Save application state
+        if (window.pixelPusher) {
+            window.pixelPusher.saveApplicationState();
+        }
+
+        // Redirect to logout endpoint
+        window.location.href = '/logout';
+    }
+
+    // Theme toggle
+    function toggleTheme() {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const newTheme = currentTheme === 'dark' ? 'default' : 'dark';
+
+        // Animate theme transition
+        const transition = document.getElementById('themeTransition');
+        transition.classList.add('active');
+
+        setTimeout(() => {
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('pixelpusher_theme', newTheme);
+
+            setTimeout(() => {
+                transition.classList.remove('active');
+            }, 300);
+        }, 300);
+    }
+
+    // Notifications toggle
+    function toggleNotifications() {
+        const center = document.getElementById('notificationCenter');
+        const isVisible = center.style.display !== 'none';
+        center.style.display = isVisible ? 'none' : 'block';
+    }
+
+    // Volume toggle
+    function toggleVolume() {
+        const button = document.getElementById('volumeToggle');
+        const icon = button.querySelector('.tray-icon');
+
+        // Toggle mute state
+        const isMuted = icon.textContent === '🔇';
+        icon.textContent = isMuted ? '🔊' : '🔇';
+
+        // Store preference
+        localStorage.setItem('volume_muted', !isMuted);
+    }
+
+    // Clear all notifications
+    function clearAllNotifications() {
+        const list = document.getElementById('notificationList');
+        list.innerHTML = `
+            <div class="no-notifications">
+                <div class="no-notifications-icon">🔔</div>
+                <p>No notifications</p>
+            </div>
+        `;
+
+        const badge = document.getElementById('notificationBadge');
+        badge.style.display = 'none';
+    }
+
+    // Show welcome overlay
+    function showWelcome() {
+        const overlay = document.getElementById('welcomeOverlay');
+        overlay.style.display = 'flex';
+        overlay.style.animation = 'fadeIn 0.5s ease-out';
+    }
+
+    // Close welcome overlay
+    function closeWelcome() {
+        const overlay = document.getElementById('welcomeOverlay');
+        overlay.style.animation = 'fadeOut 0.5s ease-out';
+
+        setTimeout(() => {
+            overlay.style.display = 'none';
+            localStorage.setItem('pixelpusher_welcome_shown', 'true');
+        }, 500);
+    }
+
+    // Start system services
+    function startSystemServices() {
+        console.log('⚙️ Starting desktop services...');
+
+        // Load user preferences
+        loadUserPreferences();
+
+        // Initialize desktop state
+        if (window.pixelPusher && window.pixelPusher.modules.state) {
+            window.pixelPusher.modules.state.set('desktop.initialized', true);
+        }
+    }
+
+    // Load user preferences
+    function loadUserPreferences() {
+        // Load volume preference
+        const volumeMuted = localStorage.getItem('volume_muted') === 'true';
+        if (volumeMuted) {
+            const volumeIcon = document.querySelector('#volumeToggle .tray-icon');
+            if (volumeIcon) volumeIcon.textContent = '🔇';
+        }
+
+        // Load other preferences as needed
+    }
+
+    // Add CSS animations
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes slideUpFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+    `;
+    document.head.appendChild(style);
+</script>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Desktop-specific features -->
+<script>
+    // Additional desktop functionality
+    console.log('🖥️ Desktop interface loaded for user: {{ user }}');
+    console.log('👤 User group: {{ group }}');
+    console.log('🔧 Admin privileges: {{ is_admin }}');
+</script>
+{% endblock %}
