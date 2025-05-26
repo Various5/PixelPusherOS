@@ -1,10 +1,1092 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% extends "base.html" %}
 
-</body>
-</html>
+{% block title %}Create Account - Pixel Pusher OS{% endblock %}
+{% block description %}Create your Pixel Pusher OS account to access your personalized web desktop environment with apps, games, and productivity tools.{% endblock %}
+
+{% block body_class %}register-page{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Register page specific styles */
+    .register-page {
+        margin: 0;
+        padding: 0;
+        min-height: 100vh;
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        font-family: 'Inter', sans-serif;
+        overflow: hidden;
+    }
+    
+    .register-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10;
+        padding: 20px;
+        box-sizing: border-box;
+    }
+    
+    .register-box {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(20px);
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        padding: 40px;
+        width: 100%;
+        max-width: 480px;
+        text-align: center;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        animation: slideInUp 0.6s ease-out;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+    
+    .register-header {
+        margin-bottom: 35px;
+    }
+    
+    .register-logo {
+        font-size: 3.5rem;
+        margin-bottom: 20px;
+        animation: bounce 2s ease-in-out infinite;
+    }
+    
+    .register-title {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #2d3748;
+        margin-bottom: 10px;
+    }
+    
+    .register-subtitle {
+        color: #718096;
+        font-size: 1rem;
+        margin-bottom: 25px;
+    }
+    
+    .register-form {
+        text-align: left;
+    }
+    
+    .form-group {
+        margin-bottom: 20px;
+        position: relative;
+    }
+    
+    .form-label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: #4a5568;
+        font-size: 14px;
+    }
+    
+    .form-input {
+        width: 100%;
+        padding: 12px 20px;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        font-size: 15px;
+        transition: all 0.3s ease;
+        background: rgba(255, 255, 255, 0.8);
+        box-sizing: border-box;
+    }
+    
+    .form-input:focus {
+        outline: none;
+        border-color: #4facfe;
+        box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+        background: rgba(255, 255, 255, 1);
+    }
+    
+    .form-input.error {
+        border-color: #e53e3e;
+        box-shadow: 0 0 0 3px rgba(229, 62, 62, 0.1);
+    }
+    
+    .form-input.success {
+        border-color: #38a169;
+        box-shadow: 0 0 0 3px rgba(56, 161, 105, 0.1);
+    }
+    
+    .form-input-icon {
+        position: absolute;
+        right: 15px;
+        top: 40px;
+        color: #a0aec0;
+        font-size: 18px;
+        pointer-events: none;
+    }
+    
+    .password-strength {
+        margin-top: 8px;
+        height: 4px;
+        background: #e2e8f0;
+        border-radius: 2px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+    
+    .password-strength-bar {
+        height: 100%;
+        width: 0%;
+        transition: all 0.3s ease;
+        border-radius: 2px;
+    }
+    
+    .password-strength.weak .password-strength-bar {
+        width: 25%;
+        background: #e53e3e;
+    }
+    
+    .password-strength.fair .password-strength-bar {
+        width: 50%;
+        background: #ed8936;
+    }
+    
+    .password-strength.good .password-strength-bar {
+        width: 75%;
+        background: #38a169;
+    }
+    
+    .password-strength.strong .password-strength-bar {
+        width: 100%;
+        background: #38a169;
+    }
+    
+    .password-strength-text {
+        font-size: 12px;
+        margin-top: 5px;
+        color: #718096;
+    }
+    
+    .password-requirements {
+        margin-top: 10px;
+        padding: 12px;
+        background: rgba(79, 172, 254, 0.1);
+        border-radius: 8px;
+        font-size: 12px;
+        display: none;
+    }
+    
+    .password-requirements.show {
+        display: block;
+    }
+    
+    .requirement {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 4px 0;
+        color: #718096;
+        transition: all 0.3s ease;
+    }
+    
+    .requirement.met {
+        color: #38a169;
+    }
+    
+    .requirement-icon {
+        font-size: 12px;
+    }
+    
+    .user-group-selection {
+        margin-bottom: 25px;
+    }
+    
+    .group-options {
+        display: flex;
+        gap: 12px;
+        margin-top: 10px;
+    }
+    
+    .group-option {
+        flex: 1;
+        padding: 12px;
+        border: 2px solid #e2e8f0;
+        border-radius: 10px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: rgba(255, 255, 255, 0.8);
+    }
+    
+    .group-option:hover {
+        border-color: #4facfe;
+        background: rgba(79, 172, 254, 0.1);
+    }
+    
+    .group-option.selected {
+        border-color: #4facfe;
+        background: rgba(79, 172, 254, 0.1);
+        color: #2b6cb0;
+    }
+    
+    .group-option input[type="radio"] {
+        display: none;
+    }
+    
+    .group-title {
+        font-weight: 600;
+        font-size: 14px;
+        margin-bottom: 4px;
+    }
+    
+    .group-description {
+        font-size: 12px;
+        color: #718096;
+    }
+    
+    .register-button {
+        width: 100%;
+        padding: 15px;
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        margin-top: 10px;
+    }
+    
+    .register-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(79, 172, 254, 0.3);
+    }
+    
+    .register-button:active {
+        transform: translateY(0);
+    }
+    
+    .register-button:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+        transform: none;
+    }
+    
+    .loading-spinner {
+        display: none;
+        width: 20px;
+        height: 20px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top: 2px solid white;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-right: 10px;
+    }
+    
+    .register-footer {
+        margin-top: 25px;
+        text-align: center;
+    }
+    
+    .register-link {
+        color: #4facfe;
+        text-decoration: none;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    
+    .register-link:hover {
+        color: #3182ce;
+        text-decoration: underline;
+    }
+    
+    .terms-notice {
+        margin-top: 20px;
+        padding: 15px;
+        background: rgba(79, 172, 254, 0.1);
+        border-radius: 10px;
+        font-size: 13px;
+        color: #4a5568;
+        text-align: center;
+    }
+    
+    /* Background animation */
+    .register-bg {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1;
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+    
+    .register-bg::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0.1;
+        background-image: radial-gradient(circle at 30% 40%, rgba(255, 255, 255, 0.3) 1px, transparent 1px),
+                          radial-gradient(circle at 70% 60%, rgba(255, 255, 255, 0.3) 1px, transparent 1px),
+                          radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.2) 1px, transparent 1px),
+                          radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.2) 1px, transparent 1px);
+        background-size: 120px 120px, 100px 100px, 80px 80px, 140px 140px;
+        animation: float 25s ease-in-out infinite;
+    }
+    
+    .floating-elements {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        z-index: 2;
+    }
+    
+    .floating-element {
+        position: absolute;
+        opacity: 0.15;
+        animation: floatElements 20s ease-in-out infinite;
+    }
+    
+    .floating-element:nth-child(1) {
+        top: 15%;
+        left: 5%;
+        width: 60px;
+        height: 60px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+        animation-delay: 0s;
+    }
+    
+    .floating-element:nth-child(2) {
+        top: 25%;
+        right: 15%;
+        width: 80px;
+        height: 80px;
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 15px;
+        animation-delay: 3s;
+    }
+    
+    .floating-element:nth-child(3) {
+        bottom: 25%;
+        left: 20%;
+        width: 50px;
+        height: 50px;
+        background: rgba(255, 255, 255, 0.18);
+        border-radius: 50%;
+        animation-delay: 6s;
+    }
+    
+    .floating-element:nth-child(4) {
+        bottom: 15%;
+        right: 10%;
+        width: 70px;
+        height: 70px;
+        background: rgba(255, 255, 255, 0.12);
+        border-radius: 15px;
+        animation-delay: 9s;
+    }
+    
+    .floating-element:nth-child(5) {
+        top: 50%;
+        left: 50%;
+        width: 90px;
+        height: 90px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        animation-delay: 12s;
+    }
+    
+    /* Animations */
+    @keyframes slideInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    @keyframes bounce {
+        0%, 20%, 50%, 80%, 100% {
+            transform: translateY(0);
+        }
+        40% {
+            transform: translateY(-8px);
+        }
+        60% {
+            transform: translateY(-4px);
+        }
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    @keyframes float {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-15px); }
+    }
+    
+    @keyframes floatElements {
+        0%, 100% { 
+            transform: translateY(0px) rotate(0deg);
+            opacity: 0.15;
+        }
+        50% { 
+            transform: translateY(-25px) rotate(180deg);
+            opacity: 0.25;
+        }
+    }
+    
+    /* Mobile responsive */
+    @media (max-width: 768px) {
+        .register-container {
+            padding: 10px;
+        }
+        
+        .register-box {
+            padding: 25px;
+            margin: 10px;
+            max-width: none;
+        }
+        
+        .register-logo {
+            font-size: 3rem;
+        }
+        
+        .register-title {
+            font-size: 1.5rem;
+        }
+        
+        .group-options {
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .form-group {
+            margin-bottom: 18px;
+        }
+    }
+    
+    /* Dark theme support */
+    [data-theme="dark"] .register-box {
+        background: rgba(30, 30, 30, 0.95);
+        color: #ffffff;
+    }
+    
+    [data-theme="dark"] .register-title {
+        color: #ffffff;
+    }
+    
+    [data-theme="dark"] .register-subtitle,
+    [data-theme="dark"] .form-label {
+        color: #a0aec0;
+    }
+    
+    [data-theme="dark"] .form-input {
+        background: rgba(45, 55, 72, 0.8);
+        border-color: #4a5568;
+        color: #ffffff;
+    }
+    
+    [data-theme="dark"] .form-input:focus {
+        border-color: #4facfe;
+        background: rgba(45, 55, 72, 1);
+    }
+    
+    [data-theme="dark"] .group-option {
+        background: rgba(45, 55, 72, 0.8);
+        border-color: #4a5568;
+        color: #ffffff;
+    }
+    
+    [data-theme="dark"] .group-option:hover,
+    [data-theme="dark"] .group-option.selected {
+        background: rgba(79, 172, 254, 0.2);
+        border-color: #4facfe;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Register Background -->
+<div class="register-bg">
+    <div class="floating-elements">
+        <div class="floating-element"></div>
+        <div class="floating-element"></div>
+        <div class="floating-element"></div>
+        <div class="floating-element"></div>
+        <div class="floating-element"></div>
+    </div>
+</div>
+
+<!-- Register Container -->
+<div class="register-container">
+    <div class="register-box">
+        <!-- Register Header -->
+        <div class="register-header">
+            <div class="register-logo">🎨</div>
+            <h1 class="register-title">Join Pixel Pusher OS</h1>
+            <p class="register-subtitle">Create your account and start your journey</p>
+        </div>
+        
+        <!-- Register Form -->
+        <form class="register-form" method="POST" id="registerForm">
+            <div class="form-group">
+                <label for="username" class="form-label">Username *</label>
+                <input 
+                    type="text" 
+                    id="username" 
+                    name="username" 
+                    class="form-input" 
+                    placeholder="Choose a unique username"
+                    autocomplete="username"
+                    required
+                    minlength="3"
+                    maxlength="80"
+                >
+                <div class="form-input-icon">👤</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="password" class="form-label">Password *</label>
+                <input 
+                    type="password" 
+                    id="password" 
+                    name="password" 
+                    class="form-input" 
+                    placeholder="Create a secure password"
+                    autocomplete="new-password"
+                    required
+                    minlength="4"
+                    maxlength="128"
+                >
+                <div class="form-input-icon">🔒</div>
+                
+                <!-- Password Strength Indicator -->
+                <div class="password-strength" id="passwordStrength">
+                    <div class="password-strength-bar"></div>
+                </div>
+                <div class="password-strength-text" id="passwordStrengthText">Enter a password to see strength</div>
+                
+                <!-- Password Requirements -->
+                <div class="password-requirements" id="passwordRequirements">
+                    <div class="requirement" id="lengthReq">
+                        <span class="requirement-icon">○</span>
+                        <span>At least 4 characters</span>
+                    </div>
+                    <div class="requirement" id="numberReq">
+                        <span class="requirement-icon">○</span>
+                        <span>Contains a number</span>
+                    </div>
+                    <div class="requirement" id="letterReq">
+                        <span class="requirement-icon">○</span>
+                        <span>Contains a letter</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="confirm_password" class="form-label">Confirm Password *</label>
+                <input 
+                    type="password" 
+                    id="confirm_password" 
+                    name="confirm_password" 
+                    class="form-input" 
+                    placeholder="Confirm your password"
+                    autocomplete="new-password"
+                    required
+                >
+                <div class="form-input-icon">🔐</div>
+            </div>
+            
+            <!-- User Group Selection -->
+            <div class="user-group-selection">
+                <label class="form-label">Account Type</label>
+                <div class="group-options">
+                    <div class="group-option selected" onclick="selectGroup('user', this)">
+                        <input type="radio" name="group" value="User" checked>
+                        <div class="group-title">👤 User</div>
+                        <div class="group-description">Standard access</div>
+                    </div>
+                    <div class="group-option" onclick="selectGroup('admin', this)">
+                        <input type="radio" name="group" value="Admin">
+                        <div class="group-title">👨‍💼 Admin</div>
+                        <div class="group-description">Full access</div>
+                    </div>
+                </div>
+            </div>
+            
+            <button type="submit" class="register-button" id="registerButton">
+                <div class="loading-spinner" id="loadingSpinner"></div>
+                <span id="buttonText">Create Account</span>
+            </button>
+        </form>
+        
+        <!-- Register Footer -->
+        <div class="register-footer">
+            <p>Already have an account? <a href="{{ url_for('auth.login') }}" class="register-link">Sign in here</a></p>
+        </div>
+        
+        <!-- Terms Notice -->
+        <div class="terms-notice">
+            By creating an account, you agree to use Pixel Pusher OS responsibly and understand that this is a demonstration platform.
+        </div>
+    </div>
+</div>
+
+<!-- Register Page JavaScript -->
+<script>
+    // Register form handling
+    document.addEventListener('DOMContentLoaded', function() {
+        const registerForm = document.getElementById('registerForm');
+        const registerButton = document.getElementById('registerButton');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const buttonText = document.getElementById('buttonText');
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        const confirmPasswordInput = document.getElementById('confirm_password');
+        
+        // Form submission handling
+        registerForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Comprehensive validation
+            if (!validateForm()) {
+                return;
+            }
+            
+            // Show loading state
+            setLoadingState(true);
+            
+            // Submit form
+            submitRegistration();
+        });
+        
+        // Real-time validation
+        usernameInput.addEventListener('input', function() {
+            validateUsername(this);
+        });
+        
+        passwordInput.addEventListener('input', function() {
+            validatePassword(this);
+            updatePasswordStrength(this.value);
+            showPasswordRequirements();
+        });
+        
+        passwordInput.addEventListener('focus', function() {
+            showPasswordRequirements();
+        });
+        
+        passwordInput.addEventListener('blur', function() {
+            hidePasswordRequirements();
+        });
+        
+        confirmPasswordInput.addEventListener('input', function() {
+            validatePasswordConfirmation(this);
+        });
+        
+        // Auto-focus username field
+        setTimeout(() => {
+            usernameInput.focus();
+        }, 500);
+    });
+    
+    // Comprehensive form validation
+    function validateForm() {
+        const username = document.getElementById('username');
+        const password = document.getElementById('password');
+        const confirmPassword = document.getElementById('confirm_password');
+        let isValid = true;
+        
+        // Reset previous errors
+        clearAllErrors();
+        
+        // Validate username
+        if (!validateUsername(username)) {
+            isValid = false;
+        }
+        
+        // Validate password
+        if (!validatePassword(password)) {
+            isValid = false;
+        }
+        
+        // Validate password confirmation
+        if (!validatePasswordConfirmation(confirmPassword)) {
+            isValid = false;
+        }
+        
+        return isValid;
+    }
+    
+    // Username validation
+    function validateUsername(field) {
+        const value = field.value.trim();
+        let isValid = true;
+        
+        clearFieldError(field);
+        
+        if (!value) {
+            setFieldError(field, 'Username is required');
+            isValid = false;
+        } else if (value.length < 3) {
+            setFieldError(field, 'Username must be at least 3 characters');
+            isValid = false;
+        } else if (value.length > 80) {
+            setFieldError(field, 'Username must be less than 80 characters');
+            isValid = false;
+        } else if (!/^[a-zA-Z0-9_]+$/.test(value)) {
+            setFieldError(field, 'Username can only contain letters, numbers, and underscores');
+            isValid = false;
+        } else {
+            setFieldSuccess(field);
+        }
+        
+        return isValid;
+    }
+    
+    // Password validation
+    function validatePassword(field) {
+        const value = field.value;
+        let isValid = true;
+        
+        clearFieldError(field);
+        
+        if (!value) {
+            setFieldError(field, 'Password is required');
+            isValid = false;
+        } else if (value.length < 4) {
+            setFieldError(field, 'Password must be at least 4 characters');
+            isValid = false;
+        } else if (value.length > 128) {
+            setFieldError(field, 'Password must be less than 128 characters');
+            isValid = false;
+        } else {
+            setFieldSuccess(field);
+        }
+        
+        return isValid;
+    }
+    
+    // Password confirmation validation
+    function validatePasswordConfirmation(field) {
+        const password = document.getElementById('password').value;
+        const confirmPassword = field.value;
+        let isValid = true;
+        
+        clearFieldError(field);
+        
+        if (!confirmPassword) {
+            setFieldError(field, 'Please confirm your password');
+            isValid = false;
+        } else if (password !== confirmPassword) {
+            setFieldError(field, 'Passwords do not match');
+            isValid = false;
+        } else {
+            setFieldSuccess(field);
+        }
+        
+        return isValid;
+    }
+    
+    // Password strength calculation
+    function updatePasswordStrength(password) {
+        const strengthElement = document.getElementById('passwordStrength');
+        const strengthText = document.getElementById('passwordStrengthText');
+        
+        if (!password) {
+            strengthElement.className = 'password-strength';
+            strengthText.textContent = 'Enter a password to see strength';
+            return;
+        }
+        
+        let score = 0;
+        const checks = {
+            length: password.length >= 8,
+            lowercase: /[a-z]/.test(password),
+            uppercase: /[A-Z]/.test(password),
+            numbers: /\d/.test(password),
+            symbols: /[^A-Za-z0-9]/.test(password)
+        };
+        
+        // Calculate score
+        if (password.length >= 4) score += 1;
+        if (password.length >= 8) score += 1;
+        if (checks.lowercase) score += 1;
+        if (checks.uppercase) score += 1;
+        if (checks.numbers) score += 1;
+        if (checks.symbols) score += 1;
+        
+        // Update strength indicator
+        if (score <= 2) {
+            strengthElement.className = 'password-strength weak';
+            strengthText.textContent = 'Weak password';
+            strengthText.style.color = '#e53e3e';
+        } else if (score <= 3) {
+            strengthElement.className = 'password-strength fair';
+            strengthText.textContent = 'Fair password';
+            strengthText.style.color = '#ed8936';
+        } else if (score <= 4) {
+            strengthElement.className = 'password-strength good';
+            strengthText.textContent = 'Good password';
+            strengthText.style.color = '#38a169';
+        } else {
+            strengthElement.className = 'password-strength strong';
+            strengthText.textContent = 'Strong password';
+            strengthText.style.color = '#38a169';
+        }
+        
+        // Update requirements
+        updatePasswordRequirements(password, checks);
+    }
+    
+    // Update password requirements
+    function updatePasswordRequirements(password, checks) {
+        const lengthReq = document.getElementById('lengthReq');
+        const numberReq = document.getElementById('numberReq');
+        const letterReq = document.getElementById('letterReq');
+        
+        // Length requirement
+        if (password.length >= 4) {
+            lengthReq.classList.add('met');
+            lengthReq.querySelector('.requirement-icon').textContent = '✓';
+        } else {
+            lengthReq.classList.remove('met');
+            lengthReq.querySelector('.requirement-icon').textContent = '○';
+        }
+        
+        // Number requirement
+        if (checks.numbers) {
+            numberReq.classList.add('met');
+            numberReq.querySelector('.requirement-icon').textContent = '✓';
+        } else {
+            numberReq.classList.remove('met');
+            numberReq.querySelector('.requirement-icon').textContent = '○';
+        }
+        
+        // Letter requirement
+        if (checks.lowercase || checks.uppercase) {
+            letterReq.classList.add('met');
+            letterReq.querySelector('.requirement-icon').textContent = '✓';
+        } else {
+            letterReq.classList.remove('met');
+            letterReq.querySelector('.requirement-icon').textContent = '○';
+        }
+    }
+    
+    // Show password requirements
+    function showPasswordRequirements() {
+        const requirements = document.getElementById('passwordRequirements');
+        requirements.classList.add('show');
+    }
+    
+    // Hide password requirements
+    function hidePasswordRequirements() {
+        const requirements = document.getElementById('passwordRequirements');
+        setTimeout(() => {
+            requirements.classList.remove('show');
+        }, 200);
+    }
+    
+    // Group selection
+    function selectGroup(groupType, element) {
+        // Remove selected class from all options
+        document.querySelectorAll('.group-option').forEach(option => {
+            option.classList.remove('selected');
+        });
+        
+        // Add selected class to clicked option
+        element.classList.add('selected');
+        
+        // Check the radio button
+        element.querySelector('input[type="radio"]').checked = true;
+    }
+    
+    // Set field error state
+    function setFieldError(field, message) {
+        field.classList.remove('success');
+        field.classList.add('error');
+        
+        // Remove existing error message
+        const existingError = field.parentNode.querySelector('.error-message');
+        if (existingError) {
+            existingError.remove();
+        }
+        
+        // Add error message
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'error-message';
+        errorDiv.style.color = '#e53e3e';
+        errorDiv.style.fontSize = '12px';
+        errorDiv.style.marginTop = '5px';
+        errorDiv.textContent = message;
+        field.parentNode.appendChild(errorDiv);
+    }
+    
+    // Set field success state
+    function setFieldSuccess(field) {
+        field.classList.remove('error');
+        field.classList.add('success');
+        clearFieldError(field);
+    }
+    
+    // Clear field error state
+    function clearFieldError(field) {
+        field.classList.remove('error');
+        const errorMessage = field.parentNode.querySelector('.error-message');
+        if (errorMessage) {
+            errorMessage.remove();
+        }
+    }
+    
+    // Clear all errors
+    function clearAllErrors() {
+        document.querySelectorAll('.form-input').forEach(field => {
+            clearFieldError(field);
+        });
+    }
+    
+    // Set loading state
+    function setLoadingState(loading) {
+        const registerButton = document.getElementById('registerButton');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const buttonText = document.getElementById('buttonText');
+        
+        if (loading) {
+            registerButton.disabled = true;
+            loadingSpinner.style.display = 'inline-block';
+            buttonText.textContent = 'Creating Account...';
+        } else {
+            registerButton.disabled = false;
+            loadingSpinner.style.display = 'none';
+            buttonText.textContent = 'Create Account';
+        }
+    }
+    
+    // Submit registration form
+    function submitRegistration() {
+        const formData = new FormData(document.getElementById('registerForm'));
+        
+        fetch(window.location.href, {
+            method: 'POST',
+            body: formData,
+            credentials: 'same-origin'
+        })
+        .then(response => {
+            if (response.redirected) {
+                // Successful registration - redirect to login
+                showSuccessMessage('Account created successfully! Redirecting to login...');
+                setTimeout(() => {
+                    window.location.href = response.url;
+                }, 2000);
+            } else {
+                // Handle error response
+                return response.text();
+            }
+        })
+        .then(html => {
+            if (html) {
+                // Registration failed - reload page to show error messages
+                setLoadingState(false);
+                window.location.reload();
+            }
+        })
+        .catch(error => {
+            console.error('Registration error:', error);
+            setLoadingState(false);
+            showRegistrationError('Network error. Please check your connection and try again.');
+        });
+    }
+    
+    // Show registration error
+    function showRegistrationError(message) {
+        showNotification(message, 'error');
+    }
+    
+    // Show success message
+    function showSuccessMessage(message) {
+        showNotification(message, 'success');
+    }
+    
+    // Generic notification function
+    function showNotification(message, type) {
+        const bgColor = type === 'success' ? '#c6f6d5' : '#fed7d7';
+        const textColor = type === 'success' ? '#22543d' : '#9b2c2c';
+        const borderColor = type === 'success' ? '#38a169' : '#e53e3e';
+        const icon = type === 'success' ? '✅' : '❌';
+        
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: ${bgColor};
+            color: ${textColor};
+            padding: 12px 20px;
+            border-radius: 8px;
+            border-left: 4px solid ${borderColor};
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            animation: slideInRight 0.3s ease-out;
+            max-width: 350px;
+        `;
+        notification.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span>${icon}</span>
+                <span>${message}</span>
+                <button onclick="this.parentElement.parentElement.remove()" style="background: none; border: none; color: ${textColor}; cursor: pointer; margin-left: 10px;">×</button>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, 5000);
+    }
+    
+    // Add animations
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(100px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+    `;
+    document.head.appendChild(style);
+    
+    console.log('📝 Registration page loaded successfully');
+</script>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Additional registration page functionality
+    console.log('🎨 Pixel Pusher OS Registration Interface');
+    console.log('✨ Welcome new user! Create your account to get started.');
+    
+    // Track registration attempt for analytics (if needed)
+    window.addEventListener('load', () => {
+        console.log('📊 Registration page view tracked');
+    });
+</script>
+{% endblock %}
