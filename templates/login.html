@@ -1,10 +1,801 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% extends "base.html" %}
 
-</body>
-</html>
+{% block title %}Sign In - Pixel Pusher OS{% endblock %}
+{% block description %}Sign in to your Pixel Pusher OS account to access your personalized desktop environment.{% endblock %}
+
+{% block body_class %}login-page{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Login page specific styles */
+    .login-page {
+        margin: 0;
+        padding: 0;
+        min-height: 100vh;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        font-family: 'Inter', sans-serif;
+        overflow: hidden;
+    }
+    
+    .login-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10;
+    }
+    
+    .login-box {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(20px);
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        padding: 50px;
+        width: 90%;
+        max-width: 450px;
+        text-align: center;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        animation: slideInUp 0.6s ease-out;
+    }
+    
+    .login-header {
+        margin-bottom: 40px;
+    }
+    
+    .login-logo {
+        font-size: 4rem;
+        margin-bottom: 20px;
+        animation: bounce 2s ease-in-out infinite;
+    }
+    
+    .login-title {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #2d3748;
+        margin-bottom: 10px;
+    }
+    
+    .login-subtitle {
+        color: #718096;
+        font-size: 1rem;
+        margin-bottom: 30px;
+    }
+    
+    .login-form {
+        text-align: left;
+    }
+    
+    .form-group {
+        margin-bottom: 25px;
+        position: relative;
+    }
+    
+    .form-label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: #4a5568;
+        font-size: 14px;
+    }
+    
+    .form-input {
+        width: 100%;
+        padding: 15px 20px;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        font-size: 16px;
+        transition: all 0.3s ease;
+        background: rgba(255, 255, 255, 0.8);
+        box-sizing: border-box;
+    }
+    
+    .form-input:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        background: rgba(255, 255, 255, 1);
+    }
+    
+    .form-input.error {
+        border-color: #e53e3e;
+        box-shadow: 0 0 0 3px rgba(229, 62, 62, 0.1);
+    }
+    
+    .form-input-icon {
+        position: absolute;
+        right: 15px;
+        top: 40px;
+        color: #a0aec0;
+        font-size: 18px;
+        pointer-events: none;
+    }
+    
+    .remember-me {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 30px;
+    }
+    
+    .remember-checkbox {
+        width: 18px;
+        height: 18px;
+        accent-color: #667eea;
+    }
+    
+    .remember-label {
+        color: #4a5568;
+        font-size: 14px;
+        cursor: pointer;
+        user-select: none;
+    }
+    
+    .login-button {
+        width: 100%;
+        padding: 15px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .login-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+    }
+    
+    .login-button:active {
+        transform: translateY(0);
+    }
+    
+    .login-button:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+        transform: none;
+    }
+    
+    .loading-spinner {
+        display: none;
+        width: 20px;
+        height: 20px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top: 2px solid white;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-right: 10px;
+    }
+    
+    .login-footer {
+        margin-top: 30px;
+        text-align: center;
+    }
+    
+    .login-link {
+        color: #667eea;
+        text-decoration: none;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    
+    .login-link:hover {
+        color: #5a67d8;
+        text-decoration: underline;
+    }
+    
+    .demo-accounts {
+        margin-top: 30px;
+        padding: 20px;
+        background: rgba(102, 126, 234, 0.1);
+        border-radius: 12px;
+        border-left: 4px solid #667eea;
+    }
+    
+    .demo-title {
+        font-weight: 600;
+        margin-bottom: 10px;
+        color: #4a5568;
+    }
+    
+    .demo-account {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin: 8px 0;
+        font-size: 14px;
+    }
+    
+    .demo-credentials {
+        color: #718096;
+    }
+    
+    .demo-use-button {
+        padding: 4px 12px;
+        background: #667eea;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .demo-use-button:hover {
+        background: #5a67d8;
+    }
+    
+    /* Background animation */
+    .login-bg {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    .login-bg::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0.1;
+        background-image: radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.3) 1px, transparent 1px),
+                          radial-gradient(circle at 80% 50%, rgba(255, 255, 255, 0.3) 1px, transparent 1px),
+                          radial-gradient(circle at 40% 20%, rgba(255, 255, 255, 0.2) 1px, transparent 1px),
+                          radial-gradient(circle at 60% 80%, rgba(255, 255, 255, 0.2) 1px, transparent 1px);
+        background-size: 100px 100px, 100px 100px, 80px 80px, 120px 120px;
+        animation: float 20s ease-in-out infinite;
+    }
+    
+    .floating-shapes {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        z-index: 2;
+    }
+    
+    .shape {
+        position: absolute;
+        opacity: 0.1;
+        animation: floatShapes 15s ease-in-out infinite;
+    }
+    
+    .shape:nth-child(1) {
+        top: 10%;
+        left: 10%;
+        width: 80px;
+        height: 80px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+        animation-delay: 0s;
+    }
+    
+    .shape:nth-child(2) {
+        top: 20%;
+        right: 10%;
+        width: 60px;
+        height: 60px;
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 12px;
+        animation-delay: 2s;
+    }
+    
+    .shape:nth-child(3) {
+        bottom: 20%;
+        left: 15%;
+        width: 100px;
+        height: 100px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        animation-delay: 4s;
+    }
+    
+    .shape:nth-child(4) {
+        bottom: 10%;
+        right: 20%;
+        width: 70px;
+        height: 70px;
+        background: rgba(255, 255, 255, 0.12);
+        border-radius: 12px;
+        animation-delay: 6s;
+    }
+    
+    /* Animations */
+    @keyframes slideInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    @keyframes bounce {
+        0%, 20%, 50%, 80%, 100% {
+            transform: translateY(0);
+        }
+        40% {
+            transform: translateY(-10px);
+        }
+        60% {
+            transform: translateY(-5px);
+        }
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    @keyframes float {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-20px); }
+    }
+    
+    @keyframes floatShapes {
+        0%, 100% { 
+            transform: translateY(0px) rotate(0deg);
+            opacity: 0.1;
+        }
+        50% { 
+            transform: translateY(-20px) rotate(180deg);
+            opacity: 0.2;
+        }
+    }
+    
+    /* Mobile responsive */
+    @media (max-width: 768px) {
+        .login-box {
+            padding: 30px;
+            margin: 20px;
+            max-width: none;
+        }
+        
+        .login-logo {
+            font-size: 3rem;
+        }
+        
+        .login-title {
+            font-size: 1.5rem;
+        }
+        
+        .demo-accounts {
+            padding: 15px;
+        }
+        
+        .demo-account {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+        }
+    }
+    
+    /* Dark theme support */
+    [data-theme="dark"] .login-box {
+        background: rgba(30, 30, 30, 0.95);
+        color: #ffffff;
+    }
+    
+    [data-theme="dark"] .login-title {
+        color: #ffffff;
+    }
+    
+    [data-theme="dark"] .login-subtitle,
+    [data-theme="dark"] .form-label {
+        color: #a0aec0;
+    }
+    
+    [data-theme="dark"] .form-input {
+        background: rgba(45, 55, 72, 0.8);
+        border-color: #4a5568;
+        color: #ffffff;
+    }
+    
+    [data-theme="dark"] .form-input:focus {
+        border-color: #667eea;
+        background: rgba(45, 55, 72, 1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Login Background -->
+<div class="login-bg">
+    <div class="floating-shapes">
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape"></div>
+    </div>
+</div>
+
+<!-- Login Container -->
+<div class="login-container">
+    <div class="login-box">
+        <!-- Login Header -->
+        <div class="login-header">
+            <div class="login-logo">🎨</div>
+            <h1 class="login-title">Welcome Back</h1>
+            <p class="login-subtitle">Sign in to your Pixel Pusher OS</p>
+        </div>
+        
+        <!-- Login Form -->
+        <form class="login-form" method="POST" id="loginForm">
+            <div class="form-group">
+                <label for="username" class="form-label">Username</label>
+                <input 
+                    type="text" 
+                    id="username" 
+                    name="username" 
+                    class="form-input" 
+                    placeholder="Enter your username"
+                    autocomplete="username"
+                    required
+                >
+                <div class="form-input-icon">👤</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="password" class="form-label">Password</label>
+                <input 
+                    type="password" 
+                    id="password" 
+                    name="password" 
+                    class="form-input" 
+                    placeholder="Enter your password"
+                    autocomplete="current-password"
+                    required
+                >
+                <div class="form-input-icon">🔒</div>
+            </div>
+            
+            <div class="remember-me">
+                <input 
+                    type="checkbox" 
+                    id="remember" 
+                    name="remember" 
+                    class="remember-checkbox"
+                >
+                <label for="remember" class="remember-label">Remember me</label>
+            </div>
+            
+            <button type="submit" class="login-button" id="loginButton">
+                <div class="loading-spinner" id="loadingSpinner"></div>
+                <span id="buttonText">Sign In</span>
+            </button>
+        </form>
+        
+        <!-- Login Footer -->
+        <div class="login-footer">
+            <p>Don't have an account? <a href="{{ url_for('auth.register') }}" class="login-link">Create one here</a></p>
+        </div>
+        
+        <!-- Demo Accounts -->
+        <div class="demo-accounts">
+            <div class="demo-title">🚀 Try Demo Accounts</div>
+            
+            <div class="demo-account">
+                <span class="demo-credentials"><strong>admin</strong> / admin</span>
+                <button type="button" class="demo-use-button" onclick="useDemoAccount('admin', 'admin')">
+                    Use This
+                </button>
+            </div>
+            
+            <div class="demo-account">
+                <span class="demo-credentials"><strong>user</strong> / user</span>
+                <button type="button" class="demo-use-button" onclick="useDemoAccount('user', 'user')">
+                    Use This
+                </button>
+            </div>
+            
+            <div class="demo-account">
+                <span class="demo-credentials"><strong>demo</strong> / demo</span>
+                <button type="button" class="demo-use-button" onclick="useDemoAccount('demo', 'demo')">
+                    Use This
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Login Page JavaScript -->
+<script>
+    // Login form handling
+    document.addEventListener('DOMContentLoaded', function() {
+        const loginForm = document.getElementById('loginForm');
+        const loginButton = document.getElementById('loginButton');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const buttonText = document.getElementById('buttonText');
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        
+        // Form submission handling
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Basic validation
+            if (!validateForm()) {
+                return;
+            }
+            
+            // Show loading state
+            setLoadingState(true);
+            
+            // Submit form
+            submitLogin();
+        });
+        
+        // Real-time validation
+        usernameInput.addEventListener('input', function() {
+            clearFieldError(this);
+        });
+        
+        passwordInput.addEventListener('input', function() {
+            clearFieldError(this);
+        });
+        
+        // Enter key handling
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                const activeElement = document.activeElement;
+                if (activeElement === usernameInput || activeElement === passwordInput) {
+                    e.preventDefault();
+                    loginForm.dispatchEvent(new Event('submit'));
+                }
+            }
+        });
+        
+        // Auto-focus username field
+        setTimeout(() => {
+            usernameInput.focus();
+        }, 500);
+    });
+    
+    // Form validation
+    function validateForm() {
+        const username = document.getElementById('username');
+        const password = document.getElementById('password');
+        let isValid = true;
+        
+        // Reset previous errors
+        clearFieldError(username);
+        clearFieldError(password);
+        
+        // Validate username
+        if (!username.value.trim()) {
+            setFieldError(username, 'Username is required');
+            isValid = false;
+        } else if (username.value.trim().length < 3) {
+            setFieldError(username, 'Username must be at least 3 characters');
+            isValid = false;
+        }
+        
+        // Validate password
+        if (!password.value) {
+            setFieldError(password, 'Password is required');
+            isValid = false;
+        } else if (password.value.length < 4) {
+            setFieldError(password, 'Password must be at least 4 characters');
+            isValid = false;
+        }
+        
+        return isValid;
+    }
+    
+    // Set field error state
+    function setFieldError(field, message) {
+        field.classList.add('error');
+        
+        // Remove existing error message
+        const existingError = field.parentNode.querySelector('.error-message');
+        if (existingError) {
+            existingError.remove();
+        }
+        
+        // Add error message
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'error-message';
+        errorDiv.style.color = '#e53e3e';
+        errorDiv.style.fontSize = '12px';
+        errorDiv.style.marginTop = '5px';
+        errorDiv.textContent = message;
+        field.parentNode.appendChild(errorDiv);
+        
+        // Focus the field
+        field.focus();
+    }
+    
+    // Clear field error state
+    function clearFieldError(field) {
+        field.classList.remove('error');
+        const errorMessage = field.parentNode.querySelector('.error-message');
+        if (errorMessage) {
+            errorMessage.remove();
+        }
+    }
+    
+    // Set loading state
+    function setLoadingState(loading) {
+        const loginButton = document.getElementById('loginButton');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const buttonText = document.getElementById('buttonText');
+        
+        if (loading) {
+            loginButton.disabled = true;
+            loadingSpinner.style.display = 'inline-block';
+            buttonText.textContent = 'Signing In...';
+        } else {
+            loginButton.disabled = false;
+            loadingSpinner.style.display = 'none';
+            buttonText.textContent = 'Sign In';
+        }
+    }
+    
+    // Submit login form
+    function submitLogin() {
+        const formData = new FormData(document.getElementById('loginForm'));
+        
+        fetch(window.location.href, {
+            method: 'POST',
+            body: formData,
+            credentials: 'same-origin'
+        })
+        .then(response => {
+            if (response.redirected) {
+                // Successful login - redirect to desktop
+                window.location.href = response.url;
+            } else {
+                // Handle error response
+                return response.text();
+            }
+        })
+        .then(html => {
+            if (html) {
+                // Login failed - reload page to show error messages
+                window.location.reload();
+            }
+        })
+        .catch(error => {
+            console.error('Login error:', error);
+            setLoadingState(false);
+            showLoginError('Network error. Please check your connection and try again.');
+        });
+    }
+    
+    // Show login error
+    function showLoginError(message) {
+        // Create error notification
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'login-error';
+        errorDiv.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #fed7d7;
+            color: #9b2c2c;
+            padding: 12px 20px;
+            border-radius: 8px;
+            border-left: 4px solid #e53e3e;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            animation: slideInRight 0.3s ease-out;
+        `;
+        errorDiv.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span>❌</span>
+                <span>${message}</span>
+                <button onclick="this.parentElement.parentElement.remove()" style="background: none; border: none; color: #9b2c2c; cursor: pointer; margin-left: 10px;">×</button>
+            </div>
+        `;
+        
+        document.body.appendChild(errorDiv);
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            if (errorDiv.parentNode) {
+                errorDiv.remove();
+            }
+        }, 5000);
+    }
+    
+    // Use demo account
+    function useDemoAccount(username, password) {
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        
+        usernameInput.value = username;
+        passwordInput.value = password;
+        
+        // Animate the fill
+        usernameInput.style.animation = 'pulse 0.5s ease-out';
+        passwordInput.style.animation = 'pulse 0.5s ease-out';
+        
+        // Clear animations after they complete
+        setTimeout(() => {
+            usernameInput.style.animation = '';
+            passwordInput.style.animation = '';
+        }, 500);
+        
+        // Optional: Auto-submit after a short delay
+        setTimeout(() => {
+            if (confirm('Submit login with demo account?')) {
+                document.getElementById('loginForm').dispatchEvent(new Event('submit'));
+            }
+        }, 1000);
+    }
+    
+    // Add pulse animation
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(100px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+    `;
+    document.head.appendChild(style);
+    
+    // Theme detection and adjustment
+    function adjustThemeForLogin() {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        
+        // Auto-switch to a more suitable theme for login if needed
+        if (currentTheme === 'matrix' || currentTheme === 'neon') {
+            document.documentElement.setAttribute('data-theme', 'default');
+        }
+    }
+    
+    // Initialize theme adjustment
+    document.addEventListener('DOMContentLoaded', adjustThemeForLogin);
+    
+    console.log('🔐 Login page loaded successfully');
+</script>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Additional login page functionality
+    console.log('🎨 Pixel Pusher OS Login Interface');
+    console.log('💡 Try demo accounts: admin/admin, user/user, demo/demo');
+    
+    // Accessibility: Announce page to screen readers
+    if (window.speechSynthesis) {
+        setTimeout(() => {
+            const announcement = new SpeechSynthesisUtterance('Pixel Pusher OS login page loaded');
+            announcement.volume = 0.1;
+            announcement.rate = 1.2;
+            // Only announce if user hasn't interacted yet
+            if (!document.querySelector('input:focus')) {
+                window.speechSynthesis.speak(announcement);
+            }
+        }, 2000);
+    }
+</script>
+{% endblock %}
