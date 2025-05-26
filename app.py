@@ -14,7 +14,6 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 
 from config import Config
-from models import db, User
 
 # Initialize Flask application with custom folders
 app = Flask(__name__,
@@ -25,6 +24,8 @@ app = Flask(__name__,
 app.config.from_object(Config)
 
 # Initialize Flask extensions
+from models import db, User
+
 db.init_app(app)  # Database ORM
 login_manager = LoginManager(app)  # User session management
 login_manager.login_view = 'auth.login'  # Redirect to login if not authenticated
@@ -39,10 +40,13 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 
-# Create database tables if they don't exist
+# Create database tables and default users if they don't exist
 with app.app_context():
     db.create_all()
     print("✅ Database tables created successfully")
+
+    # Create default users
+    User.create_default_users()
 
 # Register application blueprints (modular route organization)
 from routes.auth import auth_bp  # Authentication routes (login/register/logout)

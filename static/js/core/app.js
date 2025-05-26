@@ -1,22 +1,16 @@
 /**
  * Pixel Pusher OS - Main Application Controller
  * Core application initialization and management system
- *
- * This is the heart of the frontend application that:
- * - Initializes all modules and components
- * - Manages global state and events
- * - Coordinates communication between modules
- * - Handles system-wide functionality
  */
 
 class PixelPusherApp {
     constructor() {
         this.initialized = false;
-        this.modules = {};  // Storage for all loaded modules
+        this.modules = {};
         this.state = {
             currentUser: null,
-            zIndex: 100,        // Window layering management
-            windows: new Set(), // Active window tracking
+            zIndex: 100,
+            windows: new Set(),
             desktop: null,
             version: '2.0.0'
         };
@@ -25,10 +19,6 @@ class PixelPusherApp {
         console.log('%c Professional Web Desktop Environment', 'color: #bfbfbf; font-size: 14px;');
     }
 
-    /**
-     * Initialize the complete application system
-     * This is called when the DOM is ready
-     */
     async init() {
         if (this.initialized) {
             console.warn('⚠️ Application already initialized');
@@ -38,16 +28,10 @@ class PixelPusherApp {
         try {
             console.log('🚀 Initializing Pixel Pusher OS...');
 
-            // Load and initialize all core modules
             await this.loadCoreModules();
-
-            // Set up global event handling
             this.initializeGlobalEventListeners();
-
-            // Start system services
             this.startSystemServices();
 
-            // Initialize desktop if user is authenticated
             if (this.isUserAuthenticated()) {
                 await this.initializeDesktopEnvironment();
             }
@@ -55,7 +39,6 @@ class PixelPusherApp {
             this.initialized = true;
             console.log('✅ Pixel Pusher OS initialized successfully');
 
-            // Show welcome message for new users
             this.showWelcomeMessage();
 
         } catch (error) {
@@ -64,48 +47,48 @@ class PixelPusherApp {
         }
     }
 
-    /**
-     * Load and initialize all core system modules
-     */
     async loadCoreModules() {
         console.log('📦 Loading core modules...');
 
-        // Initialize state management first (everything depends on it)
         this.modules.state = new StateManager();
         console.log('  ✅ State Manager loaded');
 
-        // Initialize authentication system
         if (document.getElementById('loginOverlay') || this.isUserAuthenticated()) {
             this.modules.auth = new AuthManager();
             await this.modules.auth.init();
             console.log('  ✅ Authentication Manager loaded');
         }
 
-        // Initialize desktop environment (only if user is authenticated)
         if (this.isUserAuthenticated()) {
-            this.modules.desktop = new DesktopManager();
-            this.modules.windows = new WindowManager();
-            this.modules.terminal = new TerminalManager();
-            this.modules.explorer = new ExplorerManager();
-            this.modules.games = new GameManager();
-            this.modules.settings = new SettingsManager();
+            if (typeof DesktopManager !== 'undefined') {
+                this.modules.desktop = new DesktopManager();
+            }
+            if (typeof WindowManager !== 'undefined') {
+                this.modules.windows = new WindowManager();
+            }
+            if (typeof TerminalManager !== 'undefined') {
+                this.modules.terminal = new TerminalManager();
+            }
+            if (typeof ExplorerManager !== 'undefined') {
+                this.modules.explorer = new ExplorerManager();
+            }
+            if (typeof GameManager !== 'undefined') {
+                this.modules.games = new GameManager();
+            }
+            if (typeof SettingsManager !== 'undefined') {
+                this.modules.settings = new SettingsManager();
+            }
 
             console.log('  ✅ Desktop environment modules loaded');
         }
     }
 
-    /**
-     * Initialize desktop environment for authenticated users
-     */
     async initializeDesktopEnvironment() {
         console.log('🖥️ Initializing desktop environment...');
 
         try {
-            // Initialize desktop and window management
-            await this.modules.desktop.init();
-            await this.modules.windows.init();
-
-            // Initialize applications
+            if (this.modules.desktop) await this.modules.desktop.init();
+            if (this.modules.windows) await this.modules.windows.init();
             if (this.modules.terminal) await this.modules.terminal.init();
             if (this.modules.explorer) await this.modules.explorer.init();
             if (this.modules.games) await this.modules.games.init();
@@ -119,38 +102,29 @@ class PixelPusherApp {
         }
     }
 
-    /**
-     * Set up global event listeners for system-wide functionality
-     */
     initializeGlobalEventListeners() {
         console.log('🎧 Setting up global event listeners...');
 
-        // Keyboard shortcuts (Ctrl+Alt combinations)
         document.addEventListener('keydown', (e) => {
             this.handleGlobalKeyboardShortcuts(e);
         });
 
-        // Click handler for context menus and global interactions
         document.addEventListener('click', (e) => {
             this.handleGlobalClick(e);
         });
 
-        // Window resize handler for responsive design
         window.addEventListener('resize', () => {
             this.handleWindowResize();
         });
 
-        // Handle page visibility changes (tab switching)
         document.addEventListener('visibilitychange', () => {
             this.handleVisibilityChange();
         });
 
-        // Handle before page unload (save state, cleanup)
         window.addEventListener('beforeunload', (e) => {
             this.handleBeforeUnload(e);
         });
 
-        // Desktop right-click context menu
         const desktop = document.getElementById('desktop');
         if (desktop) {
             desktop.addEventListener('contextmenu', (e) => {
@@ -162,83 +136,63 @@ class PixelPusherApp {
         }
     }
 
-    /**
-     * Handle global keyboard shortcuts
-     */
     handleGlobalKeyboardShortcuts(e) {
-        // Ctrl+Alt+T - Open Terminal
         if (e.ctrlKey && e.altKey && e.key.toLowerCase() === 't') {
             e.preventDefault();
             this.openApplication('terminal');
             return;
         }
 
-        // Ctrl+Alt+E - Open File Explorer
         if (e.ctrlKey && e.altKey && e.key.toLowerCase() === 'e') {
             e.preventDefault();
             this.openApplication('explorer');
             return;
         }
 
-        // Ctrl+Alt+S - Open Settings
         if (e.ctrlKey && e.altKey && e.key.toLowerCase() === 's') {
             e.preventDefault();
             this.openApplication('settings');
             return;
         }
 
-        // Ctrl+Alt+G - Open Games Menu
         if (e.ctrlKey && e.altKey && e.key.toLowerCase() === 'g') {
             e.preventDefault();
             this.showGamesMenu();
             return;
         }
 
-        // Escape - Close context menus and dialogs
         if (e.key === 'Escape') {
             this.closeAllContextMenus();
             this.closeAllModals();
         }
 
-        // F11 - Toggle fullscreen mode
         if (e.key === 'F11') {
             e.preventDefault();
             this.toggleFullscreen();
         }
     }
 
-    /**
-     * Handle global click events
-     */
     handleGlobalClick(e) {
-        // Close context menus when clicking elsewhere
         if (!e.target.closest('.context-menu')) {
             this.closeAllContextMenus();
         }
 
-        // Handle modal backdrop clicks
         if (e.target.classList.contains('modal-backdrop')) {
             this.closeModal(e.target.closest('.modal'));
         }
 
-        // Update user activity timestamp
         if (this.modules.auth) {
             this.modules.auth.updateActivity();
         }
     }
 
-    /**
-     * Handle window resize events
-     */
     handleWindowResize() {
-        // Notify all modules about window resize
         Object.values(this.modules).forEach(module => {
             if (module && typeof module.handleResize === 'function') {
                 module.handleResize();
             }
         });
 
-        // Update viewport size in state
         if (this.modules.state) {
             this.modules.state.set('viewport', {
                 width: window.innerWidth,
@@ -247,54 +201,33 @@ class PixelPusherApp {
         }
     }
 
-    /**
-     * Handle page visibility changes (tab switching)
-     */
     handleVisibilityChange() {
         if (document.hidden) {
-            // Page is hidden - pause non-essential activities
             this.pauseNonEssentialActivities();
         } else {
-            // Page is visible - resume activities
             this.resumeActivities();
         }
     }
 
-    /**
-     * Handle before page unload
-     */
     handleBeforeUnload(e) {
-        // Save application state
         this.saveApplicationState();
 
-        // If there are unsaved changes, warn user
         if (this.hasUnsavedChanges()) {
             e.preventDefault();
             e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
         }
     }
 
-    /**
-     * Start essential system services
-     */
     startSystemServices() {
         console.log('⚙️ Starting system services...');
 
-        // Start system clock
         this.startSystemClock();
-
-        // Start periodic state saving
         this.startPeriodicStateSaving();
-
-        // Start performance monitoring
         this.startPerformanceMonitoring();
 
         console.log('  ✅ System services started');
     }
 
-    /**
-     * Start and maintain system clock display
-     */
     startSystemClock() {
         const updateClock = () => {
             const clockElement = document.getElementById('systemTime');
@@ -312,37 +245,23 @@ class PixelPusherApp {
         setInterval(updateClock, 1000);
     }
 
-    /**
-     * Start periodic application state saving
-     */
     startPeriodicStateSaving() {
-        // Save state every 30 seconds
         setInterval(() => {
             this.saveApplicationState();
         }, 30000);
     }
 
-    /**
-     * Start performance monitoring
-     */
     startPerformanceMonitoring() {
-        // Monitor performance metrics every minute
         setInterval(() => {
             this.collectPerformanceMetrics();
         }, 60000);
     }
 
-    /**
-     * Check if user is authenticated
-     */
     isUserAuthenticated() {
         const loginOverlay = document.getElementById('loginOverlay');
         return !loginOverlay || loginOverlay.style.display === 'none';
     }
 
-    /**
-     * Open an application window
-     */
     openApplication(appId) {
         if (this.modules.windows) {
             this.modules.windows.open(appId);
@@ -351,18 +270,12 @@ class PixelPusherApp {
         }
     }
 
-    /**
-     * Close an application window
-     */
     closeApplication(appId) {
         if (this.modules.windows) {
             this.modules.windows.close(appId);
         }
     }
 
-    /**
-     * Show desktop context menu
-     */
     showDesktopContextMenu(x, y) {
         const menu = document.getElementById('contextMenu');
         if (menu) {
@@ -372,9 +285,6 @@ class PixelPusherApp {
         }
     }
 
-    /**
-     * Show games selection menu
-     */
     showGamesMenu() {
         const games = [
             { id: 'snake', name: '🐍 Snake Game', description: 'Classic snake game' },
@@ -397,27 +307,18 @@ class PixelPusherApp {
         this.showModal('Games Center', menuHTML);
     }
 
-    /**
-     * Close all context menus
-     */
     closeAllContextMenus() {
         document.querySelectorAll('.context-menu').forEach(menu => {
             menu.style.display = 'none';
         });
     }
 
-    /**
-     * Close all modal dialogs
-     */
     closeAllModals() {
         document.querySelectorAll('.modal').forEach(modal => {
             this.closeModal(modal);
         });
     }
 
-    /**
-     * Show a modal dialog
-     */
     showModal(title, content, options = {}) {
         const modal = document.createElement('div');
         modal.className = 'modal';
@@ -436,11 +337,10 @@ class PixelPusherApp {
 
         document.body.appendChild(modal);
 
-        // Add CSS styles dynamically
         if (!document.getElementById('modal-styles')) {
-            const styles = document.createElement('style');
-            styles.id = 'modal-styles';
-            styles.textContent = `
+            const modalStyles = document.createElement('style');
+            modalStyles.id = 'modal-styles';
+            modalStyles.textContent = `
                 .modal {
                     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
                     z-index: 9999; display: flex; align-items: center; justify-content: center;
@@ -473,24 +373,18 @@ class PixelPusherApp {
                 .game-title { font-weight: bold; margin-bottom: 5px; }
                 .game-description { font-size: 14px; opacity: 0.8; }
             `;
-            document.head.appendChild(styles);
+            document.head.appendChild(modalStyles);
         }
 
         return modal;
     }
 
-    /**
-     * Close a specific modal
-     */
     closeModal(modal) {
         if (modal) {
             modal.remove();
         }
     }
 
-    /**
-     * Toggle fullscreen mode
-     */
     toggleFullscreen() {
         if (!document.fullscreenElement) {
             document.documentElement.requestFullscreen().catch(err => {
@@ -501,11 +395,7 @@ class PixelPusherApp {
         }
     }
 
-    /**
-     * Show welcome message for new users
-     */
     showWelcomeMessage() {
-        // Check if this is user's first visit
         const hasSeenWelcome = localStorage.getItem('pixelpusher_welcome_seen');
         if (!hasSeenWelcome && this.isUserAuthenticated()) {
             setTimeout(() => {
@@ -532,13 +422,9 @@ class PixelPusherApp {
         }
     }
 
-    /**
-     * Handle initialization errors gracefully
-     */
     handleInitializationError(error) {
         console.error('System initialization failed:', error);
 
-        // Show user-friendly error message
         const errorContent = `
             <div style="text-align: center; color: var(--error);">
                 <h3>⚠️ Initialization Error</h3>
@@ -552,7 +438,6 @@ class PixelPusherApp {
             </div>
         `;
 
-        // Create error modal
         document.body.innerHTML += `
             <div class="modal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 9999;">
                 <div style="background: var(--surface); padding: 30px; border-radius: 15px; max-width: 400px;">
@@ -562,55 +447,32 @@ class PixelPusherApp {
         `;
     }
 
-    /**
-     * Pause non-essential activities when page is hidden
-     */
     pauseNonEssentialActivities() {
-        // Pause games
         if (this.modules.games) {
             this.modules.games.pauseAll();
         }
 
-        // Reduce animation frequency
         document.body.classList.add('reduced-motion');
     }
 
-    /**
-     * Resume activities when page becomes visible
-     */
     resumeActivities() {
-        // Remove reduced motion class
         document.body.classList.remove('reduced-motion');
 
-        // Resume games if they were running
         if (this.modules.games) {
             this.modules.games.resumeAll();
         }
     }
 
-    /**
-     * Save complete application state
-     */
     saveApplicationState() {
         if (this.modules.state) {
             this.modules.state.saveState();
         }
     }
 
-    /**
-     * Check if there are unsaved changes
-     */
     hasUnsavedChanges() {
-        // Check if terminal has unsaved command history
-        // Check if explorer has unsaved file changes
-        // Check if games have unsaved progress
-        // This would be implemented based on specific requirements
         return false;
     }
 
-    /**
-     * Collect performance metrics
-     */
     collectPerformanceMetrics() {
         const metrics = {
             timestamp: Date.now(),
@@ -623,13 +485,9 @@ class PixelPusherApp {
             activeWindows: this.state.windows.size
         };
 
-        // Store metrics (could be sent to analytics)
         console.debug('📊 Performance metrics:', metrics);
     }
 
-    /**
-     * Utility method for making API calls
-     */
     async apiCall(endpoint, options = {}) {
         try {
             const response = await fetch(`/api${endpoint}`, {
@@ -651,11 +509,7 @@ class PixelPusherApp {
         }
     }
 
-    /**
-     * Show system notification
-     */
     showNotification(message, type = 'info', duration = 5000) {
-        // Create notification element
         const notification = document.createElement('div');
         notification.className = `notification notification-${type}`;
         notification.innerHTML = `
@@ -665,7 +519,6 @@ class PixelPusherApp {
             </div>
         `;
 
-        // Style notification
         Object.assign(notification.style, {
             position: 'fixed',
             top: '70px',
@@ -683,11 +536,10 @@ class PixelPusherApp {
             minWidth: '250px'
         });
 
-        // Add notification styles if not present
         if (!document.getElementById('notification-styles')) {
-            const styles = document.createElement('style');
-            styles.id = 'notification-styles';
-            styles.textContent = `
+            const notificationStyles = document.createElement('style');
+            notificationStyles.id = 'notification-styles';
+            notificationStyles.textContent = `
                 .notification-content { display: flex; align-items: center; justify-content: space-between; }
                 .notification-message { flex: 1; margin-right: 10px; }
                 .notification-close { 
@@ -695,18 +547,16 @@ class PixelPusherApp {
                     cursor: pointer; font-size: 16px; padding: 0 5px;
                 }
             `;
-            document.head.appendChild(styles);
+            document.head.appendChild(notificationStyles);
         }
 
         document.body.appendChild(notification);
 
-        // Animate in
         setTimeout(() => {
             notification.style.opacity = '1';
             notification.style.transform = 'translateX(0)';
         }, 10);
 
-        // Auto-remove after duration
         setTimeout(() => {
             if (notification.parentNode) {
                 notification.style.opacity = '0';
@@ -722,9 +572,6 @@ class PixelPusherApp {
         return notification;
     }
 
-    /**
-     * Get notification background color based on type
-     */
     getNotificationColor(type) {
         const colors = {
             'info': '#00d9ff',
@@ -735,9 +582,6 @@ class PixelPusherApp {
         return colors[type] || colors.info;
     }
 
-    /**
-     * Get application statistics
-     */
     getStats() {
         return {
             version: this.state.version,
@@ -750,20 +594,15 @@ class PixelPusherApp {
         };
     }
 
-    /**
-     * Clean up application resources
-     */
     destroy() {
         console.log('🧹 Cleaning up Pixel Pusher OS...');
 
-        // Clean up all modules
         Object.values(this.modules).forEach(module => {
             if (module && typeof module.destroy === 'function') {
                 module.destroy();
             }
         });
 
-        // Save final state
         this.saveApplicationState();
 
         this.initialized = false;
@@ -780,11 +619,10 @@ if (document.readyState === 'loading') {
         window.pixelPusher.init();
     });
 } else {
-    // DOM is already ready
     window.pixelPusher.init();
 }
 
-// Global functions for backward compatibility with HTML onclick handlers
+// Global functions for backward compatibility
 function openWindow(windowId) {
     window.pixelPusher.openApplication(windowId);
 }
@@ -794,7 +632,7 @@ function closeWindow(windowId) {
 }
 
 function minimizeWindow(windowId) {
-    window.pixelPusher.closeApplication(windowId); // For now, minimize = close
+    window.pixelPusher.closeApplication(windowId);
 }
 
 function maximizeWindow(windowId) {
@@ -824,7 +662,6 @@ function contextAction(action) {
     window.pixelPusher.closeAllContextMenus();
 }
 
-// Export for potential module systems
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = PixelPusherApp;
 }
