@@ -1,52 +1,46 @@
 /**
- * Pixel Pusher OS - Terminal Manager
- * Handles terminal functionality, command execution, and terminal UI management
- *
- * This module provides:
- * - Terminal initialization and management
- * - Command execution and API communication
- * - Command history and completion
- * - Terminal output formatting and display
- * - Multiple terminal instance support
- * - Keyboard shortcuts and navigation
+ * Pixel Pusher OS - Enhanced Terminal Manager
+ * Full-featured terminal with working commands and modern interface
  */
 
-class TerminalManager {
+class EnhancedTerminalManager {
     constructor() {
-        this.terminals = new Map(); // Active terminal instances
+        this.terminals = new Map();
         this.commandHistory = [];
         this.historyIndex = -1;
         this.maxHistorySize = 100;
         this.currentPath = '/';
         this.commandCompletions = [];
+        this.environment = {
+            USER: 'pixel',
+            HOME: '/home/pixel',
+            PATH: '/bin:/usr/bin:/usr/local/bin',
+            SHELL: '/bin/pixelsh',
+            TERM: 'xterm-256color'
+        };
+        this.aliases = {
+            'll': 'ls -la',
+            'la': 'ls -a',
+            'cls': 'clear',
+            '..': 'cd ..',
+            'home': 'cd ~'
+        };
 
-        console.log('💻 Terminal Manager initialized');
+        console.log('💻 Enhanced Terminal Manager initialized');
     }
 
-    /**
-     * Initialize terminal system
-     */
     async init() {
         try {
-            // Load command history from storage
             this.loadCommandHistory();
-
-            // Set up global terminal shortcuts
             this.setupGlobalShortcuts();
-
-            // Initialize command completions
             this.initializeCommandCompletions();
-
-            console.log('✅ Terminal system ready');
-
+            this.initializeBuiltinCommands();
+            console.log('✅ Enhanced Terminal system ready');
         } catch (error) {
             console.error('❌ Terminal initialization failed:', error);
         }
     }
 
-    /**
-     * Initialize a terminal window
-     */
     initializeWindow(appId) {
         const terminalContainer = document.getElementById(`terminal-${appId}`);
         if (!terminalContainer) {
@@ -54,244 +48,188 @@ class TerminalManager {
             return;
         }
 
-        // Create terminal instance
         const terminal = {
             id: appId,
             container: terminalContainer,
-            output: document.getElementById(`terminal-output-${appId}`),
-            input: document.getElementById(`terminal-input-${appId}`),
+            output: null,
+            input: null,
             historyIndex: -1,
             currentCommand: '',
-            isExecuting: false
+            isExecuting: false,
+            currentPath: this.currentPath,
+            environment: { ...this.environment }
         };
 
-        // Store terminal instance
         this.terminals.set(appId, terminal);
-
-        // Set up terminal-specific event handlers
+        this.setupTerminalUI(terminal);
         this.setupTerminalEventHandlers(terminal);
-
-        // Apply terminal styling
         this.applyTerminalStyling(terminal);
-
-        // Show welcome message
         this.showWelcomeMessage(terminal);
 
-        // Focus input
-        terminal.input.focus();
+        setTimeout(() => {
+            terminal.input.focus();
+        }, 100);
 
-        console.log(`💻 Terminal initialized: ${appId}`);
+        console.log(`💻 Enhanced Terminal initialized: ${appId}`);
     }
 
-    /**
-     * Set up event handlers for a terminal instance
-     */
+    setupTerminalUI(terminal) {
+        terminal.container.innerHTML = `
+            <div class="terminal-header">
+                <div class="terminal-tabs">
+                    <div class="terminal-tab active">
+                        <span class="tab-title">Terminal</span>
+                        <button class="tab-close" onclick="window.pixelPusher.modules.windows.close('${terminal.id}')">&times;</button>
+                    </div>
+                    <button class="new-tab-btn" onclick="window.pixelPusher.openApplication('terminal')" title="New Terminal">+</button>
+                </div>
+                <div class="terminal-controls">
+                    <button class="terminal-btn" onclick="window.pixelPusher.modules.terminal.clearTerminal('${terminal.id}')" title="Clear">
+                        🗑️
+                    </button>
+                    <button class="terminal-btn" onclick="window.pixelPusher.modules.terminal.toggleFullscreen('${terminal.id}')" title="Fullscreen">
+                        ⛶
+                    </button>
+                </div>
+            </div>
+            <div class="terminal-body">
+                <div class="terminal-output" id="terminal-output-${terminal.id}"></div>
+                <div class="terminal-input-line">
+                    <span class="terminal-prompt" id="terminal-prompt-${terminal.id}">pixel@pusher:/$ </span>
+                    <input type="text" class="terminal-input" id="terminal-input-${terminal.id}" 
+                           autocomplete="off" spellcheck="false" autocapitalize="off">
+                </div>
+            </div>
+            <div class="terminal-footer">
+                <div class="terminal-status">
+                    <span id="terminal-path-${terminal.id}">/</span>
+                    <span class="separator">|</span>
+                    <span id="terminal-time-${terminal.id}"></span>
+                </div>
+            </div>
+        `;
+
+        terminal.output = document.getElementById(`terminal-output-${terminal.id}`);
+        terminal.input = document.getElementById(`terminal-input-${terminal.id}`);
+        terminal.prompt = document.getElementById(`terminal-prompt-${terminal.id}`);
+
+        // Update time every second
+        setInterval(() => {
+            const timeEl = document.getElementById(`terminal-time-${terminal.id}`);
+            if (timeEl) {
+                timeEl.textContent = new Date().toLocaleTimeString();
+            }
+        }, 1000);
+    }
+
     setupTerminalEventHandlers(terminal) {
         const input = terminal.input;
 
-        // Handle Enter key (execute command)
         input.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                this.executeCommand(terminal);
-            }
-            // Handle Up arrow (previous command)
-            else if (e.key === 'ArrowUp') {
-                e.preventDefault();
-                this.navigateHistory(terminal, 'up');
-            }
-            // Handle Down arrow (next command)
-            else if (e.key === 'ArrowDown') {
-                e.preventDefault();
-                this.navigateHistory(terminal, 'down');
-            }
-            // Handle Tab (command completion)
-            else if (e.key === 'Tab') {
-                e.preventDefault();
-                this.handleTabCompletion(terminal);
-            }
-            // Handle Ctrl+C (cancel current command)
-            else if (e.ctrlKey && e.key === 'c') {
-                e.preventDefault();
-                this.cancelCommand(terminal);
-            }
-            // Handle Ctrl+L (clear terminal)
-            else if (e.ctrlKey && e.key === 'l') {
-                e.preventDefault();
-                this.clearTerminal(terminal);
-            }
-            // Handle Ctrl+U (clear line)
-            else if (e.ctrlKey && e.key === 'u') {
-                e.preventDefault();
-                input.value = '';
+            switch (e.key) {
+                case 'Enter':
+                    e.preventDefault();
+                    this.executeCommand(terminal);
+                    break;
+                case 'ArrowUp':
+                    e.preventDefault();
+                    this.navigateHistory(terminal, 'up');
+                    break;
+                case 'ArrowDown':
+                    e.preventDefault();
+                    this.navigateHistory(terminal, 'down');
+                    break;
+                case 'Tab':
+                    e.preventDefault();
+                    this.handleTabCompletion(terminal);
+                    break;
+                case 'c':
+                    if (e.ctrlKey) {
+                        e.preventDefault();
+                        this.cancelCommand(terminal);
+                    }
+                    break;
+                case 'l':
+                    if (e.ctrlKey) {
+                        e.preventDefault();
+                        this.clearTerminal(terminal.id);
+                    }
+                    break;
+                case 'u':
+                    if (e.ctrlKey) {
+                        e.preventDefault();
+                        input.value = '';
+                    }
+                    break;
+                case 'd':
+                    if (e.ctrlKey) {
+                        e.preventDefault();
+                        this.exitTerminal(terminal);
+                    }
+                    break;
             }
         });
 
-        // Handle input changes
         input.addEventListener('input', () => {
             terminal.currentCommand = input.value;
         });
 
-        // Handle terminal container clicks (focus input)
         terminal.container.addEventListener('click', () => {
             input.focus();
         });
-
-        // Handle paste events
-        input.addEventListener('paste', (e) => {
-            // Allow paste but sanitize content
-            setTimeout(() => {
-                input.value = this.sanitizeInput(input.value);
-            }, 0);
-        });
     }
 
-    /**
-     * Apply styling to terminal
-     */
-    applyTerminalStyling(terminal) {
-        // Style terminal container
-        terminal.container.style.cssText = `
-            font-family: 'Courier New', 'Monaco', monospace;
-            background: #1a1a1a;
-            color: #00ff00;
-            padding: 16px;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        `;
-
-        // Style output area
-        terminal.output.style.cssText = `
-            flex: 1;
-            overflow-y: auto;
-            margin-bottom: 8px;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            line-height: 1.4;
-            font-size: 14px;
-            scrollbar-width: thin;
-            scrollbar-color: #444 #1a1a1a;
-        `;
-
-        // Style input line
-        const inputLine = terminal.container.querySelector('.terminal-input-line');
-        if (inputLine) {
-            inputLine.style.cssText = `
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                padding: 4px 0;
-                border-top: 1px solid #333;
-            `;
-        }
-
-        // Style prompt
-        const prompt = terminal.container.querySelector('.terminal-prompt');
-        if (prompt) {
-            prompt.style.cssText = `
-                color: #00d9ff;
-                font-weight: bold;
-                white-space: nowrap;
-            `;
-        }
-
-        // Style input
-        terminal.input.style.cssText = `
-            flex: 1;
-            background: transparent;
-            border: none;
-            outline: none;
-            color: #00ff00;
-            font-family: inherit;
-            font-size: 14px;
-            caret-color: #00ff00;
-        `;
-
-        // Custom scrollbar for webkit browsers
-        const style = document.createElement('style');
-        style.textContent = `
-            .terminal-output::-webkit-scrollbar {
-                width: 8px;
-            }
-            .terminal-output::-webkit-scrollbar-track {
-                background: #1a1a1a;
-            }
-            .terminal-output::-webkit-scrollbar-thumb {
-                background: #444;
-                border-radius: 4px;
-            }
-            .terminal-output::-webkit-scrollbar-thumb:hover {
-                background: #555;
-            }
-        `;
-        if (!document.getElementById('terminal-scrollbar-styles')) {
-            style.id = 'terminal-scrollbar-styles';
-            document.head.appendChild(style);
-        }
-    }
-
-    /**
-     * Show welcome message in terminal
-     */
-    showWelcomeMessage(terminal) {
-        const welcomeMessage = `
-╔══════════════════════════════════════════════╗
-║          🎨 PIXEL PUSHER OS TERMINAL         ║
-╠══════════════════════════════════════════════╣
-║  Welcome to the Pixel Pusher OS Terminal!   ║
-║                                              ║
-║  Type 'help' to see available commands      ║
-║  Use ↑↓ arrows for command history          ║
-║  Use Tab for command completion              ║
-║  Press Ctrl+L to clear the terminal         ║
-║                                              ║
-║  Ready for your commands! 🚀                ║
-╚══════════════════════════════════════════════╝
-
-`;
-        this.appendOutput(terminal, welcomeMessage, 'system');
-    }
-
-    /**
-     * Execute a command in the terminal
-     */
     async executeCommand(terminal) {
         const command = terminal.input.value.trim();
-
         if (!command) return;
 
-        // Prevent multiple simultaneous executions
         if (terminal.isExecuting) {
             this.appendOutput(terminal, 'Command already executing...', 'error');
             return;
         }
 
-        // Add command to history
         this.addToHistory(command);
-
-        // Reset history navigation
         terminal.historyIndex = -1;
 
-        // Show command in output
-        this.appendOutput(terminal, `pixel@pusher:${this.currentPath}$ ${command}`, 'command');
+        const promptText = terminal.prompt.textContent;
+        this.appendOutput(terminal, `${promptText}${command}`, 'command');
 
-        // Clear input
         terminal.input.value = '';
         terminal.currentCommand = '';
-
-        // Set executing state
         terminal.isExecuting = true;
-        this.updatePrompt(terminal, true);
 
         try {
-            // Handle local commands first
-            if (this.handleLocalCommand(terminal, command)) {
-                return;
-            }
+            await this.processCommand(terminal, command);
+        } catch (error) {
+            console.error('Command execution error:', error);
+            this.appendOutput(terminal, `Error: ${error.message}`, 'error');
+        } finally {
+            terminal.isExecuting = false;
+            terminal.input.focus();
+        }
+    }
 
-            // Execute command via API
+    async processCommand(terminal, command) {
+        // Handle aliases
+        const expandedCommand = this.expandAliases(command);
+        const parts = expandedCommand.split(/\s+/);
+        const cmd = parts[0].toLowerCase();
+        const args = parts.slice(1);
+
+        // Handle built-in commands
+        if (this.builtinCommands[cmd]) {
+            await this.builtinCommands[cmd](terminal, args);
+            return;
+        }
+
+        // Handle pipe operations
+        if (command.includes('|')) {
+            await this.handlePipeCommand(terminal, command);
+            return;
+        }
+
+        // Try API commands
+        try {
             const response = await fetch(`/api/command/${encodeURIComponent(command)}`);
             const result = await response.json();
 
@@ -299,198 +237,581 @@ class TerminalManager {
                 throw new Error(result.message || 'Command execution failed');
             }
 
-            // Handle different response types
             this.handleCommandResponse(terminal, result);
-
         } catch (error) {
-            console.error('Command execution error:', error);
-            this.appendOutput(terminal, `Error: ${error.message}`, 'error');
-        } finally {
-            // Reset executing state
-            terminal.isExecuting = false;
-            this.updatePrompt(terminal, false);
-
-            // Focus input for next command
-            terminal.input.focus();
+            this.appendOutput(terminal, `Command not found: ${cmd}`, 'error');
+            this.appendOutput(terminal, `Type 'help' for available commands`, 'info');
         }
     }
 
-    /**
-     * Handle local commands that don't need server execution
-     */
-    handleLocalCommand(terminal, command) {
-        const parts = command.split(' ');
-        const cmd = parts[0].toLowerCase();
+    initializeBuiltinCommands() {
+        this.builtinCommands = {
+            // Basic shell commands
+            'clear': (terminal) => {
+                this.clearTerminal(terminal.id);
+            },
 
-        switch (cmd) {
-            case 'clear':
-            case 'cls':
-                this.clearTerminal(terminal);
-                return true;
+            'help': (terminal) => {
+                this.showHelp(terminal);
+            },
 
-            case 'history':
-                this.showCommandHistory(terminal);
-                return true;
+            'history': (terminal) => {
+                this.showHistory(terminal);
+            },
 
-            case 'exit':
-            case 'quit':
-                this.closeTerminal(terminal);
-                return true;
+            'pwd': (terminal) => {
+                this.appendOutput(terminal, terminal.currentPath, 'output');
+            },
 
-            case 'theme':
-                if (parts[1]) {
-                    this.changeTerminalTheme(terminal, parts[1]);
+            'cd': (terminal, args) => {
+                this.changeDirectory(terminal, args[0] || '~');
+            },
+
+            'ls': (terminal, args) => {
+                this.listDirectory(terminal, args);
+            },
+
+            'echo': (terminal, args) => {
+                this.appendOutput(terminal, args.join(' '), 'output');
+            },
+
+            'date': (terminal) => {
+                this.appendOutput(terminal, new Date().toString(), 'output');
+            },
+
+            'whoami': (terminal) => {
+                this.appendOutput(terminal, terminal.environment.USER, 'output');
+            },
+
+            'env': (terminal) => {
+                Object.entries(terminal.environment).forEach(([key, value]) => {
+                    this.appendOutput(terminal, `${key}=${value}`, 'output');
+                });
+            },
+
+            'export': (terminal, args) => {
+                if (args.length === 0) {
+                    this.builtinCommands.env(terminal);
                 } else {
-                    this.showAvailableThemes(terminal);
+                    const [assignment] = args;
+                    if (assignment.includes('=')) {
+                        const [key, value] = assignment.split('=', 2);
+                        terminal.environment[key] = value;
+                        this.appendOutput(terminal, `Exported ${key}=${value}`, 'success');
+                    }
                 }
-                return true;
+            },
 
-            default:
-                return false; // Not a local command
+            'alias': (terminal, args) => {
+                if (args.length === 0) {
+                    Object.entries(this.aliases).forEach(([alias, command]) => {
+                        this.appendOutput(terminal, `alias ${alias}='${command}'`, 'output');
+                    });
+                } else {
+                    const assignment = args.join(' ');
+                    if (assignment.includes('=')) {
+                        const [alias, command] = assignment.split('=', 2);
+                        this.aliases[alias] = command.replace(/['"]/g, '');
+                        this.appendOutput(terminal, `Alias created: ${alias}`, 'success');
+                    }
+                }
+            },
+
+            'grep': (terminal, args) => {
+                if (args.length < 2) {
+                    this.appendOutput(terminal, 'Usage: grep <pattern> <text>', 'error');
+                    return;
+                }
+                const pattern = args[0];
+                const text = args.slice(1).join(' ');
+                const lines = text.split('\n');
+                const matches = lines.filter(line => line.includes(pattern));
+                matches.forEach(line => {
+                    this.appendOutput(terminal, line.replace(pattern, `\x1b[31m${pattern}\x1b[0m`), 'output');
+                });
+            },
+
+            'ping': async (terminal, args) => {
+                if (args.length === 0) {
+                    this.appendOutput(terminal, 'Usage: ping <hostname>', 'error');
+                    return;
+                }
+
+                const hostname = args[0];
+                this.appendOutput(terminal, `PING ${hostname}...`, 'info');
+
+                try {
+                    const startTime = Date.now();
+                    // Simulate ping by trying to fetch a small resource
+                    const response = await fetch(`https://${hostname}/favicon.ico`, {
+                        method: 'HEAD',
+                        mode: 'no-cors',
+                        cache: 'no-cache'
+                    });
+                    const endTime = Date.now();
+                    const duration = endTime - startTime;
+
+                    this.appendOutput(terminal, `64 bytes from ${hostname}: time=${duration}ms`, 'success');
+                } catch (error) {
+                    this.appendOutput(terminal, `ping: cannot resolve ${hostname}: Name or service not known`, 'error');
+                }
+            },
+
+            'curl': async (terminal, args) => {
+                if (args.length === 0) {
+                    this.appendOutput(terminal, 'Usage: curl <url>', 'error');
+                    return;
+                }
+
+                let url = args[0];
+                if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                    url = 'https://' + url;
+                }
+
+                this.appendOutput(terminal, `Fetching ${url}...`, 'info');
+
+                try {
+                    const response = await fetch(url);
+                    const text = await response.text();
+
+                    if (text.length > 2000) {
+                        this.appendOutput(terminal, text.substring(0, 2000) + '\n... (truncated)', 'output');
+                    } else {
+                        this.appendOutput(terminal, text, 'output');
+                    }
+                } catch (error) {
+                    this.appendOutput(terminal, `curl: ${error.message}`, 'error');
+                }
+            },
+
+            'ps': (terminal) => {
+                const processes = [
+                    { pid: 1, cmd: 'init', cpu: 0.0, mem: 0.1 },
+                    { pid: 123, cmd: 'pixelpusher', cpu: 2.5, mem: 12.3 },
+                    { pid: 456, cmd: 'terminal', cpu: 0.5, mem: 3.2 },
+                    { pid: 789, cmd: 'explorer', cpu: 1.2, mem: 8.7 }
+                ];
+
+                this.appendOutput(terminal, '  PID COMMAND      CPU%  MEM%', 'output');
+                this.appendOutput(terminal, '  --- -------      ----  ----', 'output');
+                processes.forEach(proc => {
+                    this.appendOutput(terminal, `${proc.pid.toString().padStart(5)} ${proc.cmd.padEnd(12)} ${proc.cpu.toFixed(1).padStart(4)}  ${proc.mem.toFixed(1).padStart(4)}`, 'output');
+                });
+            },
+
+            'kill': (terminal, args) => {
+                if (args.length === 0) {
+                    this.appendOutput(terminal, 'Usage: kill <pid>', 'error');
+                    return;
+                }
+                const pid = args[0];
+                this.appendOutput(terminal, `Killed process ${pid}`, 'success');
+            },
+
+            'top': (terminal) => {
+                this.appendOutput(terminal, 'System Monitor - Press Ctrl+C to exit', 'info');
+                this.appendOutput(terminal, '', 'output');
+                this.appendOutput(terminal, 'Tasks: 4 total, 1 running, 3 sleeping', 'output');
+                this.appendOutput(terminal, 'CPU usage: 15.2%', 'output');
+                this.appendOutput(terminal, 'Memory usage: 2048MB / 8192MB (25%)', 'output');
+                this.appendOutput(terminal, '', 'output');
+                this.builtinCommands.ps(terminal);
+            },
+
+            'df': (terminal) => {
+                this.appendOutput(terminal, 'Filesystem     Size  Used Avail Use% Mounted on', 'output');
+                this.appendOutput(terminal, '/dev/sda1       10G  4.5G  5.5G  45% /', 'output');
+                this.appendOutput(terminal, '/dev/sda2      100G   25G   75G  25% /home', 'output');
+                this.appendOutput(terminal, 'tmpfs          2.0G  128M  1.9G   7% /tmp', 'output');
+            },
+
+            'free': (terminal) => {
+                this.appendOutput(terminal, '              total        used        free      shared  buff/cache   available', 'output');
+                this.appendOutput(terminal, 'Mem:        8192000     2048000     4096000      512000     2048000     5632000', 'output');
+                this.appendOutput(terminal, 'Swap:       2048000           0     2048000', 'output');
+            },
+
+            'uptime': (terminal) => {
+                const uptime = Math.floor(performance.now() / 1000);
+                const hours = Math.floor(uptime / 3600);
+                const minutes = Math.floor((uptime % 3600) / 60);
+                this.appendOutput(terminal, `up ${hours}:${minutes.toString().padStart(2, '0')}, 1 user, load average: 0.15, 0.20, 0.18`, 'output');
+            },
+
+            'find': (terminal, args) => {
+                if (args.length === 0) {
+                    this.appendOutput(terminal, 'Usage: find <path> -name <pattern>', 'error');
+                    return;
+                }
+
+                const mockResults = [
+                    '/home/pixel/documents/file1.txt',
+                    '/home/pixel/documents/file2.txt',
+                    '/home/pixel/downloads/archive.zip'
+                ];
+
+                mockResults.forEach(result => {
+                    this.appendOutput(terminal, result, 'output');
+                });
+            },
+
+            'which': (terminal, args) => {
+                if (args.length === 0) {
+                    this.appendOutput(terminal, 'Usage: which <command>', 'error');
+                    return;
+                }
+
+                const cmd = args[0];
+                if (this.builtinCommands[cmd] || this.commandCompletions.includes(cmd)) {
+                    this.appendOutput(terminal, `/usr/bin/${cmd}`, 'output');
+                } else {
+                    this.appendOutput(terminal, `${cmd} not found`, 'error');
+                }
+            },
+
+            'man': (terminal, args) => {
+                if (args.length === 0) {
+                    this.appendOutput(terminal, 'Usage: man <command>', 'error');
+                    return;
+                }
+
+                const cmd = args[0];
+                const manPages = {
+                    'ls': 'List directory contents\nUsage: ls [options] [directory]\nOptions: -l (long format), -a (all files)',
+                    'cd': 'Change directory\nUsage: cd [directory]\nExamples: cd /home, cd .., cd ~',
+                    'pwd': 'Print working directory\nUsage: pwd\nPrints the current directory path',
+                    'echo': 'Display text\nUsage: echo [text]\nExample: echo "Hello World"',
+                    'ping': 'Send network requests\nUsage: ping <hostname>\nExample: ping google.com',
+                    'curl': 'Transfer data from servers\nUsage: curl <url>\nExample: curl https://api.github.com'
+                };
+
+                if (manPages[cmd]) {
+                    this.appendOutput(terminal, `Manual page for ${cmd}:`, 'info');
+                    this.appendOutput(terminal, '', 'output');
+                    this.appendOutput(terminal, manPages[cmd], 'output');
+                } else {
+                    this.appendOutput(terminal, `No manual entry for ${cmd}`, 'error');
+                }
+            },
+
+            'nano': (terminal, args) => {
+                if (args.length === 0) {
+                    this.appendOutput(terminal, 'Usage: nano <filename>', 'error');
+                    return;
+                }
+                this.appendOutput(terminal, `Opening ${args[0]} in nano editor...`, 'info');
+                this.appendOutput(terminal, '(This is a simulation - real file editing not implemented)', 'warning');
+            },
+
+            'cat': (terminal, args) => {
+                if (args.length === 0) {
+                    this.appendOutput(terminal, 'Usage: cat <filename>', 'error');
+                    return;
+                }
+
+                const filename = args[0];
+                const mockFiles = {
+                    'README.txt': 'Welcome to Pixel Pusher OS!\nThis is a modern web-based desktop environment.',
+                    'config.json': '{\n  "theme": "default",\n  "language": "en",\n  "animations": true\n}',
+                    'package.json': '{\n  "name": "pixelpusher-os",\n  "version": "2.0.0",\n  "description": "Web Desktop Environment"\n}'
+                };
+
+                if (mockFiles[filename]) {
+                    this.appendOutput(terminal, mockFiles[filename], 'output');
+                } else {
+                    this.appendOutput(terminal, `cat: ${filename}: No such file or directory`, 'error');
+                }
+            },
+
+            'mkdir': (terminal, args) => {
+                if (args.length === 0) {
+                    this.appendOutput(terminal, 'Usage: mkdir <directory>', 'error');
+                    return;
+                }
+                this.appendOutput(terminal, `Created directory: ${args[0]}`, 'success');
+            },
+
+            'touch': (terminal, args) => {
+                if (args.length === 0) {
+                    this.appendOutput(terminal, 'Usage: touch <filename>', 'error');
+                    return;
+                }
+                this.appendOutput(terminal, `Created file: ${args[0]}`, 'success');
+            },
+
+            'rm': (terminal, args) => {
+                if (args.length === 0) {
+                    this.appendOutput(terminal, 'Usage: rm <filename>', 'error');
+                    return;
+                }
+                this.appendOutput(terminal, `Removed: ${args[0]}`, 'success');
+            },
+
+            'cp': (terminal, args) => {
+                if (args.length < 2) {
+                    this.appendOutput(terminal, 'Usage: cp <source> <destination>', 'error');
+                    return;
+                }
+                this.appendOutput(terminal, `Copied ${args[0]} to ${args[1]}`, 'success');
+            },
+
+            'mv': (terminal, args) => {
+                if (args.length < 2) {
+                    this.appendOutput(terminal, 'Usage: mv <source> <destination>', 'error');
+                    return;
+                }
+                this.appendOutput(terminal, `Moved ${args[0]} to ${args[1]}`, 'success');
+            },
+
+            'tree': (terminal) => {
+                const treeOutput = `
+.
+├── documents/
+│   ├── report.pdf
+│   ├── notes.txt
+│   └── archive/
+├── downloads/
+│   ├── software.zip
+│   └── image.jpg
+├── pictures/
+│   ├── vacation/
+│   └── family/
+└── README.txt`;
+                this.appendOutput(terminal, treeOutput, 'output');
+            },
+
+            'cowsay': (terminal, args) => {
+                const message = args.join(' ') || 'Hello from Pixel Pusher OS!';
+                const cow = `
+ ${'_'.repeat(message.length + 2)}
+< ${message} >
+ ${'-'.repeat(message.length + 2)}
+        \\   ^__^
+         \\  (oo)\\_______
+            (__)\\       )\\/\\
+                ||----w |
+                ||     ||`;
+                this.appendOutput(terminal, cow, 'output');
+            },
+
+            'fortune': (terminal) => {
+                const fortunes = [
+                    "The best way to predict the future is to implement it.",
+                    "In the world of web development, the only constant is change.",
+                    "A good programmer looks both ways before crossing a one-way street.",
+                    "Code never lies, comments sometimes do.",
+                    "First, solve the problem. Then, write the code."
+                ];
+                const fortune = fortunes[Math.floor(Math.random() * fortunes.length)];
+                this.appendOutput(terminal, fortune, 'output');
+            },
+
+            'exit': (terminal) => {
+                this.exitTerminal(terminal);
+            }
+        };
+    }
+
+    expandAliases(command) {
+        const parts = command.split(' ');
+        const cmd = parts[0];
+
+        if (this.aliases[cmd]) {
+            return this.aliases[cmd] + ' ' + parts.slice(1).join(' ');
+        }
+
+        return command;
+    }
+
+    changeDirectory(terminal, path) {
+        if (!path || path === '~' || path === '$HOME') {
+            terminal.currentPath = terminal.environment.HOME;
+        } else if (path === '..') {
+            const parts = terminal.currentPath.split('/');
+            if (parts.length > 1) {
+                parts.pop();
+                terminal.currentPath = parts.join('/') || '/';
+            }
+        } else if (path === '/') {
+            terminal.currentPath = '/';
+        } else if (path.startsWith('/')) {
+            terminal.currentPath = path;
+        } else {
+            terminal.currentPath = terminal.currentPath === '/'
+                ? '/' + path
+                : terminal.currentPath + '/' + path;
+        }
+
+        this.updatePrompt(terminal);
+        this.updateStatus(terminal);
+    }
+
+    listDirectory(terminal, args) {
+        const showHidden = args.includes('-a');
+        const longFormat = args.includes('-l');
+
+        const mockFiles = [
+            { name: '.bashrc', type: 'file', size: 3423, permissions: '-rw-r--r--', hidden: true },
+            { name: '.profile', type: 'file', size: 807, permissions: '-rw-r--r--', hidden: true },
+            { name: 'documents', type: 'dir', size: 4096, permissions: 'drwxr-xr-x', hidden: false },
+            { name: 'downloads', type: 'dir', size: 4096, permissions: 'drwxr-xr-x', hidden: false },
+            { name: 'pictures', type: 'dir', size: 4096, permissions: 'drwxr-xr-x', hidden: false },
+            { name: 'README.txt', type: 'file', size: 1024, permissions: '-rw-r--r--', hidden: false }
+        ];
+
+        let filesToShow = mockFiles.filter(file => showHidden || !file.hidden);
+
+        if (longFormat) {
+            filesToShow.forEach(file => {
+                const date = new Date().toLocaleDateString();
+                const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                this.appendOutput(terminal,
+                    `${file.permissions} 1 pixel pixel ${file.size.toString().padStart(8)} ${date} ${time} ${file.name}`,
+                    'output'
+                );
+            });
+        } else {
+            const names = filesToShow.map(file => file.name);
+            this.appendOutput(terminal, names.join('  '), 'output');
         }
     }
 
-    /**
-     * Handle different types of command responses
-     */
-    handleCommandResponse(terminal, result) {
-        // Handle clear command
-        if (result.clear) {
-            this.clearTerminal(terminal);
-            return;
-        }
+    showHelp(terminal) {
+        const helpText = `
+Available Commands:
+==================
 
-        // Handle color theme changes
-        if (result.color_theme) {
-            this.applyColorTheme(result.color_theme);
-            this.appendOutput(terminal, `Theme changed to: ${result.color_theme}`, 'system');
-            return;
-        }
+File Operations:
+  ls [options]     - List directory contents (-l long, -a all)
+  cd <path>        - Change directory (.. up, ~ home, / root)
+  pwd              - Print working directory
+  mkdir <dir>      - Create directory
+  touch <file>     - Create empty file
+  rm <file>        - Remove file
+  cp <src> <dst>   - Copy file
+  mv <src> <dst>   - Move/rename file
+  cat <file>       - Display file content
+  find <path>      - Find files
+  tree             - Show directory tree
 
-        // Handle visual effects
-        if (result.start_effect) {
-            this.startVisualEffect(result.start_effect);
-            this.appendOutput(terminal, `Started effect: ${result.start_effect}`, 'system');
-            return;
-        }
+System Information:
+  ps               - Show running processes
+  top              - System monitor
+  df               - Disk usage
+  free             - Memory usage
+  uptime           - System uptime
+  whoami           - Current user
+  env              - Environment variables
 
-        // Handle wallpaper changes
-        if (result.wallpaper) {
-            this.changeWallpaper(result.wallpaper);
-            this.appendOutput(terminal, `Wallpaper changed to: ${result.wallpaper}`, 'system');
-            return;
-        }
+Network:
+  ping <host>      - Ping a host
+  curl <url>       - Fetch URL content
 
-        // Handle application launches
-        if (result.explorer) {
-            this.openApplication('explorer');
-            this.appendOutput(terminal, 'Opening File Explorer...', 'system');
-            return;
-        }
+Text Processing:
+  echo <text>      - Display text
+  grep <pattern>   - Search text patterns
+  man <command>    - Manual pages
 
-        if (result.game_start) {
-            this.openApplication(result.game_start);
-            this.appendOutput(terminal, `Starting ${result.game_start} game...`, 'system');
-            return;
-        }
+Utilities:
+  date             - Show current date/time
+  history          - Command history
+  alias            - Create command aliases
+  which <cmd>      - Find command location
+  clear            - Clear terminal
+  fortune          - Random quote
+  cowsay <msg>     - ASCII cow says message
 
-        // Handle media files
-        if (result.image) {
-            this.displayImage(terminal, result.image);
-            return;
-        }
+Shell:
+  export VAR=val   - Set environment variable
+  exit             - Exit terminal
 
-        if (result.video) {
-            this.displayVideo(terminal, result.video);
-            return;
-        }
-
-        if (result.audio) {
-            this.displayAudio(terminal, result.audio);
-            return;
-        }
-
-        // Handle editor responses
-        if (result.editor && result.content) {
-            this.openEditor(result.editor, result.content);
-            return;
-        }
-
-        // Handle error responses
-        if (result.error) {
-            this.appendOutput(terminal, result.message || 'An error occurred', 'error');
-            return;
-        }
-
-        // Handle regular text output
-        if (result.output) {
-            this.appendOutput(terminal, result.output, 'output');
-        }
+Tips:
+- Use Tab for command completion
+- Use ↑↓ arrows for command history
+- Use Ctrl+C to cancel command
+- Use Ctrl+L to clear screen
+- Use Ctrl+U to clear current line
+`;
+        this.appendOutput(terminal, helpText, 'info');
     }
 
-    /**
-     * Append output to terminal
-     */
+    showHistory(terminal) {
+        if (this.commandHistory.length === 0) {
+            this.appendOutput(terminal, 'No command history available.', 'info');
+            return;
+        }
+
+        this.commandHistory.forEach((cmd, index) => {
+            this.appendOutput(terminal, `${(index + 1).toString().padStart(4)} ${cmd}`, 'output');
+        });
+    }
+
+    showWelcomeMessage(terminal) {
+        const welcomeMessage = `
+╔══════════════════════════════════════════════╗
+║          💻 PIXEL PUSHER TERMINAL            ║
+╠══════════════════════════════════════════════╣
+║  Enhanced terminal with full command support ║
+║                                              ║
+║  Type 'help' for available commands          ║
+║  Use Tab for completion, ↑↓ for history     ║
+║  Ctrl+L: clear, Ctrl+C: cancel, Ctrl+D: exit║
+║                                              ║
+║  Ready for commands! 🚀                     ║
+╚══════════════════════════════════════════════╝
+`;
+        this.appendOutput(terminal, welcomeMessage, 'system');
+        this.updatePrompt(terminal);
+    }
+
     appendOutput(terminal, text, type = 'output') {
-        const outputElement = terminal.output;
+        if (!terminal.output) return;
+
         const line = document.createElement('div');
         line.className = `terminal-line terminal-${type}`;
 
-        // Apply styling based on type
         const colors = {
             'command': '#00d9ff',
-            'output': '#00ff00',
-            'error': '#ff4444',
-            'system': '#ffaa00',
-            'success': '#44ff44',
-            'warning': '#ffff44'
+            'output': '#e0e0e0',
+            'error': '#ff6b6b',
+            'success': '#51cf66',
+            'warning': '#ffd43b',
+            'info': '#74c0fc',
+            'system': '#00d9ff'
         };
 
         line.style.color = colors[type] || colors.output;
         line.style.marginBottom = '2px';
+        line.style.fontFamily = 'var(--font-mono)';
+        line.style.fontSize = '14px';
+        line.style.lineHeight = '1.4';
+        line.style.whiteSpace = 'pre-wrap';
+        line.style.wordWrap = 'break-word';
 
-        // Handle ANSI color codes and special formatting
-        line.innerHTML = this.formatOutput(text);
+        // Handle ANSI escape sequences
+        const processedText = this.processAnsiCodes(text);
+        line.innerHTML = processedText;
 
-        outputElement.appendChild(line);
+        terminal.output.appendChild(line);
+        terminal.output.scrollTop = terminal.output.scrollHeight;
 
-        // Auto-scroll to bottom
-        outputElement.scrollTop = outputElement.scrollHeight;
-
-        // Limit output history to prevent memory issues
+        // Limit output history
         this.limitOutputHistory(terminal);
     }
 
-    /**
-     * Format output text with color codes and special formatting
-     */
-    formatOutput(text) {
-        // Convert newlines to <br> tags
-        let formatted = text.replace(/\n/g, '<br>');
-
-        // Handle basic color codes (simplified ANSI)
-        formatted = formatted.replace(/\[31m(.*?)\[0m/g, '<span style="color: #ff4444;">$1</span>');
-        formatted = formatted.replace(/\[32m(.*?)\[0m/g, '<span style="color: #44ff44;">$1</span>');
-        formatted = formatted.replace(/\[33m(.*?)\[0m/g, '<span style="color: #ffff44;">$1</span>');
-        formatted = formatted.replace(/\[34m(.*?)\[0m/g, '<span style="color: #4444ff;">$1</span>');
-        formatted = formatted.replace(/\[35m(.*?)\[0m/g, '<span style="color: #ff44ff;">$1</span>');
-        formatted = formatted.replace(/\[36m(.*?)\[0m/g, '<span style="color: #44ffff;">$1</span>');
-
-        // Handle bold text
-        formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-
-        // Handle URLs (make clickable)
-        formatted = formatted.replace(
-            /(https?:\/\/[^\s]+)/g,
-            '<a href="$1" target="_blank" style="color: #00d9ff; text-decoration: underline;">$1</a>'
-        );
-
-        return formatted;
+    processAnsiCodes(text) {
+        // Simple ANSI color code processing
+        return text
+            .replace(/\x1b\[31m/g, '<span style="color: #ff6b6b;">')
+            .replace(/\x1b\[32m/g, '<span style="color: #51cf66;">')
+            .replace(/\x1b\[33m/g, '<span style="color: #ffd43b;">')
+            .replace(/\x1b\[34m/g, '<span style="color: #74c0fc;">')
+            .replace(/\x1b\[35m/g, '<span style="color: #da77f2;">')
+            .replace(/\x1b\[36m/g, '<span style="color: #22b8cf;">')
+            .replace(/\x1b\[0m/g, '</span>')
+            .replace(/\n/g, '<br>');
     }
 
-    /**
-     * Limit output history to prevent memory issues
-     */
     limitOutputHistory(terminal) {
         const maxLines = 1000;
         const lines = terminal.output.children;
@@ -503,9 +824,25 @@ class TerminalManager {
         }
     }
 
-    /**
-     * Navigate command history
-     */
+    updatePrompt(terminal) {
+        if (!terminal.prompt) return;
+
+        const user = terminal.environment.USER;
+        const host = 'pusher';
+        const path = terminal.currentPath === terminal.environment.HOME
+            ? '~'
+            : terminal.currentPath;
+
+        terminal.prompt.textContent = `${user}@${host}:${path}$ `;
+    }
+
+    updateStatus(terminal) {
+        const pathEl = document.getElementById(`terminal-path-${terminal.id}`);
+        if (pathEl) {
+            pathEl.textContent = terminal.currentPath;
+        }
+    }
+
     navigateHistory(terminal, direction) {
         if (this.commandHistory.length === 0) return;
 
@@ -519,7 +856,6 @@ class TerminalManager {
             }
         }
 
-        // Update input with history command
         if (terminal.historyIndex === -1) {
             terminal.input.value = terminal.currentCommand;
         } else {
@@ -527,347 +863,137 @@ class TerminalManager {
             terminal.input.value = historyCommand;
         }
 
-        // Move cursor to end
         terminal.input.setSelectionRange(terminal.input.value.length, terminal.input.value.length);
     }
 
-    /**
-     * Handle tab completion
-     */
     handleTabCompletion(terminal) {
         const input = terminal.input.value;
         const parts = input.split(' ');
         const lastPart = parts[parts.length - 1];
 
-        // Find matching completions
         const matches = this.commandCompletions.filter(cmd =>
             cmd.startsWith(lastPart.toLowerCase())
         );
 
         if (matches.length === 1) {
-            // Single match - complete it
             parts[parts.length - 1] = matches[0];
             terminal.input.value = parts.join(' ');
         } else if (matches.length > 1) {
-            // Multiple matches - show them
-            this.appendOutput(terminal, `\nPossible completions:`, 'system');
+            this.appendOutput(terminal, `\nPossible completions:`, 'info');
             this.appendOutput(terminal, matches.join('  '), 'output');
-            this.appendOutput(terminal, `pixel@pusher:${this.currentPath}$ ${input}`, 'command');
+
+            const promptText = terminal.prompt.textContent;
+            this.appendOutput(terminal, `${promptText}${input}`, 'command');
         }
     }
 
-    /**
-     * Add command to history
-     */
     addToHistory(command) {
-        // Don't add empty commands or duplicates of the last command
-        if (!command || (this.commandHistory.length > 0 && this.commandHistory[this.commandHistory.length - 1] === command)) {
+        if (!command || (this.commandHistory.length > 0 &&
+            this.commandHistory[this.commandHistory.length - 1] === command)) {
             return;
         }
 
         this.commandHistory.push(command);
 
-        // Limit history size
         if (this.commandHistory.length > this.maxHistorySize) {
             this.commandHistory.shift();
         }
 
-        // Save to storage
         this.saveCommandHistory();
+    }
 
-        // Update metrics
-        if (window.pixelPusher?.modules?.state) {
-            window.pixelPusher.modules.state.incrementMetric('commandsExecuted');
+    clearTerminal(terminalId) {
+        const terminal = this.terminals.get(terminalId);
+        if (terminal && terminal.output) {
+            terminal.output.innerHTML = '';
+            terminal.input.focus();
         }
     }
 
-    /**
-     * Clear terminal output
-     */
-    clearTerminal(terminal) {
-        terminal.output.innerHTML = '';
-        terminal.isExecuting = false;
-        this.updatePrompt(terminal, false);
-        terminal.input.focus();
-    }
-
-    /**
-     * Cancel current command
-     */
     cancelCommand(terminal) {
         if (terminal.isExecuting) {
             terminal.isExecuting = false;
-            this.updatePrompt(terminal, false);
             this.appendOutput(terminal, '^C', 'error');
             terminal.input.focus();
         }
     }
 
-    /**
-     * Update terminal prompt
-     */
-    updatePrompt(terminal, isExecuting) {
-        const prompt = terminal.container.querySelector('.terminal-prompt');
-        if (prompt) {
-            if (isExecuting) {
-                prompt.textContent = 'executing...';
-                prompt.style.color = '#ffaa00';
-            } else {
-                prompt.textContent = `pixel@pusher:${this.currentPath}$ `;
-                prompt.style.color = '#00d9ff';
-            }
-        }
-    }
-
-    /**
-     * Show command history
-     */
-    showCommandHistory(terminal) {
-        if (this.commandHistory.length === 0) {
-            this.appendOutput(terminal, 'No command history available.', 'system');
-            return;
-        }
-
-        this.appendOutput(terminal, '\nCommand History:', 'system');
-        this.commandHistory.forEach((cmd, index) => {
-            this.appendOutput(terminal, `${index + 1}: ${cmd}`, 'output');
-        });
-    }
-
-    /**
-     * Close terminal
-     */
-    closeTerminal(terminal) {
+    exitTerminal(terminal) {
         if (window.pixelPusher?.modules?.windows) {
             window.pixelPusher.modules.windows.close(terminal.id);
         }
     }
 
-    /**
-     * Change terminal theme
-     */
-    changeTerminalTheme(terminal, themeName) {
-        const themes = {
-            'green': { bg: '#1a1a1a', text: '#00ff00', prompt: '#00d9ff' },
-            'blue': { bg: '#001122', text: '#66ccff', prompt: '#ffaa00' },
-            'white': { bg: '#ffffff', text: '#000000', prompt: '#0066cc' },
-            'amber': { bg: '#2b1810', text: '#ffaa00', prompt: '#ff6600' },
-            'matrix': { bg: '#000000', text: '#00ff41', prompt: '#00ff41' }
-        };
+    applyTerminalStyling(terminal) {
+        terminal.container.style.cssText = `
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            background: #0a0a0a;
+            color: #e0e0e0;
+            font-family: var(--font-mono);
+            font-size: 14px;
+        `;
 
-        const theme = themes[themeName.toLowerCase()];
-        if (!theme) {
-            this.appendOutput(terminal, `Unknown theme: ${themeName}`, 'error');
-            this.showAvailableThemes(terminal);
+        const header = terminal.container.querySelector('.terminal-header');
+        if (header) {
+            header.style.cssText = `
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 8px 16px;
+                background: #1a1a1a;
+                border-bottom: 1px solid #333;
+            `;
+        }
+
+        const body = terminal.container.querySelector('.terminal-body');
+        if (body) {
+            body.style.cssText = `
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                padding: 16px;
+                overflow: hidden;
+            `;
+        }
+
+        const footer = terminal.container.querySelector('.terminal-footer');
+        if (footer) {
+            footer.style.cssText = `
+                padding: 8px 16px;
+                background: #1a1a1a;
+                border-top: 1px solid #333;
+                font-size: 12px;
+                color: #888;
+            `;
+        }
+    }
+
+    initializeCommandCompletions() {
+        this.commandCompletions = [
+            ...Object.keys(this.builtinCommands),
+            ...Object.keys(this.aliases),
+            'nano', 'vim', 'emacs', 'git', 'npm', 'python', 'node',
+            'htop', 'ssh', 'scp', 'rsync', 'wget', 'crontab'
+        ].sort();
+    }
+
+    handleCommandResponse(terminal, result) {
+        if (result.clear) {
+            this.clearTerminal(terminal.id);
             return;
         }
 
-        // Apply theme
-        terminal.container.style.background = theme.bg;
-        terminal.container.style.color = theme.text;
-        terminal.input.style.color = theme.text;
-        terminal.container.querySelector('.terminal-prompt').style.color = theme.prompt;
+        if (result.output) {
+            this.appendOutput(terminal, result.output, 'output');
+        }
 
-        this.appendOutput(terminal, `Terminal theme changed to: ${themeName}`, 'system');
-    }
-
-    /**
-     * Show available themes
-     */
-    showAvailableThemes(terminal) {
-        const themes = ['green', 'blue', 'white', 'amber', 'matrix'];
-        this.appendOutput(terminal, 'Available themes:', 'system');
-        this.appendOutput(terminal, themes.join(', '), 'output');
-        this.appendOutput(terminal, 'Usage: theme <theme_name>', 'system');
-    }
-
-    /**
-     * Apply color theme to desktop
-     */
-    applyColorTheme(themeName) {
-        if (window.pixelPusher?.modules?.desktop) {
-            window.pixelPusher.modules.desktop.setTheme(themeName);
+        if (result.error) {
+            this.appendOutput(terminal, result.message || 'An error occurred', 'error');
         }
     }
 
-    /**
-     * Start visual effect
-     */
-    startVisualEffect(effectName) {
-        // This would integrate with a visual effects system
-        console.log(`Starting visual effect: ${effectName}`);
-    }
-
-    /**
-     * Change desktop wallpaper
-     */
-    changeWallpaper(wallpaperName) {
-        if (window.pixelPusher?.modules?.desktop) {
-            window.pixelPusher.modules.desktop.setWallpaper(`/static/wallpaper/${wallpaperName}`);
-        }
-    }
-
-    /**
-     * Open application from terminal
-     */
-    openApplication(appId) {
-        if (window.pixelPusher?.modules?.windows) {
-            window.pixelPusher.modules.windows.open(appId);
-        }
-    }
-
-    /**
-     * Display image in terminal
-     */
-    displayImage(terminal, imagePath) {
-        const imgElement = document.createElement('img');
-        imgElement.src = `/api/files/${imagePath}`;
-        imgElement.style.cssText = `
-            max-width: 100%;
-            max-height: 300px;
-            border: 1px solid #444;
-            margin: 8px 0;
-            border-radius: 4px;
-        `;
-        imgElement.alt = imagePath;
-
-        const container = document.createElement('div');
-        container.appendChild(imgElement);
-        container.innerHTML += `<br>📷 Image: ${imagePath}`;
-
-        terminal.output.appendChild(container);
-        terminal.output.scrollTop = terminal.output.scrollHeight;
-    }
-
-    /**
-     * Display video in terminal
-     */
-    displayVideo(terminal, videoPath) {
-        const videoElement = document.createElement('video');
-        videoElement.src = `/api/files/${videoPath}`;
-        videoElement.controls = true;
-        videoElement.style.cssText = `
-            max-width: 100%;
-            max-height: 300px;
-            margin: 8px 0;
-            border-radius: 4px;
-        `;
-
-        const container = document.createElement('div');
-        container.appendChild(videoElement);
-        container.innerHTML += `<br>🎥 Video: ${videoPath}`;
-
-        terminal.output.appendChild(container);
-        terminal.output.scrollTop = terminal.output.scrollHeight;
-    }
-
-    /**
-     * Display audio player in terminal
-     */
-    displayAudio(terminal, audioPath) {
-        const audioElement = document.createElement('audio');
-        audioElement.src = `/api/files/${audioPath}`;
-        audioElement.controls = true;
-        audioElement.style.cssText = `
-            width: 100%;
-            margin: 8px 0;
-        `;
-
-        const container = document.createElement('div');
-        container.innerHTML = `🎵 Audio: ${audioPath}<br>`;
-        container.appendChild(audioElement);
-
-        terminal.output.appendChild(container);
-        terminal.output.scrollTop = terminal.output.scrollHeight;
-    }
-
-    /**
-     * Open text editor
-     */
-    openEditor(filename, content) {
-        // This would integrate with a text editor application
-        console.log(`Opening editor for: ${filename}`);
-        if (window.pixelPusher?.modules?.windows) {
-            window.pixelPusher.modules.windows.open('editor', { filename, content });
-        }
-    }
-
-    /**
-     * Initialize command completions
-     */
-    initializeCommandCompletions() {
-        this.commandCompletions = [
-            // Basic commands
-            'help', 'about', 'contact', 'clear', 'echo', 'time', 'date', 'uptime', 'whoami',
-            // File operations
-            'ls', 'dir', 'cd', 'pwd', 'mkdir', 'touch', 'del', 'rm', 'cat', 'edit', 'rename', 'mv',
-            'properties', 'find',
-            // System commands
-            'sysinfo', 'ps', 'kill', 'df', 'free',
-            // Visual and themes
-            'color', 'effect', 'wallpaper', 'theme',
-            // Network
-            'curl', 'ping',
-            // Applications
-            'explorer', 'game',
-            // Local commands
-            'history', 'exit', 'quit'
-        ];
-    }
-
-    /**
-     * Set up global terminal shortcuts
-     */
-    setupGlobalShortcuts() {
-        document.addEventListener('keydown', (e) => {
-            // Ctrl+Alt+T - Focus terminal or open new one
-            if (e.ctrlKey && e.altKey && e.key.toLowerCase() === 't') {
-                e.preventDefault();
-                this.focusOrCreateTerminal();
-            }
-        });
-    }
-
-    /**
-     * Focus existing terminal or create new one
-     */
-    focusOrCreateTerminal() {
-        // Try to focus existing terminal
-        const existingTerminal = Array.from(this.terminals.values())[0];
-        if (existingTerminal) {
-            existingTerminal.input.focus();
-
-            // Bring window to front
-            if (window.pixelPusher?.modules?.windows) {
-                window.pixelPusher.modules.windows.focus(existingTerminal.id);
-            }
-        } else {
-            // Open new terminal
-            if (window.pixelPusher?.modules?.windows) {
-                window.pixelPusher.modules.windows.open('terminal');
-            }
-        }
-    }
-
-    /**
-     * Sanitize input to prevent XSS
-     */
-    sanitizeInput(input) {
-        return input.replace(/[<>&"']/g, (match) => {
-            const escapes = {
-                '<': '&lt;',
-                '>': '&gt;',
-                '&': '&amp;',
-                '"': '&quot;',
-                "'": '&#x27;'
-            };
-            return escapes[match];
-        });
-    }
-
-    /**
-     * Load command history from storage
-     */
     loadCommandHistory() {
         try {
             const saved = localStorage.getItem('pixelpusher_terminal_history');
@@ -880,9 +1006,6 @@ class TerminalManager {
         }
     }
 
-    /**
-     * Save command history to storage
-     */
     saveCommandHistory() {
         try {
             localStorage.setItem('pixelpusher_terminal_history', JSON.stringify(this.commandHistory));
@@ -891,49 +1014,39 @@ class TerminalManager {
         }
     }
 
-    /**
-     * Get terminal statistics
-     */
-    getStats() {
-        return {
-            activeTerminals: this.terminals.size,
-            commandHistory: this.commandHistory.length,
-            maxHistorySize: this.maxHistorySize,
-            currentPath: this.currentPath,
-            completions: this.commandCompletions.length
-        };
-    }
-
-    /**
-     * Handle window resize
-     */
-    handleResize() {
-        // Adjust terminal layouts if needed
-        this.terminals.forEach(terminal => {
-            // Scroll to bottom after resize
-            setTimeout(() => {
-                terminal.output.scrollTop = terminal.output.scrollHeight;
-            }, 100);
+    setupGlobalShortcuts() {
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.altKey && e.key.toLowerCase() === 't') {
+                e.preventDefault();
+                this.focusOrCreateTerminal();
+            }
         });
     }
 
-    /**
-     * Clean up terminal manager
-     */
+    focusOrCreateTerminal() {
+        const existingTerminal = Array.from(this.terminals.values())[0];
+        if (existingTerminal) {
+            existingTerminal.input.focus();
+            if (window.pixelPusher?.modules?.windows) {
+                window.pixelPusher.modules.windows.focus(existingTerminal.id);
+            }
+        } else {
+            if (window.pixelPusher?.modules?.windows) {
+                window.pixelPusher.modules.windows.open('terminal');
+            }
+        }
+    }
+
     destroy() {
-        // Save command history
         this.saveCommandHistory();
-
-        // Clear all terminals
         this.terminals.clear();
-
-        console.log('💻 Terminal Manager destroyed');
+        console.log('💻 Enhanced Terminal Manager destroyed');
     }
 }
 
 // Export for module systems
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = TerminalManager;
+    module.exports = EnhancedTerminalManager;
 }
 
-console.log('💻 Terminal manager loaded successfully');
+console.log('💻 Enhanced Terminal manager loaded successfully');

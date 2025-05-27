@@ -206,13 +206,15 @@ class GameManager {
                 if (this.gameState === 'menu' || this.gameState === 'gameover') {
                     this.reset();
                     this.gameState = 'playing';
+                    // Start the snake moving right automatically
+                    this.direction = { x: 1, y: 0 };
                 }
             }
 
             reset() {
                 this.score = 0;
                 this.snake = [{ x: 10, y: 10 }];
-                this.direction = { x: 0, y: 0 };
+                this.direction = { x: 0, y: 0 }; // Will be set when game starts
                 this.generateFood();
             }
 
@@ -808,6 +810,13 @@ class GameManager {
             }
 
             handleClick(e) {
+                if (this.gameState === 'menu') {
+                    this.gameState = 'playing';
+                    return;
+                }
+
+                if (this.gameState !== 'playing') return;
+
                 const rect = this.canvas.getBoundingClientRect();
                 const x = e.clientX - rect.left;
                 const y = e.clientY - rect.top;
@@ -948,12 +957,6 @@ class GameManager {
                     this.ctx.fillRect(x, groundY - 20, 25, 20);
                     x += 30;
                     if (x > 700) break;
-                }
-            }
-
-            handleClick() {
-                if (this.gameState === 'menu') {
-                    this.gameState = 'playing';
                 }
             }
 

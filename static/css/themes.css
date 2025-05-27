@@ -1,962 +1,482 @@
-/**
- * Pixel Pusher OS - Theme System & Visual Effects
- * Comprehensive theming system with multiple color schemes and visual effects
- *
- * This file contains:
- * - CSS custom properties for theming
- * - 12+ complete color themes
- * - Visual effects (Matrix, particles, stars, etc.)
- * - Dynamic wallpaper support
- * - Smooth theme transitions
- * - Responsive theme adjustments
- */
-
-/* ==========================================================================
-   BASE THEME SYSTEM - CSS CUSTOM PROPERTIES
-   ========================================================================== */
+/* Complete Theme System for Pixel Pusher OS */
 
 :root {
-    /* Color palette - Default theme */
+    /* Default/Light Theme */
     --primary: #00d9ff;
-    --primary-dark: #00b8d4;
-    --primary-light: #4fc3f7;
-    --primary-alpha: rgba(0, 217, 255, 0.2);
-
-    --secondary: #533e85;
-    --secondary-dark: #3d2c63;
-    --secondary-light: #6a4c93;
-
-    --accent: #ff6b35;
-    --accent-dark: #e55a32;
-    --accent-light: #ff8a5b;
-
-    /* Status colors */
+    --primary-light: #33e4ff;
+    --primary-dark: #00b3d9;
+    --secondary: #6c5ce7;
     --success: #00b894;
-    --success-dark: #00966d;
-    --success-light: #55d8c1;
-
     --warning: #fdcb6e;
-    --warning-dark: #e17055;
-    --warning-light: #ffeaa7;
-
     --error: #e84393;
-    --error-dark: #d63384;
-    --error-light: #f093c4;
+    --info: #00cec9;
 
-    --info: #74b9ff;
-    --info-dark: #0984e3;
-    --info-light: #a7d8ff;
-
-    /* Surface colors */
+    /* Background Colors */
+    --background: #ffffff;
+    --background-alt: #f8f9fa;
     --surface: #ffffff;
-    --surface-light: #f8f9fa;
-    --surface-dark: #e9ecef;
-    --surface-hover: #f1f3f4;
-    --surface-disabled: #e5e5e5;
+    --surface-light: #f1f3f4;
+    --surface-dark: #e8eaed;
 
-    --background: #f5f7fa;
-    --background-alt: #e8eaf6;
-
-    /* Text colors */
-    --text-primary: #2d3748;
-    --text-secondary: #64748b;
-    --text-disabled: #94a3b8;
+    /* Text Colors */
+    --text-primary: #202124;
+    --text-secondary: #5f6368;
+    --text-disabled: #9aa0a6;
     --text-inverse: #ffffff;
 
-    /* Border and shadows */
-    --border: #e2e8f0;
-    --border-light: #f1f5f9;
-    --border-dark: #cbd5e0;
+    /* Border and Shadow */
+    --border: #dadce0;
+    --border-light: #e8eaed;
+    --border-dark: #bdc1c6;
+    --shadow: rgba(0, 0, 0, 0.1);
+    --shadow-dark: rgba(0, 0, 0, 0.2);
 
-    /* Shadows */
-    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-    --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-    --shadow-active: 0 0 0 3px var(--primary-alpha);
+    /* Interactive Elements */
+    --hover: rgba(0, 217, 255, 0.1);
+    --active: rgba(0, 217, 255, 0.2);
+    --focus: rgba(0, 217, 255, 0.3);
 
-    /* Border radius */
+    /* Spacing and Layout */
     --radius-sm: 4px;
     --radius-md: 8px;
     --radius-lg: 12px;
-    --radius-xl: 16px;
-    --radius-2xl: 24px;
-    --radius-full: 9999px;
+    --transition: all 0.2s ease;
 
-    /* Transitions */
-    --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-slow: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-fast: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
-
-    /* Layout */
-    --header-height: 60px;
-    --sidebar-width: 280px;
-    --content-max-width: 1200px;
-
-    /* Z-index scale */
-    --z-dropdown: 1000;
-    --z-sticky: 1010;
-    --z-fixed: 1020;
-    --z-modal-backdrop: 1030;
-    --z-modal: 1040;
-    --z-popover: 1050;
-    --z-tooltip: 1060;
-    --z-toast: 1070;
+    /* Desktop Specific */
+    --desktop-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --taskbar-bg: var(--surface-dark);
+    --window-bg: var(--surface);
+    --icon-text: var(--text-inverse);
 }
 
-/* Smooth theme transitions */
-* {
-    transition: background-color var(--transition),
-                color var(--transition),
-                border-color var(--transition),
-                box-shadow var(--transition);
+/* Blue Ocean Theme */
+[data-theme="blue"] {
+    --primary: #3498db;
+    --primary-light: #5dade2;
+    --primary-dark: #2980b9;
+    --secondary: #2ecc71;
+    --desktop-bg: linear-gradient(135deg, #3498db 0%, #2c3e50 100%);
+    --surface: #ecf0f1;
+    --surface-light: #d5dbdb;
+    --surface-dark: #bdc3c7;
+    --background: #f8f9fa;
+    --text-primary: #2c3e50;
+    --text-secondary: #34495e;
 }
 
-/* ==========================================================================
-   DARK THEME
-   ========================================================================== */
+/* Forest Green Theme */
+[data-theme="green"] {
+    --primary: #27ae60;
+    --primary-light: #58d68d;
+    --primary-dark: #229954;
+    --secondary: #f39c12;
+    --desktop-bg: linear-gradient(135deg, #27ae60 0%, #2c3e50 100%);
+    --surface: #d5f4e6;
+    --surface-light: #abebc6;
+    --surface-dark: #82e0aa;
+    --background: #eafaf1;
+    --text-primary: #1b4332;
+    --text-secondary: #2d5a41;
+}
 
+/* Crimson Red Theme */
+[data-theme="red"] {
+    --primary: #e74c3c;
+    --primary-light: #ec7063;
+    --primary-dark: #c0392b;
+    --secondary: #f39c12;
+    --desktop-bg: linear-gradient(135deg, #e74c3c 0%, #2c3e50 100%);
+    --surface: #fadbd8;
+    --surface-light: #f5b7b1;
+    --surface-dark: #f1948a;
+    --background: #fdedec;
+    --text-primary: #641e16;
+    --text-secondary: #943126;
+}
+
+/* Deep Purple Theme */
+[data-theme="purple"] {
+    --primary: #9b59b6;
+    --primary-light: #bb8fce;
+    --primary-dark: #8e44ad;
+    --secondary: #e67e22;
+    --desktop-bg: linear-gradient(135deg, #9b59b6 0%, #2c3e50 100%);
+    --surface: #e8daef;
+    --surface-light: #d2b4de;
+    --surface-dark: #bb8fce;
+    --background: #f4f2f7;
+    --text-primary: #4a235a;
+    --text-secondary: #6c3483;
+}
+
+/* Sunset Orange Theme */
+[data-theme="orange"] {
+    --primary: #e67e22;
+    --primary-light: #f0b27a;
+    --primary-dark: #d35400;
+    --secondary: #9b59b6;
+    --desktop-bg: linear-gradient(135deg, #e67e22 0%, #2c3e50 100%);
+    --surface: #fdeaa7;
+    --surface-light: #fcf3cf;
+    --surface-dark: #f8c471;
+    --background: #fef9e7;
+    --text-primary: #7e5109;
+    --text-secondary: #b7950b;
+}
+
+/* Hot Pink Theme */
+[data-theme="pink"] {
+    --primary: #e91e63;
+    --primary-light: #f06292;
+    --primary-dark: #c2185b;
+    --secondary: #9c27b0;
+    --desktop-bg: linear-gradient(135deg, #e91e63 0%, #2c3e50 100%);
+    --surface: #fce4ec;
+    --surface-light: #f8bbd9;
+    --surface-dark: #f48fb1;
+    --background: #fce4ec;
+    --text-primary: #880e4f;
+    --text-secondary: #ad1457;
+}
+
+/* Cyber Cyan Theme */
+[data-theme="cyan"] {
+    --primary: #1abc9c;
+    --primary-light: #58d0c0;
+    --primary-dark: #17a085;
+    --secondary: #3498db;
+    --desktop-bg: linear-gradient(135deg, #1abc9c 0%, #2c3e50 100%);
+    --surface: #d0ece7;
+    --surface-light: #a2d9ce;
+    --surface-dark: #76c7b7;
+    --background: #e8f6f3;
+    --text-primary: #0e4b44;
+    --text-secondary: #148b7a;
+}
+
+/* Electric Yellow Theme */
+[data-theme="yellow"] {
+    --primary: #f1c40f;
+    --primary-light: #f4d03f;
+    --primary-dark: #f39800;
+    --secondary: #e74c3c;
+    --desktop-bg: linear-gradient(135deg, #f1c40f 0%, #2c3e50 100%);
+    --surface: #fcf3cf;
+    --surface-light: #f9e79f;
+    --surface-dark: #f7dc6f;
+    --background: #fefcbf;
+    --text-primary: #7d6608;
+    --text-secondary: #b7950b;
+}
+
+/* Dark Mode Theme */
 [data-theme="dark"] {
     --primary: #00d9ff;
-    --primary-dark: #00acc1;
-    --primary-light: #26c6da;
-    --primary-alpha: rgba(0, 217, 255, 0.3);
+    --primary-light: #33e4ff;
+    --primary-dark: #00b3d9;
+    --secondary: #bb86fc;
+    --success: #03dac6;
+    --warning: #ffb74d;
+    --error: #cf6679;
+    --info: #03dac6;
 
-    --secondary: #7c4dff;
-    --secondary-dark: #651fff;
-    --secondary-light: #b388ff;
-
-    --accent: #ff5722;
-    --accent-dark: #d84315;
-    --accent-light: #ff8a65;
-
-    --success: #4caf50;
-    --success-dark: #388e3c;
-    --success-light: #81c784;
-
-    --warning: #ff9800;
-    --warning-dark: #f57c00;
-    --warning-light: #ffb74d;
-
-    --error: #f44336;
-    --error-dark: #d32f2f;
-    --error-light: #e57373;
-
-    --info: #2196f3;
-    --info-dark: #1976d2;
-    --info-light: #64b5f6;
-
+    /* Dark Background Colors */
+    --background: #121212;
+    --background-alt: #1e1e1e;
     --surface: #1e1e1e;
     --surface-light: #2d2d2d;
-    --surface-dark: #121212;
-    --surface-hover: #333333;
-    --surface-disabled: #424242;
+    --surface-dark: #0f0f0f;
 
-    --background: #121212;
-    --background-alt: #1a1a1a;
-
+    /* Dark Text Colors */
     --text-primary: #ffffff;
     --text-secondary: #b3b3b3;
-    --text-disabled: #666666;
+    --text-disabled: #777777;
     --text-inverse: #000000;
 
+    /* Dark Borders and Shadows */
     --border: #333333;
-    --border-light: #2a2a2a;
-    --border-dark: #404040;
+    --border-light: #404040;
+    --border-dark: #1a1a1a;
+    --shadow: rgba(0, 0, 0, 0.3);
+    --shadow-dark: rgba(0, 0, 0, 0.5);
 
-    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
-    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
-    --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+    /* Dark Interactive */
+    --hover: rgba(0, 217, 255, 0.15);
+    --active: rgba(0, 217, 255, 0.25);
+    --focus: rgba(0, 217, 255, 0.35);
+
+    /* Dark Desktop */
+    --desktop-bg: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    --taskbar-bg: #1e1e1e;
+    --window-bg: #1e1e1e;
+    --icon-text: #ffffff;
 }
 
-/* ==========================================================================
-   BLUE THEME
-   ========================================================================== */
-
-[data-theme="blue"] {
-    --primary: #2563eb;
-    --primary-dark: #1d4ed8;
-    --primary-light: #3b82f6;
-    --primary-alpha: rgba(37, 99, 235, 0.2);
-
-    --secondary: #1e40af;
-    --secondary-dark: #1e3a8a;
-    --secondary-light: #3b82f6;
-
-    --accent: #06b6d4;
-    --accent-dark: #0891b2;
-    --accent-light: #22d3ee;
-
-    --background: #eff6ff;
-    --background-alt: #dbeafe;
-
-    --surface: #ffffff;
-    --surface-light: #f8fafc;
-    --surface-dark: #f1f5f9;
-
-    --text-primary: #1e3a8a;
-    --text-secondary: #475569;
-}
-
-/* ==========================================================================
-   GREEN THEME
-   ========================================================================== */
-
-[data-theme="green"] {
-    --primary: #059669;
-    --primary-dark: #047857;
-    --primary-light: #10b981;
-    --primary-alpha: rgba(5, 150, 105, 0.2);
-
-    --secondary: #0d9488;
-    --secondary-dark: #0f766e;
-    --secondary-light: #14b8a6;
-
-    --accent: #84cc16;
-    --accent-dark: #65a30d;
-    --accent-light: #a3e635;
-
-    --background: #f0fdf4;
-    --background-alt: #dcfce7;
-
-    --surface: #ffffff;
-    --surface-light: #f8fafc;
-    --surface-dark: #f1f5f9;
-
-    --text-primary: #064e3b;
-    --text-secondary: #475569;
-}
-
-/* ==========================================================================
-   RED THEME
-   ========================================================================== */
-
-[data-theme="red"] {
-    --primary: #dc2626;
-    --primary-dark: #b91c1c;
-    --primary-light: #ef4444;
-    --primary-alpha: rgba(220, 38, 38, 0.2);
-
-    --secondary: #be185d;
-    --secondary-dark: #9d174d;
-    --secondary-light: #ec4899;
-
-    --accent: #ea580c;
-    --accent-dark: #c2410c;
-    --accent-light: #fb923c;
-
-    --background: #fef2f2;
-    --background-alt: #fecaca;
-
-    --surface: #ffffff;
-    --surface-light: #f8fafc;
-    --surface-dark: #f1f5f9;
-
-    --text-primary: #7f1d1d;
-    --text-secondary: #475569;
-}
-
-/* ==========================================================================
-   PURPLE THEME
-   ========================================================================== */
-
-[data-theme="purple"] {
-    --primary: #7c3aed;
-    --primary-dark: #6d28d9;
-    --primary-light: #8b5cf6;
-    --primary-alpha: rgba(124, 58, 237, 0.2);
-
-    --secondary: #a855f7;
-    --secondary-dark: #9333ea;
-    --secondary-light: #c084fc;
-
-    --accent: #ec4899;
-    --accent-dark: #db2777;
-    --accent-light: #f472b6;
-
-    --background: #faf5ff;
-    --background-alt: #e9d5ff;
-
-    --surface: #ffffff;
-    --surface-light: #f8fafc;
-    --surface-dark: #f1f5f9;
-
-    --text-primary: #581c87;
-    --text-secondary: #475569;
-}
-
-/* ==========================================================================
-   MATRIX THEME (Green/Black Cyberpunk)
-   ========================================================================== */
-
-[data-theme="matrix"] {
+/* Neon Glow Theme */
+[data-theme="neon"] {
     --primary: #00ff41;
-    --primary-dark: #00cc33;
-    --primary-light: #33ff66;
-    --primary-alpha: rgba(0, 255, 65, 0.3);
+    --primary-light: #39ff70;
+    --primary-dark: #00d936;
+    --secondary: #ff0080;
+    --success: #00ff41;
+    --warning: #ffff00;
+    --error: #ff0040;
+    --info: #00ffff;
 
-    --secondary: #008f11;
-    --secondary-dark: #006600;
-    --secondary-light: #00aa22;
-
-    --accent: #66ff99;
-    --accent-dark: #44dd77;
-    --accent-light: #88ffaa;
-
-    --surface: #000000;
-    --surface-light: #111111;
+    --background: #0a0a0a;
+    --background-alt: #111111;
+    --surface: #111111;
+    --surface-light: #1a1a1a;
     --surface-dark: #000000;
-    --surface-hover: #1a1a1a;
-    --surface-disabled: #333333;
-
-    --background: #000000;
-    --background-alt: #0a0a0a;
 
     --text-primary: #00ff41;
     --text-secondary: #00cc33;
-    --text-disabled: #006600;
+    --text-disabled: #004d15;
     --text-inverse: #000000;
 
     --border: #00ff41;
-    --border-light: #00cc33;
-    --border-dark: #00aa22;
+    --border-light: #39ff70;
+    --border-dark: #00cc33;
+    --shadow: rgba(0, 255, 65, 0.3);
+    --shadow-dark: rgba(0, 255, 65, 0.5);
 
-    --shadow-sm: 0 1px 2px 0 rgba(0, 255, 65, 0.2);
-    --shadow-md: 0 4px 6px -1px rgba(0, 255, 65, 0.3);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 255, 65, 0.3);
-    --shadow-xl: 0 20px 25px -5px rgba(0, 255, 65, 0.4);
-    --shadow-2xl: 0 25px 50px -12px rgba(0, 255, 65, 0.5);
+    --hover: rgba(0, 255, 65, 0.2);
+    --active: rgba(0, 255, 65, 0.3);
+    --focus: rgba(0, 255, 65, 0.4);
+
+    --desktop-bg: radial-gradient(circle at center, #001a00 0%, #000a00 50%, #000000 100%);
+    --taskbar-bg: #111111;
+    --window-bg: #111111;
+    --icon-text: #00ff41;
 }
 
-/* Matrix digital rain effect */
-[data-theme="matrix"] body::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(
-        180deg,
-        transparent 0%,
-        rgba(0, 255, 65, 0.03) 50%,
-        transparent 100%
-    );
-    animation: matrixRain 20s linear infinite;
-    pointer-events: none;
-    z-index: -1;
-}
-
-@keyframes matrixRain {
-    0% { transform: translateY(-100vh); }
-    100% { transform: translateY(100vh); }
-}
-
-/* ==========================================================================
-   NEON THEME (Cyberpunk Pink/Blue)
-   ========================================================================== */
-
-[data-theme="neon"] {
-    --primary: #ff0080;
-    --primary-dark: #e60073;
-    --primary-light: #ff3399;
-    --primary-alpha: rgba(255, 0, 128, 0.3);
-
-    --secondary: #00ffff;
-    --secondary-dark: #00e6e6;
-    --secondary-light: #33ffff;
-
-    --accent: #ffff00;
-    --accent-dark: #e6e600;
-    --accent-light: #ffff66;
-
-    --surface: #0a0a0a;
-    --surface-light: #1a1a1a;
-    --surface-dark: #000000;
-    --surface-hover: #2a2a2a;
-    --surface-disabled: #333333;
+/* Matrix Green Theme */
+[data-theme="matrix"] {
+    --primary: #00ff41;
+    --primary-light: #33ff5c;
+    --primary-dark: #00cc33;
+    --secondary: #008f11;
+    --success: #00ff41;
+    --warning: #ccff00;
+    --error: #ff4444;
+    --info: #00ffcc;
 
     --background: #000000;
-    --background-alt: #0f0f0f;
+    --background-alt: #001100;
+    --surface: #001100;
+    --surface-light: #002200;
+    --surface-dark: #000000;
 
-    --text-primary: #ffffff;
-    --text-secondary: #cccccc;
-    --text-disabled: #666666;
+    --text-primary: #00ff41;
+    --text-secondary: #00cc33;
+    --text-disabled: #004411;
     --text-inverse: #000000;
 
-    --border: #ff0080;
-    --border-light: #ff3399;
-    --border-dark: #cc0066;
+    --border: #00ff41;
+    --border-light: #33ff5c;
+    --border-dark: #00cc33;
+    --shadow: rgba(0, 255, 65, 0.4);
+    --shadow-dark: rgba(0, 255, 65, 0.6);
 
-    /* Neon glow effects */
-    --neon-glow: 0 0 5px currentColor, 0 0 10px currentColor, 0 0 15px currentColor;
+    --hover: rgba(0, 255, 65, 0.2);
+    --active: rgba(0, 255, 65, 0.3);
+    --focus: rgba(0, 255, 65, 0.5);
+
+    --desktop-bg: linear-gradient(45deg, #000000 0%, #001100 50%, #002200 100%);
+    --taskbar-bg: #001100;
+    --window-bg: #001100;
+    --icon-text: #00ff41;
 }
 
-[data-theme="neon"] .btn,
-[data-theme="neon"] .window.active,
-[data-theme="neon"] .form-control:focus {
-    box-shadow: var(--neon-glow);
-}
-
-/* ==========================================================================
-   OCEAN THEME (Blue/Teal)
-   ========================================================================== */
-
-[data-theme="ocean"] {
-    --primary: #0891b2;
-    --primary-dark: #0e7490;
-    --primary-light: #06b6d4;
-    --primary-alpha: rgba(8, 145, 178, 0.2);
-
-    --secondary: #0d9488;
-    --secondary-dark: #0f766e;
-    --secondary-light: #14b8a6;
-
-    --accent: #3b82f6;
-    --accent-dark: #2563eb;
-    --accent-light: #60a5fa;
-
-    --background: linear-gradient(135deg, #e0f2fe 0%, #b3e5fc 100%);
-    --background-alt: #b3e5fc;
-
-    --surface: rgba(255, 255, 255, 0.9);
-    --surface-light: rgba(255, 255, 255, 0.95);
-    --surface-dark: rgba(240, 248, 255, 0.9);
-
-    --text-primary: #0c4a6e;
-    --text-secondary: #075985;
-}
-
-/* ==========================================================================
-   SUNSET THEME (Orange/Pink/Purple)
-   ========================================================================== */
-
-[data-theme="sunset"] {
-    --primary: #f97316;
-    --primary-dark: #ea580c;
-    --primary-light: #fb923c;
-    --primary-alpha: rgba(249, 115, 22, 0.2);
-
-    --secondary: #ec4899;
-    --secondary-dark: #db2777;
-    --secondary-light: #f472b6;
-
-    --accent: #8b5cf6;
-    --accent-dark: #7c3aed;
-    --accent-light: #a78bfa;
-
-    --background: linear-gradient(135deg, #fff7ed 0%, #fed7aa 50%, #fce7f3 100%);
-    --background-alt: #fed7aa;
-
-    --surface: rgba(255, 255, 255, 0.9);
-    --surface-light: rgba(255, 255, 255, 0.95);
-    --surface-dark: rgba(255, 247, 237, 0.9);
-
-    --text-primary: #7c2d12;
-    --text-secondary: #9a3412;
-}
-
-/* ==========================================================================
-   FOREST THEME (Green/Brown)
-   ========================================================================== */
-
-[data-theme="forest"] {
-    --primary: #16a34a;
-    --primary-dark: #15803d;
-    --primary-light: #22c55e;
-    --primary-alpha: rgba(22, 163, 74, 0.2);
-
-    --secondary: #a3a3a3;
-    --secondary-dark: #737373;
-    --secondary-light: #d4d4d4;
-
-    --accent: #eab308;
-    --accent-dark: #ca8a04;
-    --accent-light: #facc15;
-
-    --background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-    --background-alt: #dcfce7;
-
-    --surface: rgba(255, 255, 255, 0.9);
-    --surface-light: rgba(255, 255, 255, 0.95);
-    --surface-dark: rgba(240, 253, 244, 0.9);
-
-    --text-primary: #14532d;
-    --text-secondary: #166534;
-}
-
-/* ==========================================================================
-   ADDITIONAL COLOR THEMES
-   ========================================================================== */
-
-/* Cyan Theme */
-[data-theme="cyan"] {
-    --primary: #0891b2;
-    --primary-dark: #0e7490;
-    --primary-light: #06b6d4;
-    --background: #ecfeff;
-    --background-alt: #cffafe;
-    --text-primary: #164e63;
-}
-
-/* Yellow Theme */
-[data-theme="yellow"] {
-    --primary: #eab308;
-    --primary-dark: #ca8a04;
-    --primary-light: #facc15;
-    --background: #fefce8;
-    --background-alt: #fef3c7;
-    --text-primary: #78350f;
-}
-
-/* Magenta Theme */
-[data-theme="magenta"] {
-    --primary: #db2777;
-    --primary-dark: #be185d;
-    --primary-light: #ec4899;
-    --background: #fef7ff;
-    --background-alt: #fae8ff;
-    --text-primary: #831843;
-}
-
-/* White/Minimal Theme */
-[data-theme="white"] {
-    --primary: #000000;
-    --primary-dark: #1f2937;
-    --primary-light: #374151;
-    --secondary: #6b7280;
-    --background: #ffffff;
-    --background-alt: #f9fafb;
-    --surface: #ffffff;
-    --surface-light: #ffffff;
-    --text-primary: #000000;
-    --text-secondary: #374151;
-    --border: #e5e7eb;
-}
-
-/* ==========================================================================
-   DYNAMIC WALLPAPER SUPPORT
-   ========================================================================== */
-
-.desktop-background {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: -2;
-    transition: var(--transition-slow);
-}
-
-.desktop-background.wallpaper {
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-}
-
-.desktop-background.gradient {
-    background: var(--background);
-}
-
-/* Wallpaper overlay for better text contrast */
-.desktop-background::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.1);
-    transition: var(--transition-slow);
-}
-
-[data-theme="dark"] .desktop-background::after {
-    background: rgba(0, 0, 0, 0.3);
-}
-
-/* ==========================================================================
-   VISUAL EFFECTS SYSTEM
-   ========================================================================== */
-
-/* Particle effect container */
-.effect-particles {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    z-index: -1;
-    overflow: hidden;
-}
-
-.particle {
-    position: absolute;
-    width: 2px;
-    height: 2px;
-    background: var(--primary);
-    border-radius: 50%;
-    animation: particleFloat 10s linear infinite;
-}
-
-@keyframes particleFloat {
-    0% {
-        transform: translateY(100vh) rotate(0deg);
-        opacity: 0;
-    }
-    10% {
-        opacity: 1;
-    }
-    90% {
-        opacity: 1;
-    }
-    100% {
-        transform: translateY(-10vh) rotate(360deg);
-        opacity: 0;
-    }
-}
-
-/* Snow effect */
-.effect-snow .particle {
-    background: rgba(255, 255, 255, 0.8);
-    width: 4px;
-    height: 4px;
-    animation: snowfall 8s linear infinite;
-}
-
-@keyframes snowfall {
-    0% {
-        transform: translateY(-10vh) translateX(0px);
-        opacity: 0;
-    }
-    10% {
-        opacity: 1;
-    }
-    90% {
-        opacity: 1;
-    }
-    100% {
-        transform: translateY(100vh) translateX(-100px);
-        opacity: 0;
-    }
-}
-
-/* Stars effect */
-.effect-stars .particle {
-    background: #ffffff;
-    width: 1px;
-    height: 1px;
-    animation: starTwinkle 2s ease-in-out infinite alternate;
-}
-
-@keyframes starTwinkle {
-    0% {
-        opacity: 0.3;
-        transform: scale(0.8);
-    }
-    100% {
-        opacity: 1;
-        transform: scale(1.2);
-    }
-}
-
-/* Rain effect */
-.effect-rain .particle {
-    width: 1px;
-    height: 15px;
-    background: linear-gradient(to bottom, transparent, rgba(0, 150, 255, 0.6));
-    border-radius: 50%;
-    animation: rainfall 1s linear infinite;
-}
-
-@keyframes rainfall {
-    0% {
-        transform: translateY(-10vh);
-        opacity: 0;
-    }
-    10% {
-        opacity: 1;
-    }
-    100% {
-        transform: translateY(100vh);
-        opacity: 0;
-    }
-}
-
-/* ==========================================================================
-   THEME TRANSITIONS & ANIMATIONS
-   ========================================================================== */
-
-/* Smooth theme switching animation */
-.theme-transition {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: var(--primary);
-    z-index: 9999;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.3s ease-in-out;
-}
-
-.theme-transition.active {
-    opacity: 1;
-    animation: themeSwitch 0.6s ease-in-out;
-}
-
-@keyframes themeSwitch {
-    0% {
-        opacity: 0;
-        transform: scale(0);
-        border-radius: 50%;
-    }
-    50% {
-        opacity: 1;
-        transform: scale(1.5);
-        border-radius: 20%;
-    }
-    100% {
-        opacity: 0;
-        transform: scale(1);
-        border-radius: 0%;
-    }
-}
-
-/* Desktop icon theme-aware styling */
-.desktop-icon {
-    transition: var(--transition);
-}
-
-[data-theme="matrix"] .desktop-icon,
-[data-theme="neon"] .desktop-icon {
-    text-shadow: 0 0 10px currentColor;
-}
-
-/* Window theme enhancements */
-[data-theme="matrix"] .window,
-[data-theme="neon"] .window {
-    border: 2px solid var(--primary);
-    box-shadow: 0 0 20px var(--primary-alpha);
-}
-
-[data-theme="matrix"] .window-header,
-[data-theme="neon"] .window-header {
-    background: linear-gradient(45deg, var(--surface), var(--surface-light));
-    border-bottom: 2px solid var(--primary);
-}
-
-/* Terminal theme enhancements */
-[data-theme="matrix"] .terminal {
-    background: #000000;
-    color: var(--primary);
-    text-shadow: 0 0 5px currentColor;
-}
-
-[data-theme="neon"] .terminal {
-    background: #000000;
-    color: var(--primary);
-    text-shadow: 0 0 8px currentColor;
-}
-
-/* ==========================================================================
-   RESPONSIVE THEME ADJUSTMENTS
-   ========================================================================== */
-
-/* Mobile theme optimizations */
-@media (max-width: 768px) {
-    :root {
-        --radius-lg: 8px;
-        --radius-xl: 12px;
-        --shadow-xl: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-    }
-
-    /* Reduce visual effects on mobile for performance */
-    .effect-particles {
-        display: none;
-    }
-
-    [data-theme="matrix"] body::before,
-    [data-theme="neon"] .btn {
-        animation: none;
-        box-shadow: none;
-    }
-}
-
-/* High contrast accessibility support */
-@media (prefers-contrast: high) {
-    :root {
-        --border: #000000;
-        --text-secondary: #000000;
-    }
-
-    [data-theme="dark"] {
-        --border: #ffffff;
-        --text-secondary: #ffffff;
-    }
-}
-
-/* Reduced motion accessibility */
-@media (prefers-reduced-motion: reduce) {
-    .particle,
-    .theme-transition,
-    [data-theme="matrix"] body::before {
-        animation: none !important;
-    }
-
-    * {
-        transition: none !important;
-    }
-}
-
-/* ==========================================================================
-   PRINT THEME
-   ========================================================================== */
-
-@media print {
-    :root {
-        --primary: #000000;
-        --secondary: #666666;
-        --background: #ffffff;
-        --surface: #ffffff;
-        --text-primary: #000000;
-        --text-secondary: #333333;
-        --border: #cccccc;
-        --shadow-md: none;
-        --shadow-lg: none;
-        --shadow-xl: none;
-    }
-
-    .effect-particles,
-    .desktop-background,
-    .theme-transition {
-        display: none !important;
-    }
-}
-
-/* ==========================================================================
-   THEME PICKER COMPONENT
-   ========================================================================== */
-
-.theme-picker {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-    gap: 12px;
-    padding: 16px;
-}
-
-.theme-option {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    padding: 12px;
-    border: 2px solid var(--border);
-    border-radius: var(--radius-lg);
-    cursor: pointer;
-    transition: var(--transition);
-    background: var(--surface);
-}
-
-.theme-option:hover {
-    border-color: var(--primary);
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
-}
-
-.theme-option.active {
-    border-color: var(--primary);
-    background: var(--primary-alpha);
-}
-
-.theme-preview {
-    width: 60px;
-    height: 40px;
-    border-radius: var(--radius-md);
-    display: flex;
-    overflow: hidden;
-    box-shadow: var(--shadow-sm);
-}
-
-.theme-preview-color {
-    flex: 1;
-    height: 100%;
-}
-
-.theme-name {
-    font-size: 12px;
-    font-weight: 500;
-    text-align: center;
+/* Apply theme variables to all components */
+body {
+    background: var(--desktop-bg);
     color: var(--text-primary);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    transition: var(--transition);
 }
 
-/* Theme preview colors */
-.theme-preview.default .theme-preview-color:nth-child(1) { background: #00d9ff; }
-.theme-preview.default .theme-preview-color:nth-child(2) { background: #533e85; }
-.theme-preview.default .theme-preview-color:nth-child(3) { background: #ff6b35; }
+/* Desktop */
+#desktop {
+    background: var(--desktop-bg);
+    background-attachment: fixed;
+}
 
-.theme-preview.dark .theme-preview-color:nth-child(1) { background: #1e1e1e; }
-.theme-preview.dark .theme-preview-color:nth-child(2) { background: #00d9ff; }
-.theme-preview.dark .theme-preview-color:nth-child(3) { background: #7c4dff; }
+/* Windows */
+.window {
+    background: var(--window-bg) !important;
+    border: 1px solid var(--border) !important;
+    box-shadow: 0 8px 32px var(--shadow-dark) !important;
+}
 
-.theme-preview.blue .theme-preview-color:nth-child(1) { background: #2563eb; }
-.theme-preview.blue .theme-preview-color:nth-child(2) { background: #1e40af; }
-.theme-preview.blue .theme-preview-color:nth-child(3) { background: #06b6d4; }
+.window-header {
+    background: var(--surface-light) !important;
+    border-bottom: 1px solid var(--border) !important;
+    color: var(--text-primary) !important;
+}
 
-.theme-preview.green .theme-preview-color:nth-child(1) { background: #059669; }
-.theme-preview.green .theme-preview-color:nth-child(2) { background: #0d9488; }
-.theme-preview.green .theme-preview-color:nth-child(3) { background: #84cc16; }
+.window-content {
+    background: var(--background) !important;
+}
 
-.theme-preview.matrix .theme-preview-color:nth-child(1) { background: #000000; }
-.theme-preview.matrix .theme-preview-color:nth-child(2) { background: #00ff41; }
-.theme-preview.matrix .theme-preview-color:nth-child(3) { background: #008f11; }
+/* Taskbar */
+#taskbar {
+    background: var(--taskbar-bg) !important;
+    border-top: 1px solid var(--border) !important;
+}
 
-.theme-preview.neon .theme-preview-color:nth-child(1) { background: #000000; }
-.theme-preview.neon .theme-preview-color:nth-child(2) { background: #ff0080; }
-.theme-preview.neon .theme-preview-color:nth-child(3) { background: #00ffff; }
+.taskbar-button {
+    color: var(--text-primary) !important;
+    background: var(--surface) !important;
+}
 
-/* ==========================================================================
-   CUSTOM SCROLLBARS FOR THEMES
-   ========================================================================== */
+.taskbar-button.active {
+    background: var(--primary) !important;
+    color: var(--text-inverse) !important;
+}
 
-/* Webkit scrollbars */
+/* Desktop Icons */
+.desktop-icon {
+    color: var(--icon-text) !important;
+}
+
+.desktop-icon .icon-label {
+    color: var(--icon-text) !important;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8) !important;
+    font-size: 10px !important;
+    line-height: 1.1 !important;
+    max-width: 80px !important;
+    word-wrap: break-word !important;
+}
+
+/* Buttons */
+button, .btn {
+    background: var(--primary) !important;
+    color: var(--text-inverse) !important;
+    border: 1px solid var(--primary) !important;
+    transition: var(--transition) !important;
+}
+
+button:hover, .btn:hover {
+    background: var(--primary-light) !important;
+    transform: translateY(-1px);
+}
+
+.btn.secondary {
+    background: var(--surface) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border) !important;
+}
+
+/* Form Elements */
+input, textarea, select {
+    background: var(--surface) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border) !important;
+}
+
+input:focus, textarea:focus, select:focus {
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 2px var(--focus) !important;
+}
+
+/* Terminal */
+.terminal-container {
+    background: var(--background) !important;
+    color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .terminal-container,
+[data-theme="matrix"] .terminal-container,
+[data-theme="neon"] .terminal-container {
+    background: #000000 !important;
+    color: var(--primary) !important;
+}
+
+/* Settings */
+.settings-sidebar {
+    background: var(--surface-dark) !important;
+    border-right: 1px solid var(--border) !important;
+}
+
+.settings-nav-item {
+    color: var(--text-secondary) !important;
+}
+
+.settings-nav-item.active {
+    background: var(--primary) !important;
+    color: var(--text-inverse) !important;
+}
+
+/* Games */
+.game-container {
+    background: var(--background) !important;
+}
+
+/* Modals */
+.modal-content {
+    background: var(--surface) !important;
+    border: 1px solid var(--border) !important;
+    color: var(--text-primary) !important;
+}
+
+/* Notifications */
+.notification {
+    background: var(--surface) !important;
+    border: 1px solid var(--border) !important;
+    color: var(--text-primary) !important;
+    box-shadow: 0 4px 16px var(--shadow-dark) !important;
+}
+
+/* Context Menus */
+.context-menu {
+    background: var(--surface) !important;
+    border: 1px solid var(--border) !important;
+    box-shadow: 0 4px 16px var(--shadow-dark) !important;
+}
+
+.context-item {
+    color: var(--text-primary) !important;
+}
+
+.context-item:hover {
+    background: var(--primary) !important;
+    color: var(--text-inverse) !important;
+}
+
+/* Scrollbars */
 ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-    background: var(--surface-light);
-    border-radius: var(--radius-full);
+    background: var(--surface) !important;
 }
 
 ::-webkit-scrollbar-thumb {
-    background: var(--border);
-    border-radius: var(--radius-full);
-    transition: var(--transition);
+    background: var(--border-dark) !important;
+    border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: var(--primary);
+    background: var(--primary) !important;
 }
 
-/* Firefox scrollbars */
-* {
-    scrollbar-width: thin;
-    scrollbar-color: var(--border) var(--surface-light);
+/* Animations */
+@keyframes themeTransition {
+    from { opacity: 0.8; }
+    to { opacity: 1; }
 }
 
-/* Matrix theme scrollbars */
-[data-theme="matrix"] ::-webkit-scrollbar-thumb {
-    background: var(--primary);
-    box-shadow: 0 0 5px var(--primary);
+[data-theme] {
+    animation: themeTransition 0.3s ease-out;
 }
 
-[data-theme="neon"] ::-webkit-scrollbar-thumb {
-    background: var(--primary);
-    box-shadow: 0 0 8px var(--primary);
+/* High contrast mode adjustments */
+@media (prefers-contrast: high) {
+    :root {
+        --border: #000000;
+        --text-secondary: var(--text-primary);
+    }
 }
