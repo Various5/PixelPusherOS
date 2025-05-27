@@ -796,74 +796,173 @@ class WindowManager {
         }
     }
 
-    async initializeTaskManager(appId) {
+async initializeTaskManager(appId) {
         const content = document.getElementById(`taskmanager-content-${appId}`);
-        if (content) {
-            // Auto-refresh task manager every 2 seconds
-            const updateTaskManager = async () => {
-                try {
-                    const response = await fetch('/api/system/info');
-                    const data = await response.json();
+        if (!content) return;
 
-                    let html = `
-                        <div style="color: #ffffff;">
-                            <h3>System Information</h3>
-                            <div style="margin-bottom: 20px;">
-                                <div>CPU Usage: ${data.cpu.percent.toFixed(1)}% (${data.cpu.cores} cores)</div>
-                                <div>Memory: ${(data.memory.used / 1024 / 1024 / 1024).toFixed(1)} GB / ${(data.memory.total / 1024 / 1024 / 1024).toFixed(1)} GB (${data.memory.percent.toFixed(1)}%)</div>
-                                <div>Disk: ${(data.disk.used / 1024 / 1024 / 1024).toFixed(1)} GB / ${(data.disk.total / 1024 / 1024 / 1024).toFixed(1)} GB (${data.disk.percent.toFixed(1)}%)</div>
+        // Show loading state
+        content.innerHTML = `
+            <div style="color: #ffffff; text-align: center; padding: 20px;">
+                <div class="spinner" style="
+                    width: 40px;
+                    height: 40px;
+                    border: 4px solid rgba(255, 255, 255, 0.3);
+                    border-top: 4px solid #ffffff;
+                    border-radius: 50%;
+                    animation: spin 1s linear infinite;
+                    margin: 0 auto 16px;
+                "></div>
+                <p>Loading system information...</p>
+            </div>
+        `;
+
+        // Add spinner animation if not already present
+        if (!document.getElementById('spinner-animation')) {
+            const style = document.createElement('style');
+            style.id = 'spinner-animation';
+            style.textContent = `
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
+        // Auto-refresh task manager every 2 seconds
+        const updateTaskManager = async () => {
+            try {
+                const response = await fetch('/api/system/info');
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+
+                let html = `
+                    <div style="color: #ffffff;">
+                        <h3>System Information</h3>
+                        <div style="margin-bottom: 20px; background: rgba(255, 255, 255, 0.1); padding: 16px; border-radius: 8px;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                                <div>
+                                    <strong>CPU Usage:</strong> ${(data.cpu?.percent || 0).toFixed(1)}%
+                                    <div style="width: 100%; height: 8px; background: rgba(255, 255, 255, 0.2); border-radius: 4px; margin-top: 4px;">
+                                        <div style="width: ${data.cpu?.percent || 0}%; height: 100%; background: #4CAF50; border-radius: 4px;"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <strong>CPU Cores:</strong> ${data.cpu?.cores || 'N/A'}
+                                </div>
                             </div>
                             
-                            <h3>Top Processes</h3>
                             <div style="margin-top: 16px;">
-                                <div style="display: grid; grid-template-columns: auto 1fr auto auto; gap: 16px; padding: 8px; background: rgba(255, 255, 255, 0.1); border-radius: 8px; margin-bottom: 8px; font-weight: bold;">
-                                    <div>PID</div>
-                                    <div>Process</div>
-                                    <div>CPU%</div>
-                                    <div>Memory</div>
+                                <strong>Memory:</strong> ${((data.memory?.used || 0) / 1024 / 1024 / 1024).toFixed(1)} GB / ${((data.memory?.total || 0) / 1024 / 1024 / 1024).toFixed(1)} GB (${(data.memory?.percent || 0).toFixed(1)}%)
+                                <div style="width: 100%; height: 8px; background: rgba(255, 255, 255, 0.2); border-radius: 4px; margin-top: 4px;">
+                                    <div style="width: ${data.memory?.percent || 0}%; height: 100%; background: #2196F3; border-radius: 4px;"></div>
                                 </div>
+                            </div>
+                            
+                            <div style="margin-top: 16px;">
+                                <strong>Disk:</strong> ${((data.disk?.used || 0) / 1024 / 1024 / 1024).toFixed(1)} GB / ${((data.disk?.total || 0) / 1024 / 1024 / 1024).toFixed(1)} GB (${(data.disk?.percent || 0).toFixed(1)}%)
+                                <div style="width: 100%; height: 8px; background: rgba(255, 255, 255, 0.2); border-radius: 4px; margin-top: 4px;">
+                                    <div style="width: ${data.disk?.percent || 0}%; height: 100%; background: #FF9800; border-radius: 4px;"></div>
+                                </div>
+                            </div>
+                            
+                            <div style="margin-top: 16px;">
+                                <strong>Uptime:</strong> ${this.formatUptime(data.uptime || 0)}
+                            </div>
+                        </div>
+                        
+                        <h3 style="margin-top: 24px;">Top Processes</h3>
+                        <div style="margin-top: 16px;">`;
+
+                if (data.processes && data.processes.length > 0) {
+                    html += `
+                        <div style="display: grid; grid-template-columns: 60px 1fr 80px 80px; gap: 16px; padding: 8px; background: rgba(255, 255, 255, 0.1); border-radius: 8px; margin-bottom: 8px; font-weight: bold;">
+                            <div>PID</div>
+                            <div>Process</div>
+                            <div style="text-align: right;">CPU%</div>
+                            <div style="text-align: right;">Memory</div>
+                        </div>
                     `;
 
-                    if (data.processes && data.processes.length > 0) {
-                        data.processes.forEach(proc => {
-                            html += `
-                                <div style="display: grid; grid-template-columns: auto 1fr auto auto; gap: 16px; padding: 8px; margin-bottom: 4px;">
-                                    <div>${proc.pid}</div>
-                                    <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${proc.name}</div>
-                                    <div>${proc.cpu_percent.toFixed(1)}%</div>
-                                    <div>${proc.memory_mb.toFixed(0)}MB</div>
-                                </div>
-                            `;
-                        });
-                    } else {
-                        html += '<div style="padding: 20px; text-align: center; color: rgba(255, 255, 255, 0.6);">Unable to load process information</div>';
-                    }
-
-                    html += '</div></div>';
-                    content.innerHTML = html;
-
-                } catch (error) {
-                    content.innerHTML = `
-                        <div style="color: #ffffff; text-align: center; padding: 20px;">
-                            <p>Error loading system information</p>
-                            <p style="font-size: 12px; color: rgba(255, 255, 255, 0.6);">${error.message}</p>
+                    data.processes.forEach(proc => {
+                        html += `
+                            <div style="display: grid; grid-template-columns: 60px 1fr 80px 80px; gap: 16px; padding: 8px; margin-bottom: 4px; background: rgba(255, 255, 255, 0.05); border-radius: 4px;">
+                                <div>${proc.pid || 'N/A'}</div>
+                                <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${proc.name || 'Unknown'}">${proc.name || 'Unknown'}</div>
+                                <div style="text-align: right;">${(proc.cpu_percent || 0).toFixed(1)}%</div>
+                                <div style="text-align: right;">${(proc.memory_mb || 0).toFixed(0)}MB</div>
+                            </div>
+                        `;
+                    });
+                } else {
+                    html += `
+                        <div style="padding: 20px; text-align: center; color: rgba(255, 255, 255, 0.6); background: rgba(255, 255, 255, 0.05); border-radius: 8px;">
+                            <p>Process information not available</p>
+                            <p style="font-size: 12px; margin-top: 8px;">This might be due to missing system permissions or the psutil library not being installed.</p>
                         </div>
                     `;
                 }
-            };
 
-            // Initial load
-            updateTaskManager();
+                html += '</div></div>';
+                content.innerHTML = html;
 
-            // Set up auto-refresh
-            const refreshInterval = setInterval(updateTaskManager, 2000);
+            } catch (error) {
+                console.error('Task Manager error:', error);
+                content.innerHTML = `
+                    <div style="color: #ffffff; text-align: center; padding: 20px;">
+                        <div style="font-size: 48px; margin-bottom: 16px;">⚠️</div>
+                        <p>Error loading system information</p>
+                        <p style="font-size: 12px; color: rgba(255, 255, 255, 0.6); margin-top: 8px;">${error.message}</p>
+                        <button onclick="window.pixelPusher.modules.windows.initializeTaskManager('${appId}')" style="
+                            margin-top: 16px;
+                            padding: 8px 16px;
+                            background: #2196F3;
+                            color: white;
+                            border: none;
+                            border-radius: 4px;
+                            cursor: pointer;
+                        ">Retry</button>
+                    </div>
+                `;
 
-            // Store interval ID for cleanup
-            if (!this.taskManagerIntervals) {
-                this.taskManagerIntervals = new Map();
+                // Clear interval on error
+                if (this.taskManagerIntervals?.has(appId)) {
+                    clearInterval(this.taskManagerIntervals.get(appId));
+                    this.taskManagerIntervals.delete(appId);
+                }
             }
-            this.taskManagerIntervals.set(appId, refreshInterval);
+        };
+
+        // Initial load
+        await updateTaskManager();
+
+        // Set up auto-refresh
+        const refreshInterval = setInterval(updateTaskManager, 2000);
+
+        // Store interval ID for cleanup
+        if (!this.taskManagerIntervals) {
+            this.taskManagerIntervals = new Map();
         }
+        this.taskManagerIntervals.set(appId, refreshInterval);
+    }
+
+    formatUptime(seconds) {
+        const days = Math.floor(seconds / 86400);
+        const hours = Math.floor((seconds % 86400) / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const secs = Math.floor(seconds % 60);
+
+        const parts = [];
+        if (days > 0) parts.push(`${days}d`);
+        if (hours > 0) parts.push(`${hours}h`);
+        if (minutes > 0) parts.push(`${minutes}m`);
+        if (secs > 0 || parts.length === 0) parts.push(`${secs}s`);
+
+        return parts.join(' ');
     }
 
     async initializeMusicPlayer(appId) {

@@ -2,6 +2,7 @@
  * Pixel Pusher OS - Enhanced File Explorer Manager
  * Fully implemented file system navigation with modern features
  */
+window.ExplorerManager = EnhancedExplorerManager;
 
 class EnhancedExplorerManager {
     constructor() {

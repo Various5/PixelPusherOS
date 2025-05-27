@@ -78,6 +78,11 @@ class PixelPusherApp {
             if (typeof SettingsManager !== 'undefined') {
                 this.modules.settings = new SettingsManager();
             }
+            if (typeof ExplorerManager !== 'undefined') {
+                this.modules.explorer = new ExplorerManager();
+            } else if (typeof EnhancedExplorerManager !== 'undefined') {
+                this.modules.explorer = new EnhancedExplorerManager();
+            }
 
             console.log('  ✅ Desktop environment modules loaded');
         }
