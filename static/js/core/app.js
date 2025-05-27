@@ -88,16 +88,13 @@ async loadCoreModules() {
             console.warn('Terminal Manager not available:', e);
         }
 
-        try {
-            // ExplorerManager might need special handling
-            if (typeof window.ExplorerManager !== 'undefined') {
-                this.modules.explorer = new window.ExplorerManager();
-            } else if (typeof ExplorerManager !== 'undefined') {
-                this.modules.explorer = new ExplorerManager();
-            }
-        } catch (e) {
-            console.warn('Explorer Manager not available:', e);
-        }
+try {
+    if (typeof ExplorerManager !== 'undefined') {
+        this.modules.explorer = new ExplorerManager();
+    }
+} catch (e) {
+    console.warn('Explorer Manager not available:', e);
+}
 
         try {
             if (typeof GameManager !== 'undefined') {
