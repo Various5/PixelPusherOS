@@ -1,27 +1,7 @@
-# Pixel Pusher OS - Python Dependencies
-
-# Core Flask Framework
-Flask==3.0.0
-Werkzeug==3.0.1
-
-# Database ORM and Extensions
-Flask-SQLAlchemy==3.1.1
-SQLAlchemy==2.0.23
-
-# User Authentication and Session Management
+Flask==2.3.3
+Flask-SQLAlchemy==3.0.5
 Flask-Login==0.6.3
-
-# System Information and Process Monitoring
-psutil==5.9.6
-
-# Date and Time Utilities
-python-dateutil==2.8.2
-
-# File Type Detection
-python-magic==0.4.27
-
-# Development and Testing (optional)
+Werkzeug==2.3.7
+Jinja2==3.1.2
+psutil==5.9.5
 python-dotenv==1.0.0
-
-# Security
-cryptography==41.0.7

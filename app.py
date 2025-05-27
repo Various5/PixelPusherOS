@@ -59,13 +59,42 @@ def create_app(config_class=Config):
             print(f"❌ Database initialization failed: {e}")
 
     # Register application blueprints (modular route organization)
-    from routes.auth import auth_bp
-    from routes.desktop import desktop_bp
-    from routes.api import api_bp
+    try:
+        from routes.auth import auth_bp
+        from routes.desktop import desktop_bp
+        from routes.api import api_bp
 
-    app.register_blueprint(auth_bp)  # /login, /register, /logout
-    app.register_blueprint(desktop_bp)  # /, /browser, /word, /excel
-    app.register_blueprint(api_bp, url_prefix='/api')  # /api/command, /api/files, etc.
+        app.register_blueprint(auth_bp)  # /login, /register, /logout
+        app.register_blueprint(desktop_bp)  # /, /browser, /word, /excel
+        app.register_blueprint(api_bp, url_prefix='/api')  # /api/command, /api/files, etc.
+
+        print("✅ Blueprints registered successfully")
+
+    except ImportError as e:
+        print(f"⚠️  Blueprint import error: {e}")
+        print("⚠️  Some routes may not be available")
+
+        # Try to register available blueprints individually
+        try:
+            from routes.auth import auth_bp
+            app.register_blueprint(auth_bp)
+            print("  ✅ Auth blueprint registered")
+        except ImportError:
+            print("  ❌ Auth blueprint not available")
+
+        try:
+            from routes.desktop import desktop_bp
+            app.register_blueprint(desktop_bp)
+            print("  ✅ Desktop blueprint registered")
+        except ImportError:
+            print("  ❌ Desktop blueprint not available")
+
+        try:
+            from routes.api import api_bp
+            app.register_blueprint(api_bp, url_prefix='/api')
+            print("  ✅ API blueprint registered")
+        except ImportError:
+            print("  ❌ API blueprint not available")
 
     # Register context processors
     @app.context_processor

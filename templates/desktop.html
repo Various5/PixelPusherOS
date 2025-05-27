@@ -1,31 +1,52 @@
 {% extends "base.html" %}
 
 {% block title %}Desktop - Pixel Pusher OS{% endblock %}
-{% block description %}Pixel Pusher OS Desktop Environment - Access your applications, files, and games in a modern web-based interface.{% endblock %}
+{% block description %}Your personal desktop environment with applications, games, and productivity tools.{% endblock %}
 
 {% block body_class %}desktop-environment{% endblock %}
 
 {% block extra_css %}
 <style>
     /* Desktop Environment Styles */
-    .desktop-environment {
+    body {
         margin: 0;
         padding: 0;
-        height: 100vh;
         overflow: hidden;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        font-family: var(--font-family);
+        --primary: #00d9ff;
+        --primary-light: #4de8ff;
+        --secondary: #667eea;
+        --success: #00b894;
+        --warning: #fdcb6e;
+        --error: #e84393;
+        --surface: rgba(255, 255, 255, 0.95);
+        --surface-light: rgba(255, 255, 255, 0.98);
+        --surface-dark: rgba(0, 0, 0, 0.05);
+        --background: #f8f9fa;
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-disabled: #a0aec0;
+        --border: #e2e8f0;
+        --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.1);
+        --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.1);
+        --radius: 6px;
+        --radius-md: 8px;
+        --radius-lg: 12px;
+        --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
 
     /* Desktop Container */
     #desktop {
         position: relative;
-        width: 100%;
+        width: 100vw;
         height: 100vh;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         background-size: cover;
         background-position: center;
         background-attachment: fixed;
-        user-select: none;
         overflow: hidden;
     }
 
@@ -38,28 +59,27 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        padding: 8px;
-        border-radius: 8px;
         cursor: pointer;
         user-select: none;
+        padding: 8px;
+        border-radius: 8px;
         transition: all 0.2s ease;
         text-align: center;
     }
 
     .desktop-icon:hover {
-        background-color: rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.1);
         transform: scale(1.05);
     }
 
     .desktop-icon.selected {
-        background-color: rgba(0, 217, 255, 0.3);
+        background: rgba(0, 217, 255, 0.3);
         transform: scale(1.05);
     }
 
     .desktop-icon .icon-image {
         font-size: 32px;
         margin-bottom: 4px;
-        line-height: 1;
     }
 
     .desktop-icon .icon-label {
@@ -75,15 +95,36 @@
         -webkit-box-orient: vertical;
     }
 
-    /* Window Container */
-    #windowContainer {
+    /* Context Menu */
+    .context-menu {
         position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        pointer-events: none;
-        z-index: 100;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 8px 0;
+        min-width: 150px;
+        box-shadow: var(--shadow-xl);
+        z-index: 9999;
+        display: none;
+    }
+
+    .context-item {
+        padding: 8px 16px;
+        cursor: pointer;
+        color: var(--text-primary);
+        font-size: 14px;
+        transition: background-color 0.2s;
+    }
+
+    .context-item:hover {
+        background-color: var(--primary);
+        color: white;
+    }
+
+    .context-separator {
+        height: 1px;
+        background-color: var(--border);
+        margin: 4px 0;
     }
 
     /* Window Styles */
@@ -92,22 +133,19 @@
         background: var(--surface);
         border: 1px solid var(--border);
         border-radius: 8px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        box-shadow: var(--shadow-xl);
         display: flex;
         flex-direction: column;
         overflow: hidden;
-        pointer-events: auto;
-        transition: all 0.2s ease;
+        transition: var(--transition);
         min-width: 300px;
         min-height: 200px;
     }
 
     .window.active {
-        box-shadow: 0 12px 40px rgba(0, 217, 255, 0.2);
-        border-color: var(--primary);
+        box-shadow: 0 20px 60px rgba(0, 217, 255, 0.3);
     }
 
-    /* Window Header */
     .window-header {
         display: flex;
         align-items: center;
@@ -140,7 +178,6 @@
         height: 24px;
         border: none;
         border-radius: 4px;
-        color: white;
         cursor: pointer;
         display: flex;
         align-items: center;
@@ -149,23 +186,21 @@
         transition: opacity 0.2s;
     }
 
-    .window-btn:hover {
-        opacity: 0.8;
-    }
-
-    .minimize-btn {
+    .window-btn.minimize-btn {
         background: var(--warning);
+        color: white;
     }
 
-    .maximize-btn {
+    .window-btn.maximize-btn {
         background: var(--success);
+        color: white;
     }
 
-    .close-btn {
+    .window-btn.close-btn {
         background: var(--error);
+        color: white;
     }
 
-    /* Window Content */
     .window-content {
         flex: 1;
         overflow: auto;
@@ -173,104 +208,9 @@
         background: var(--background);
     }
 
-    /* Taskbar */
-    #taskbar {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        height: 40px;
-        background: var(--surface-dark);
-        border-top: 1px solid var(--border);
-        display: flex;
-        align-items: center;
-        padding: 0 8px;
-        z-index: 9999;
-        gap: 4px;
-        backdrop-filter: blur(10px);
-    }
-
-    .taskbar-button {
-        padding: 4px 12px;
-        border: none;
-        border-radius: 4px;
-        background: var(--surface);
-        color: var(--text-primary);
-        cursor: pointer;
-        font-size: 12px;
-        max-width: 150px;
-        overflow: hidden;
-        white-space: nowrap;
-        text-overflow: ellipsis;
-        transition: all 0.2s ease;
-    }
-
-    .taskbar-button:hover {
-        background: var(--surface-light);
-    }
-
-    .taskbar-button.active {
-        background: var(--primary);
-        color: white;
-    }
-
-    .taskbar-button.minimized {
-        opacity: 0.6;
-    }
-
-    /* System Tray */
-    #systemTray {
-        margin-left: auto;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        color: var(--text-secondary);
-        font-size: 12px;
-    }
-
-    #systemTime {
-        font-family: var(--font-mono);
-        font-weight: 500;
-    }
-
-    /* Context Menu */
-    .context-menu {
-        position: fixed;
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        padding: 8px 0;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-        z-index: 9999;
-        min-width: 150px;
-        display: none;
-    }
-
-    .context-item {
-        padding: 8px 16px;
-        cursor: pointer;
-        color: var(--text-primary);
-        font-size: 14px;
-        transition: background-color 0.2s;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .context-item:hover {
-        background-color: var(--primary);
-        color: white;
-    }
-
-    .context-separator {
-        height: 1px;
-        background-color: var(--border);
-        margin: 4px 0;
-    }
-
     /* Terminal Styles */
     .terminal-container {
-        font-family: var(--font-mono);
+        font-family: 'Courier New', 'Monaco', monospace;
         background: #1a1a1a;
         color: #00ff00;
         padding: 16px;
@@ -344,11 +284,6 @@
         transition: all 0.2s ease;
     }
 
-    .explorer-toolbar button:hover {
-        background: var(--surface-light);
-        border-color: var(--primary);
-    }
-
     .explorer-path {
         flex: 1;
         padding: 6px 8px;
@@ -357,7 +292,7 @@
         background: var(--surface);
         color: var(--text-primary);
         font-size: 13px;
-        font-family: var(--font-mono);
+        font-family: monospace;
     }
 
     .explorer-content {
@@ -373,18 +308,15 @@
         flex-direction: column;
         height: 100%;
         background: #000;
-        align-items: center;
-        justify-content: center;
     }
 
     .game-content {
-        width: 100%;
-        height: 100%;
+        flex: 1;
         display: flex;
         align-items: center;
         justify-content: center;
+        background: #000;
         color: white;
-        font-size: 18px;
     }
 
     /* Settings Styles */
@@ -433,15 +365,94 @@
         background: var(--background);
     }
 
-    /* Loading States */
-    .loading-spinner {
-        display: inline-block;
-        width: 20px;
-        height: 20px;
-        border: 2px solid var(--border);
-        border-top: 2px solid var(--primary);
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
+    /* Taskbar */
+    #taskbar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 40px;
+        background: var(--surface-dark);
+        border-top: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        padding: 0 8px;
+        z-index: 9999;
+        gap: 4px;
+        backdrop-filter: blur(10px);
+    }
+
+    .taskbar-button {
+        padding: 4px 12px;
+        border: none;
+        border-radius: 4px;
+        background: var(--surface);
+        color: var(--text-primary);
+        cursor: pointer;
+        font-size: 12px;
+        max-width: 150px;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        transition: all 0.2s ease;
+    }
+
+    .taskbar-button.active {
+        background: var(--primary);
+        color: white;
+    }
+
+    .taskbar-button.minimized {
+        opacity: 0.6;
+    }
+
+    /* System Tray */
+    #systemTime {
+        margin-left: auto;
+        color: var(--text-secondary);
+        font-size: 12px;
+        font-weight: 500;
+    }
+
+    /* Notifications */
+    .notification {
+        position: fixed;
+        top: 70px;
+        right: 20px;
+        padding: 12px 20px;
+        border-radius: 8px;
+        box-shadow: var(--shadow-xl);
+        z-index: 9998;
+        max-width: 350px;
+        min-width: 250px;
+        opacity: 0;
+        transform: translateX(100px);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .notification-info { background: var(--primary); color: white; }
+    .notification-success { background: var(--success); color: white; }
+    .notification-warning { background: var(--warning); color: white; }
+    .notification-error { background: var(--error); color: white; }
+
+    .notification-content {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .notification-message {
+        flex: 1;
+        margin-right: 10px;
+    }
+
+    .notification-close {
+        background: none;
+        border: none;
+        color: white;
+        cursor: pointer;
+        font-size: 16px;
+        padding: 0 5px;
     }
 
     /* Responsive Design */
@@ -463,246 +474,286 @@
             min-width: 280px;
         }
 
-        .settings-sidebar {
-            width: 150px;
+        #taskbar {
+            height: 50px;
         }
 
-        .settings-content {
-            padding: 16px;
+        .taskbar-button {
+            padding: 8px 12px;
         }
     }
 
-    /* Accessibility */
-    @media (prefers-reduced-motion: reduce) {
-        .desktop-icon,
-        .window,
-        .taskbar-button,
-        .context-item {
-            transition: none;
-        }
-
-        .loading-spinner {
-            animation: none;
-        }
+    /* Theme Support */
+    .theme-dark {
+        --surface: rgba(30, 30, 30, 0.95);
+        --surface-light: rgba(45, 45, 45, 0.98);
+        --surface-dark: rgba(15, 15, 15, 0.98);
+        --background: #1a202c;
+        --text-primary: #ffffff;
+        --text-secondary: #a0aec0;
+        --border: #4a5568;
     }
 
-    /* Print Styles */
-    @media print {
-        #desktop,
-        #taskbar,
-        .context-menu {
-            display: none;
-        }
+    .theme-matrix {
+        --primary: #00ff41;
+        --background: #0d1117;
+        --surface: rgba(13, 17, 23, 0.95);
+        --text-primary: #00ff41;
+    }
+
+    /* Loading States */
+    .loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 200px;
+        color: var(--text-secondary);
+        font-size: 16px;
+    }
+
+    /* Error States */
+    .error-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 200px;
+        color: var(--error);
+        text-align: center;
     }
 </style>
 {% endblock %}
 
 {% block content %}
 <!-- Desktop Environment -->
-<div id="desktop">
-    <!-- Desktop icons will be dynamically created by JavaScript -->
-</div>
-
-<!-- Window Container -->
-<div id="windowContainer">
-    <!-- Application windows will be dynamically created here -->
+<div id="desktop" data-user="{{ user.username }}" data-group="{{ user.group }}">
+    <!-- Desktop Icons -->
+    {% for icon in desktop_icons %}
+    <div class="desktop-icon"
+         id="icon-{{ icon.id }}"
+         data-icon-id="{{ icon.id }}"
+         data-category="{{ icon.category }}"
+         style="left: {{ icon.x }}px; top: {{ icon.y }}px;">
+        <div class="icon-image">{{ icon.icon }}</div>
+        <div class="icon-label">{{ icon.name }}</div>
+    </div>
+    {% endfor %}
 </div>
 
 <!-- Context Menu -->
 <div id="contextMenu" class="context-menu">
-    <div class="context-item" onclick="contextAction('terminal')">
-        💻 Open Terminal
-    </div>
-    <div class="context-item" onclick="contextAction('explorer')">
-        📁 Open File Explorer
-    </div>
+    <div class="context-item" onclick="contextAction('terminal')">💻 Open Terminal</div>
+    <div class="context-item" onclick="contextAction('explorer')">📁 Open File Explorer</div>
     <div class="context-separator"></div>
-    <div class="context-item" onclick="contextAction('newfile')">
-        📄 New File
-    </div>
-    <div class="context-item" onclick="contextAction('newfolder')">
-        📂 New Folder
-    </div>
+    <div class="context-item" onclick="contextAction('newfile')">📄 New File</div>
+    <div class="context-item" onclick="contextAction('newfolder')">📂 New Folder</div>
     <div class="context-separator"></div>
-    <div class="context-item" onclick="contextAction('refresh')">
-        🔄 Refresh Desktop
-    </div>
+    <div class="context-item" onclick="contextAction('refresh')">🔄 Refresh Desktop</div>
 </div>
+
+<!-- Window Container -->
+<div id="windowContainer"></div>
 
 <!-- Taskbar -->
 <div id="taskbar">
-    <!-- Start button or logo -->
-    <div style="margin-right: 8px; font-weight: bold; color: var(--primary);">
-        🎨 Pixel Pusher OS
-    </div>
-
-    <!-- Taskbar buttons will be dynamically created here -->
-
-    <!-- System tray -->
-    <div id="systemTray">
-        <div id="systemTime">--:--:--</div>
-    </div>
-</div>
-
-<!-- Hidden user data for JavaScript -->
-<div id="userData" style="display: none;">
-    <div data-user="{{ user.username }}" data-group="{{ user.user_group }}"></div>
+    <div id="systemTime"></div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
-<!-- Load all JavaScript modules in correct order -->
-
-<!-- Core utilities first -->
-<script src="{{ url_for('static', filename='js/utils/helpers.js') }}"></script>
+<!-- Core JavaScript Modules -->
 <script src="{{ url_for('static', filename='js/utils/state.js') }}"></script>
-
-<!-- Core system modules -->
+<script src="{{ url_for('static', filename='js/utils/helpers.js') }}"></script>
 <script src="{{ url_for('static', filename='js/core/auth.js') }}"></script>
 <script src="{{ url_for('static', filename='js/core/desktop.js') }}"></script>
 <script src="{{ url_for('static', filename='js/core/windows.js') }}"></script>
-
-<!-- Application modules -->
 <script src="{{ url_for('static', filename='js/apps/terminal.js') }}"></script>
 <script src="{{ url_for('static', filename='js/apps/explorer.js') }}"></script>
 <script src="{{ url_for('static', filename='js/apps/games.js') }}"></script>
 <script src="{{ url_for('static', filename='js/apps/settings.js') }}"></script>
-
-<!-- Main application controller (loads last) -->
 <script src="{{ url_for('static', filename='js/core/app.js') }}"></script>
 
-<!-- Desktop-specific initialization -->
 <script>
+// Desktop initialization with proper error handling
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🖥️ Desktop environment loading...');
+    console.log('🎨 Initializing Pixel Pusher OS Desktop Environment');
 
-    // Initialize desktop with user preferences
-    const userPreferences = {{ preferences | tojson | safe }};
-    console.log('👤 User preferences loaded:', userPreferences);
+    try {
+        // FIXED: User preferences with safe defaults - this fixes line 540 error
+        const userPreferences = {{ preferences | default({
+            'theme': 'default',
+            'fontSize': 14,
+            'windowOpacity': 1.0,
+            'wallpaper': null,
+            'animations': true,
+            'soundEnabled': true,
+            'autoSave': true,
+            'gameSounds': true,
+            'gameParticles': true,
+            'gameDifficulty': 'normal',
+            'explorerViewMode': 'list',
+            'explorerSortBy': 'name',
+            'explorerSortOrder': 'asc'
+        }) | tojson | safe }};
 
-    // Apply saved theme
-    if (userPreferences.theme) {
-        window.PixelPusherTheme.set(userPreferences.theme);
-    }
+        // Desktop icons configuration
+        const desktopIcons = {{ desktop_icons | default([]) | tojson | safe }};
 
-    // Apply saved wallpaper
-    if (userPreferences.wallpaper) {
-        const desktop = document.getElementById('desktop');
-        if (desktop) {
-            desktop.style.backgroundImage = `url(${userPreferences.wallpaper})`;
+        // Game high scores
+        const gameScores = {{ game_scores | default({}) | tojson | safe }};
+
+        // System information
+        const systemInfo = {{ system_info | default({
+            'version': '2.0.0',
+            'user': 'guest',
+            'group': 'user'
+        }) | tojson | safe }};
+
+        // Initialize the application
+        if (window.pixelPusher) {
+            console.log('✅ Pixel Pusher OS application found, initializing...');
+
+            // Store configuration data
+            window.pixelPusher.config = {
+                preferences: userPreferences,
+                icons: desktopIcons,
+                scores: gameScores,
+                system: systemInfo
+            };
+
+            // Initialize the application
+            window.pixelPusher.init().then(() => {
+                console.log('🚀 Pixel Pusher OS Desktop Environment ready!');
+
+                // Show welcome notification
+                setTimeout(() => {
+                    if (window.pixelPusher.showNotification) {
+                        window.pixelPusher.showNotification(
+                            'Welcome to Pixel Pusher OS! 🎨',
+                            'success',
+                            3000
+                        );
+                    }
+                }, 1000);
+
+                // Apply user theme
+                if (userPreferences.theme && userPreferences.theme !== 'default') {
+                    document.body.classList.add(`theme-${userPreferences.theme}`);
+                }
+
+                // Set wallpaper if configured
+                if (userPreferences.wallpaper) {
+                    const desktop = document.getElementById('desktop');
+                    if (desktop) {
+                        desktop.style.backgroundImage = `url(${userPreferences.wallpaper})`;
+                        desktop.style.backgroundSize = 'cover';
+                        desktop.style.backgroundPosition = 'center';
+                    }
+                }
+
+            }).catch(error => {
+                console.error('❌ Failed to initialize Pixel Pusher OS:', error);
+                showInitializationError(error);
+            });
+        } else {
+            console.error('❌ Pixel Pusher OS application not found!');
+            showInitializationError(new Error('Application core not loaded'));
         }
+
+    } catch (error) {
+        console.error('❌ Desktop initialization error:', error);
+        showInitializationError(error);
     }
-
-    // Set font size
-    if (userPreferences.fontSize) {
-        document.documentElement.style.fontSize = userPreferences.fontSize + 'px';
-    }
-
-    // Disable animations if requested
-    if (userPreferences.animations === false) {
-        document.body.classList.add('no-animations');
-    }
-
-    console.log('✅ Desktop environment ready');
-
-    // Show welcome message for new users
-    {% if user.login_count == 1 %}
-    setTimeout(function() {
-        if (window.pixelPusher && window.pixelPusher.showModal) {
-            const welcomeContent = `
-                <div style="text-align: center;">
-                    <h2>🎉 Welcome to Pixel Pusher OS!</h2>
-                    <p>Welcome, <strong>{{ user.username }}</strong>! Your desktop environment is ready.</p>
-                    <div style="margin: 20px 0; text-align: left;">
-                        <strong>Quick Tips:</strong><br>
-                        • Double-click icons to open applications<br>
-                        • Right-click desktop for context menu<br>
-                        • Use keyboard shortcuts for quick access<br>
-                        • Customize your experience in Settings
-                    </div>
-                    <div style="margin: 20px 0;">
-                        <strong>Keyboard Shortcuts:</strong><br>
-                        <kbd>Ctrl+Alt+T</kbd> Terminal |
-                        <kbd>Ctrl+Alt+E</kbd> Explorer |
-                        <kbd>Ctrl+Alt+S</kbd> Settings
-                    </div>
-                    <button onclick="this.closest('.modal').remove()" class="btn btn-primary">
-                        Let's Get Started! 🚀
-                    </button>
-                </div>
-            `;
-            window.pixelPusher.showModal('Welcome to Pixel Pusher OS', welcomeContent);
-        }
-    }, 2000);
-    {% endif %}
 });
 
-// Global helper functions for backward compatibility
+// Error handling function
+function showInitializationError(error) {
+    const desktop = document.getElementById('desktop');
+    if (desktop) {
+        desktop.innerHTML = `
+            <div style="
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: rgba(255, 255, 255, 0.95);
+                padding: 30px;
+                border-radius: 15px;
+                text-align: center;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+                max-width: 400px;
+            ">
+                <div style="font-size: 48px; margin-bottom: 20px;">⚠️</div>
+                <h2 style="color: #e84393; margin-bottom: 15px;">Initialization Error</h2>
+                <p style="color: #2d3748; margin-bottom: 20px;">
+                    Pixel Pusher OS encountered an error during startup.
+                </p>
+                <p style="font-size: 14px; color: #718096; margin-bottom: 25px;">
+                    Error: ${error.message}
+                </p>
+                <button onclick="window.location.reload()" style="
+                    background: #00d9ff;
+                    color: white;
+                    border: none;
+                    padding: 12px 24px;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-size: 16px;
+                    font-weight: 600;
+                ">
+                    Reload Application
+                </button>
+            </div>
+        `;
+    }
+}
+
+// Global utility functions
 function openWindow(windowId) {
-    if (window.pixelPusher) {
+    if (window.pixelPusher && window.pixelPusher.openApplication) {
         window.pixelPusher.openApplication(windowId);
     }
 }
 
 function closeWindow(windowId) {
-    if (window.pixelPusher) {
+    if (window.pixelPusher && window.pixelPusher.closeApplication) {
         window.pixelPusher.closeApplication(windowId);
     }
 }
 
 function contextAction(action) {
-    if (window.pixelPusher) {
-        switch(action) {
-            case 'terminal':
-            case 'explorer':
-                window.pixelPusher.openApplication(action);
-                break;
-            case 'newfile':
-                window.PixelPusherUtils.showNotification('Creating new file...', 'info');
-                break;
-            case 'newfolder':
-                window.PixelPusherUtils.showNotification('Creating new folder...', 'info');
-                break;
-            case 'refresh':
-                window.location.reload();
-                break;
-            default:
-                console.log('Context action:', action);
-        }
+    switch(action) {
+        case 'terminal':
+        case 'explorer':
+            openWindow(action);
+            break;
+        case 'newfile':
+            if (window.pixelPusher && window.pixelPusher.showNotification) {
+                window.pixelPusher.showNotification('Creating new file...', 'info');
+            }
+            break;
+        case 'newfolder':
+            if (window.pixelPusher && window.pixelPusher.showNotification) {
+                window.pixelPusher.showNotification('Creating new folder...', 'info');
+            }
+            break;
+        case 'refresh':
+            window.location.reload();
+            break;
+        default:
+            console.log('Context action:', action);
+    }
+
+    // Close context menu
+    if (window.pixelPusher && window.pixelPusher.closeAllContextMenus) {
         window.pixelPusher.closeAllContextMenus();
     }
 }
 
 // Performance monitoring
-console.log('📊 Performance Info:');
-console.log('Load Time:', Math.round(performance.now()), 'ms');
-console.log('User Agent:', navigator.userAgent);
-console.log('Screen:', screen.width + 'x' + screen.height);
-console.log('Viewport:', window.innerWidth + 'x' + window.innerHeight);
-
-// Browser compatibility checks
-const features = {
-    'Fetch API': 'fetch' in window,
-    'Local Storage': 'localStorage' in window,
-    'WebGL': (() => {
-        try {
-            const canvas = document.createElement('canvas');
-            return !!(canvas.getContext('webgl') || canvas.getContext('experimental-webgl'));
-        } catch {
-            return false;
-        }
-    })(),
-    'Web Workers': 'Worker' in window,
-    'Service Workers': 'serviceWorker' in navigator
-};
-
-console.log('🔧 Browser Features:', features);
-
-// Warn about unsupported features
-Object.entries(features).forEach(([feature, supported]) => {
-    if (!supported) {
-        console.warn(`⚠️ ${feature} not supported - some features may not work`);
-    }
-});
+console.log('📊 Desktop template loaded successfully');
+console.log('🎨 User:', '{{ user.username }}', '({{ user.group }})');
+console.log('🔧 Preferences loaded:', Object.keys({{ preferences | default({}) | tojson | safe }}).length, 'settings');
+console.log('📁 Desktop icons:', {{ desktop_icons | default([]) | length }});
 </script>
 {% endblock %}

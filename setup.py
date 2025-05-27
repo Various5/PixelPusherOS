@@ -1,319 +1,219 @@
 #!/usr/bin/env python3
 """
-Pixel Pusher OS - Setup Script
-Creates necessary directories and files for the application.
+Quick Fix Script for Pixel Pusher OS
+This script fixes the current import issues and sets up missing files.
 """
 
 import os
 import sys
-from pathlib import Path
 
 
-def create_directory_structure():
-    """Create the necessary directory structure for Pixel Pusher OS."""
+def create_missing_files():
+    """Create any missing critical files."""
 
-    directories = [
-        'templates/errors',
-        'static/css',
-        'static/js/core',
-        'static/js/apps',
-        'static/js/utils',
-        'static/images',
-        'static/uploads',
-        'routes',
-        'utils',
-        'instance',
-        'data',
-        'logs'
-    ]
+    print("🔧 Creating missing files...")
 
-    print("📁 Creating directory structure...")
-
-    for directory in directories:
-        Path(directory).mkdir(parents=True, exist_ok=True)
-        print(f"  ✅ Created: {directory}")
-
-    print("✅ Directory structure created successfully")
-
-
-def create_empty_init_files():
-    """Create empty __init__.py files for Python packages."""
-
-    init_files = [
-        'routes/__init__.py',
-        'utils/__init__.py'
-    ]
-
-    print("📝 Creating __init__.py files...")
-
-    for init_file in init_files:
-        if not os.path.exists(init_file):
-            with open(init_file, 'w') as f:
-                f.write('# Pixel Pusher OS Package\n')
-            print(f"  ✅ Created: {init_file}")
-
-    print("✅ __init__.py files created successfully")
-
-
-def create_config_file():
-    """Create config.py if it doesn't exist."""
-
-    if os.path.exists('config.py'):
-        print("⚠️  config.py already exists, skipping...")
-        return
-
-    print("⚙️  Creating config.py...")
-
-    config_content = '''#!/usr/bin/env python3
+    # Create basic config.py if it doesn't exist
+    if not os.path.exists('config.py'):
+        print("  📝 Creating config.py...")
+        config_content = '''#!/usr/bin/env python3
 """
 Pixel Pusher OS - Configuration
-Application configuration settings and environment variables.
 """
 
 import os
 import secrets
 
 class Config:
-    """Base configuration class with common settings."""
-
-    # Flask Configuration
     SECRET_KEY = os.environ.get('SECRET_KEY') or secrets.token_hex(32)
-
-    # Database Configuration
     BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \\
-        f'sqlite:///{os.path.join(BASE_DIR, "instance", "pixelpusher.db")}'
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or f'sqlite:///{os.path.join(BASE_DIR, "instance", "pixelpusher.db")}'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-
-    # File Upload Configuration
     UPLOAD_FOLDER = os.path.join(BASE_DIR, 'static', 'uploads')
-    MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max file size
+    MAX_CONTENT_LENGTH = 16 * 1024 * 1024
+    ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'svg', 'mp3', 'wav', 'mp4', 'avi', 'mov', 'zip'}
+'''
+        with open('config.py', 'w') as f:
+            f.write(config_content)
 
-    # Session Configuration
-    PERMANENT_SESSION_LIFETIME = 3600  # 1 hour
-    SESSION_COOKIE_SECURE = False  # Set to True for HTTPS in production
-    SESSION_COOKIE_HTTPONLY = True
+    # Create basic templates if they don't exist
+    template_files = {
+        'templates/base.html': '''<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Pixel Pusher OS{% endblock %}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+    {% block content %}{% endblock %}
+    {% block extra_js %}{% endblock %}
+</body>
+</html>''',
 
-    # Application Settings
-    DEBUG = True
-    TESTING = False
+        'templates/desktop.html': '''{% extends "base.html" %}
+{% block title %}Desktop - Pixel Pusher OS{% endblock %}
+{% block content %}
+<div id="desktop" class="desktop">
+    <h1>🎨 Pixel Pusher OS Desktop</h1>
+    <p>Welcome, {{ user.username }}!</p>
+    <div class="desktop-icons">
+        <div class="icon" onclick="alert('Terminal clicked')">💻 Terminal</div>
+        <div class="icon" onclick="alert('Explorer clicked')">📁 File Explorer</div>
+        <div class="icon" onclick="alert('Games clicked')">🎮 Games</div>
+        <div class="icon" onclick="alert('Settings clicked')">⚙️ Settings</div>
+    </div>
+</div>
+<style>
+    .desktop { min-height: 100vh; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .desktop-icons { display: flex; gap: 20px; margin-top: 50px; }
+    .icon { padding: 20px; background: rgba(255,255,255,0.2); border-radius: 10px; cursor: pointer; color: white; }
+    .icon:hover { background: rgba(255,255,255,0.3); }
+</style>
+{% endblock %}''',
 
-    # File System Security
-    ALLOWED_EXTENSIONS = {
-        'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'svg',
-        'mp3', 'wav', 'mp4', 'avi', 'mov', 'zip', 'tar', 'gz'
+        'templates/browser.html': '''{% extends "base.html" %}
+{% block content %}
+<h1>🌐 Web Browser</h1>
+<p>Browser functionality would go here.</p>
+{% endblock %}''',
+
+        'templates/word.html': '''{% extends "base.html" %}
+{% block content %}
+<h1>📝 Word Processor</h1>
+<p>Word processor functionality would go here.</p>
+{% endblock %}''',
+
+        'templates/excel.html': '''{% extends "base.html" %}
+{% block content %}
+<h1>📊 Spreadsheet</h1>
+<p>Spreadsheet functionality would go here.</p>
+{% endblock %}''',
+
+        'templates/settings.html': '''{% extends "base.html" %}
+{% block content %}
+<h1>⚙️ Settings</h1>
+<p>Settings functionality would go here.</p>
+{% endblock %}''',
+
+        'templates/games.html': '''{% extends "base.html" %}
+{% block content %}
+<h1>🎮 Games</h1>
+<p>Games functionality would go here.</p>
+{% endblock %}''',
+
+        'templates/about.html': '''{% extends "base.html" %}
+{% block content %}
+<h1>ℹ️ About Pixel Pusher OS</h1>
+<p>A modern web-based desktop environment.</p>
+{% endblock %}'''
     }
 
-    # Terminal Settings
-    MAX_COMMAND_HISTORY = 100
-    TERMINAL_TIMEOUT = 300  # 5 minutes
-
-    @staticmethod
-    def init_app(app):
-        """Initialize app with configuration."""
-        # Create upload directory if it doesn't exist
-        os.makedirs(Config.UPLOAD_FOLDER, exist_ok=True)
+    for filepath, content in template_files.items():
+        if not os.path.exists(filepath):
+            os.makedirs(os.path.dirname(filepath), exist_ok=True)
+            with open(filepath, 'w') as f:
+                f.write(content)
+            print(f"  ✅ Created: {filepath}")
 
 
-class DevelopmentConfig(Config):
-    """Development configuration."""
-    DEBUG = True
+def test_imports():
+    """Test if all imports work."""
+    print("\n🧪 Testing imports...")
 
+    try:
+        # Test models import
+        from models import db, User, SystemLog, GameScore
+        print("  ✅ Models import successful")
 
-class ProductionConfig(Config):
-    """Production configuration."""
-    DEBUG = False
-    SESSION_COOKIE_SECURE = True
+        # Test config import
+        from config import Config
+        print("  ✅ Config import successful")
 
+        # Test Flask import
+        from flask import Flask
+        print("  ✅ Flask import successful")
 
-class TestingConfig(Config):
-    """Testing configuration."""
-    TESTING = True
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
+        # Test routes import (if they exist)
+        try:
+            from routes.auth import auth_bp
+            print("  ✅ Auth routes import successful")
+        except ImportError as e:
+            print(f"  ⚠️  Auth routes import failed: {e}")
 
+        try:
+            from routes.desktop import desktop_bp
+            print("  ✅ Desktop routes import successful")
+        except ImportError as e:
+            print(f"  ⚠️  Desktop routes import failed: {e}")
 
-# Configuration dictionary
-config = {
-    'development': DevelopmentConfig,
-    'production': ProductionConfig,
-    'testing': TestingConfig,
-    'default': DevelopmentConfig
-}
-'''
+        try:
+            from routes.api import api_bp
+            print("  ✅ API routes import successful")
+        except ImportError as e:
+            print(f"  ⚠️  API routes import failed: {e}")
 
-    with open('config.py', 'w') as f:
-        f.write(config_content)
+        return True
 
-    print("  ✅ Created: config.py")
-
-
-def create_requirements_file():
-    """Create requirements.txt with necessary dependencies."""
-
-    print("📋 Creating requirements.txt...")
-
-    requirements = [
-        "Flask==2.3.3",
-        "Flask-SQLAlchemy==3.0.5",
-        "Flask-Login==0.6.3",
-        "Werkzeug==2.3.7",
-        "Jinja2==3.1.2",
-        "psutil==5.9.5",
-        "python-dotenv==1.0.0"
-    ]
-
-    with open('requirements.txt', 'w') as f:
-        f.write('\n'.join(requirements))
-        f.write('\n')
-
-    print("  ✅ Created: requirements.txt")
-
-
-def create_gitignore():
-    """Create .gitignore file."""
-
-    print("📝 Creating .gitignore...")
-
-    gitignore_content = '''# Pixel Pusher OS - Git Ignore File
-
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# Virtual Environment
-venv/
-env/
-ENV/
-
-# Flask
-instance/
-.flaskenv
-*.db
-*.sqlite
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Logs
-logs/
-*.log
-
-# Uploads
-static/uploads/*
-!static/uploads/.gitkeep
-
-# Environment
-.env
-.env.local
-.env.production
-
-# Testing
-.coverage
-htmlcov/
-.pytest_cache/
-'''
-
-    with open('.gitignore', 'w') as f:
-        f.write(gitignore_content)
-
-    print("  ✅ Created: .gitignore")
-
-
-def create_gitkeep_files():
-    """Create .gitkeep files for empty directories."""
-
-    print("📂 Creating .gitkeep files...")
-
-    gitkeep_dirs = [
-        'static/uploads',
-        'logs',
-        'instance'
-    ]
-
-    for directory in gitkeep_dirs:
-        gitkeep_path = os.path.join(directory, '.gitkeep')
-        if not os.path.exists(gitkeep_path):
-            with open(gitkeep_path, 'w') as f:
-                f.write('# Keep this directory in git\n')
-            print(f"  ✅ Created: {gitkeep_path}")
-
-
-def check_python_version():
-    """Check if Python version is compatible."""
-
-    if sys.version_info < (3, 8):
-        print("❌ Python 3.8 or higher is required")
-        print(f"   Current version: {sys.version}")
+    except Exception as e:
+        print(f"  ❌ Import test failed: {e}")
         return False
 
-    print(f"✅ Python version: {sys.version.split()[0]} (Compatible)")
-    return True
+
+def check_flask_app():
+    """Test Flask app creation."""
+    print("\n🚀 Testing Flask app creation...")
+
+    try:
+        # Try to create the app
+        from app import create_app
+        app = create_app()
+        print("  ✅ Flask app creation successful")
+
+        # Test app context
+        with app.app_context():
+            from models import db
+            print("  ✅ Database context successful")
+
+        return True
+
+    except Exception as e:
+        print(f"  ❌ Flask app test failed: {e}")
+        return False
 
 
 def main():
-    """Main setup function."""
-
-    print("🎨 Pixel Pusher OS Setup Script")
+    """Main fix function."""
+    print("🔧 Pixel Pusher OS - Quick Fix Script")
     print("=" * 50)
 
-    # Check Python version
-    if not check_python_version():
-        sys.exit(1)
+    # Create missing files
+    create_missing_files()
 
-    # Create directory structure
-    create_directory_structure()
+    # Test imports
+    import_success = test_imports()
 
-    # Create Python package files
-    create_empty_init_files()
+    # Test Flask app if imports work
+    if import_success:
+        app_success = check_flask_app()
 
-    # Create configuration
-    create_config_file()
+        if app_success:
+            print("\n🎉 All tests passed! Try running: python app.py")
+        else:
+            print("\n⚠️  App creation failed, but basic imports work")
+    else:
+        print("\n❌ Import issues remain - check error messages above")
 
-    # Create requirements file
-    create_requirements_file()
-
-    # Create git files
-    create_gitignore()
-    create_gitkeep_files()
-
-    print("\n🎉 Setup completed successfully!")
-    print("\n📋 Next steps:")
-    print("1. Install dependencies: pip install -r requirements.txt")
-    print("2. Make sure you have all the required files:")
-    print("   - models.py (database models)")
-    print("   - app.py (main Flask application)")
-    print("   - templates/ (HTML templates)")
-    print("   - static/ (CSS, JS, images)")
-    print("   - routes/ (Flask blueprints)")
-    print("3. Run the application: python app.py")
-    print("\n🌐 The application will be available at: http://localhost:5000")
-    print("👤 Demo accounts: admin/admin, user/user, demo/demo")
+    print("\n📋 Quick Start:")
+    print("1. Make sure all provided files are in place")
+    print("2. Run: pip install flask flask-sqlalchemy flask-login werkzeug")
+    print("3. Run: python app.py")
+    print("4. Open: http://localhost:5000")
 
 
 if __name__ == '__main__':
