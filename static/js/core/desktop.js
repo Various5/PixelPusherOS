@@ -1,13 +1,7 @@
 /**
  * Pixel Pusher OS - Desktop Manager
  * Handles desktop icons, wallpaper, and desktop environment management
- *
- * This module provides:
- * - Desktop icon management and positioning
- * - Wallpaper and theme management
- * - Desktop context menu handling
- * - Icon drag and drop functionality
- * - Desktop layout and responsiveness
+ * Updated to remove web browser icon
  */
 
 class DesktopManager {
@@ -92,18 +86,19 @@ class DesktopManager {
 
     /**
      * Get default desktop icons configuration
+     * REMOVED WEB BROWSER ICON
      */
     getDefaultIcons() {
         return [
             // System applications
             { id: 'terminal', name: 'Terminal', icon: '💻', x: 60, y: 80, category: 'system' },
             { id: 'explorer', name: 'File Explorer', icon: '📁', x: 60, y: 200, category: 'system' },
-            { id: 'browser', name: 'Web Browser', icon: '🌐', x: 60, y: 320, category: 'internet' },
+            // REMOVED: { id: 'browser', name: 'Web Browser', icon: '🌐', x: 60, y: 320, category: 'internet' },
 
             // Games
             { id: 'snake', name: 'Snake Game', icon: '🐍', x: 180, y: 80, category: 'games' },
             { id: 'dino', name: 'Dino Runner', icon: '🦕', x: 180, y: 200, category: 'games' },
-            { id: 'clicker', name: 'Village Builder', icon: '🏘️', x: 180, y: 320, category: 'games' },
+            { id: 'village', name: 'Village Builder', icon: '🏘️', x: 180, y: 320, category: 'games' },
             { id: 'memory', name: 'Memory Match', icon: '🧠', x: 300, y: 80, category: 'games' },
 
             // Media and tools
@@ -126,6 +121,9 @@ class DesktopManager {
         // Clear existing icons
         desktop.querySelectorAll('.desktop-icon').forEach(icon => icon.remove());
 
+        // Filter out any browser icons that might exist
+        this.icons = this.icons.filter(icon => icon.id !== 'browser');
+
         // Render each icon
         this.icons.forEach(iconData => {
             this.renderIcon(iconData);
@@ -138,6 +136,9 @@ class DesktopManager {
     renderIcon(iconData) {
         const desktop = document.getElementById('desktop');
         if (!desktop) return;
+
+        // Skip browser icon if somehow it's still in the data
+        if (iconData.id === 'browser') return;
 
         // Create icon element
         const iconElement = document.createElement('div');
@@ -593,6 +594,9 @@ class DesktopManager {
      * Add new desktop icon
      */
     addIcon(iconData) {
+        // Don't add browser icon
+        if (iconData.id === 'browser') return;
+
         this.icons.push(iconData);
         this.renderIcon(iconData);
 

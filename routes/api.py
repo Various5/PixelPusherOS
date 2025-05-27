@@ -7,6 +7,7 @@ Flask blueprint for API endpoints including terminal commands, file operations, 
 import os
 import json
 import time
+import psutil  # Add this to requirements.txt if not present
 from flask import Blueprint, request, jsonify, send_file, current_app
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
@@ -24,19 +25,20 @@ api_bp = Blueprint('api', __name__)
 file_browser = FileBrowser()
 
 
-@api_bp.route('/command/<path:command>')
+@api_bp.route('/command', methods=['POST'])
 @login_required
-def execute_command(command):
+def execute_command():
     """
     Execute terminal command and return result.
-
-    Args:
-        command (str): Command to execute
-
-    Returns:
-        JSON response with command output
+    Fixed: Changed to POST method to handle commands properly.
     """
     try:
+        data = request.get_json()
+        command = data.get('command', '') if data else ''
+
+        if not command:
+            return jsonify({'error': True, 'message': 'No command provided'}), 400
+
         # Log the command execution
         SystemLog.log_event(
             level='INFO',
@@ -96,38 +98,180 @@ def execute_command(command):
 
 @api_bp.route('/explorer/<path:path>')
 @login_required
-def explore_directory(path):
+def explore_directory(path=''):
     """
     Get directory contents for file explorer.
-
-    Args:
-        path (str): Directory path to explore
-
-    Returns:
-        JSON response with directory contents
+    Fixed: Returns proper JSON response for file explorer.
     """
     try:
         # Normalize path
-        if not path or path == '/':
+        if not path or path == '/' or path == 'undefined':
             path = ''
 
-        # Use FileBrowser to get directory listing
-        command = f'ls {path}' if path else 'ls'
-        result = file_browser.execute(command)
+        # Get the base directory
+        base_dir = current_app.config.get('USER_FILES_DIR', 'user_files')
 
-        # For now, return a mock response
-        # In a real implementation, you'd parse the ls result
-        items = [
-            {'name': 'Documents', 'type': 'dir', 'size': 0, 'modified': int(time.time())},
-            {'name': 'Downloads', 'type': 'dir', 'size': 0, 'modified': int(time.time())},
-            {'name': 'Pictures', 'type': 'dir', 'size': 0, 'modified': int(time.time())},
-            {'name': 'example.txt', 'type': 'file', 'size': 1024, 'modified': int(time.time())},
-        ]
+        # Construct full path
+        if path:
+            full_path = os.path.join(base_dir, path)
+        else:
+            full_path = base_dir
+
+        # Ensure the directory exists
+        if not os.path.exists(full_path):
+            os.makedirs(full_path, exist_ok=True)
+
+        items = []
+
+        # Get directory contents
+        try:
+            for item_name in os.listdir(full_path):
+                item_path = os.path.join(full_path, item_name)
+
+                try:
+                    stat = os.stat(item_path)
+
+                    items.append({
+                        'name': item_name,
+                        'type': 'dir' if os.path.isdir(item_path) else 'file',
+                        'size': stat.st_size if os.path.isfile(item_path) else 0,
+                        'modified': int(stat.st_mtime)
+                    })
+                except OSError:
+                    # Skip items we can't stat
+                    continue
+
+        except PermissionError:
+            return jsonify({'error': 'Permission denied'}), 403
 
         return jsonify({'items': items})
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+@api_bp.route('/system/info')
+@login_required
+def system_info():
+    """
+    Get real system information including processes.
+    Fixed: Returns actual system process data.
+    """
+    try:
+        # Get CPU info
+        cpu_percent = psutil.cpu_percent(interval=1)
+        cpu_count = psutil.cpu_count()
+
+        # Get memory info
+        memory = psutil.virtual_memory()
+
+        # Get disk info
+        disk = psutil.disk_usage('/')
+
+        # Get process list (top 10 by CPU usage)
+        processes = []
+        for proc in psutil.process_iter(['pid', 'name', 'cpu_percent', 'memory_info']):
+            try:
+                proc_info = proc.info
+                processes.append({
+                    'pid': proc_info['pid'],
+                    'name': proc_info['name'],
+                    'cpu_percent': proc_info['cpu_percent'],
+                    'memory_mb': proc_info['memory_info'].rss / 1024 / 1024 if proc_info['memory_info'] else 0
+                })
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                continue
+
+        # Sort by CPU usage and take top 10
+        processes.sort(key=lambda x: x['cpu_percent'], reverse=True)
+        processes = processes[:10]
+
+        return jsonify({
+            'cpu': {
+                'percent': cpu_percent,
+                'cores': cpu_count
+            },
+            'memory': {
+                'total': memory.total,
+                'used': memory.used,
+                'percent': memory.percent,
+                'available': memory.available
+            },
+            'disk': {
+                'total': disk.total,
+                'used': disk.used,
+                'free': disk.free,
+                'percent': disk.percent
+            },
+            'processes': processes,
+            'uptime': time.time() - current_app.config.get('START_TIME', time.time())
+        })
+
+    except Exception as e:
+        # Fallback to basic info if psutil fails
+        return jsonify({
+            'cpu': {'percent': 0, 'cores': os.cpu_count() or 1},
+            'memory': {'total': 0, 'used': 0, 'percent': 0, 'available': 0},
+            'disk': {'total': 0, 'used': 0, 'free': 0, 'percent': 0},
+            'processes': [],
+            'uptime': time.time() - current_app.config.get('START_TIME', time.time()),
+            'error': str(e)
+        })
+
+
+@api_bp.route('/music')
+@login_required
+def get_music_files():
+    """
+    Get list of music files from user's music directory.
+    Fixed: Scans actual music directory for audio files.
+    """
+    try:
+        # Get music directory path
+        base_dir = current_app.config.get('USER_FILES_DIR', 'user_files')
+        music_dir = os.path.join(base_dir, 'music')
+
+        # Ensure music directory exists
+        if not os.path.exists(music_dir):
+            os.makedirs(music_dir, exist_ok=True)
+
+            # Create sample music files info
+            sample_info = os.path.join(music_dir, 'README.txt')
+            with open(sample_info, 'w') as f:
+                f.write("Place your music files (MP3, WAV, OGG, FLAC, M4A) in this directory.\n")
+
+        music_files = []
+        audio_extensions = {'.mp3', '.wav', '.ogg', '.flac', '.m4a', '.aac', '.wma'}
+
+        # Scan for music files
+        for root, dirs, files in os.walk(music_dir):
+            for file in files:
+                ext = os.path.splitext(file)[1].lower()
+                if ext in audio_extensions:
+                    file_path = os.path.join(root, file)
+                    rel_path = os.path.relpath(file_path, music_dir)
+
+                    try:
+                        stat = os.stat(file_path)
+                        music_files.append({
+                            'name': file,
+                            'path': rel_path,
+                            'size': stat.st_size,
+                            'modified': int(stat.st_mtime),
+                            'type': ext[1:],  # Remove dot
+                            'title': os.path.splitext(file)[0],
+                            'artist': 'Unknown Artist'  # You could parse ID3 tags here
+                        })
+                    except OSError:
+                        continue
+
+        return jsonify({
+            'files': music_files,
+            'count': len(music_files)
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e), 'files': []}), 500
 
 
 @api_bp.route('/files/<path:filename>')
@@ -144,10 +288,12 @@ def serve_file(filename):
     """
     try:
         # Security check - ensure file is in allowed directory
-        file_path = os.path.join(current_app.config['BASE_DIR'], 'data', filename)
+        base_dir = current_app.config.get('USER_FILES_DIR', 'user_files')
+        file_path = os.path.join(base_dir, filename)
         file_path = os.path.normpath(file_path)
 
-        if not file_path.startswith(current_app.config['BASE_DIR']):
+        # Ensure the requested file is within the user files directory
+        if not file_path.startswith(os.path.abspath(base_dir)):
             return jsonify({'error': 'Access denied'}), 403
 
         if not os.path.exists(file_path):
@@ -188,10 +334,11 @@ def save_file():
 
         # Security check
         filename = secure_filename(filename)
-        file_path = os.path.join(current_app.config['BASE_DIR'], 'data', filename)
+        base_dir = current_app.config.get('USER_FILES_DIR', 'user_files')
+        file_path = os.path.join(base_dir, filename)
         file_path = os.path.normpath(file_path)
 
-        if not file_path.startswith(current_app.config['BASE_DIR']):
+        if not file_path.startswith(os.path.abspath(base_dir)):
             return jsonify({'error': 'Access denied'}), 403
 
         # Create directory if it doesn't exist
@@ -405,8 +552,21 @@ def system_stats():
         JSON response with system stats
     """
     try:
+        # Get START_TIME from app config or use current time as fallback
+        start_time = current_app.config.get('START_TIME')
+        if start_time is None:
+            # If START_TIME is not set, try to get it from the global variable
+            try:
+                from app import START_TIME
+                uptime = time.time() - START_TIME
+            except ImportError:
+                # Fallback to 0 if START_TIME is not available
+                uptime = 0
+        else:
+            uptime = time.time() - start_time
+
         stats = {
-            'uptime': time.time() - current_app.config.get('START_TIME', time.time()),
+            'uptime': uptime,
             'user_count': len(db.session.query(db.func.count(db.distinct(SystemLog.user_id))).scalar() or 0),
             'command_count': SystemLog.query.filter_by(category='COMMAND').count(),
             'file_count': FileMetadata.query.filter_by(is_active=True).count(),
@@ -419,20 +579,6 @@ def system_stats():
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
-
-def allowed_file(filename):
-    """
-    Check if file extension is allowed.
-
-    Args:
-        filename (str): Filename to check
-
-    Returns:
-        bool: True if allowed, False otherwise
-    """
-    return '.' in filename and \
-        filename.rsplit('.', 1)[1].lower() in current_app.config['ALLOWED_EXTENSIONS']
 
 
 # Error handlers

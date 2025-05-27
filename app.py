@@ -49,7 +49,8 @@ def create_app(config_class=Config):
         This function is called on every request to load the current user.
         """
         from models import User
-        return User.query.get(int(user_id))
+        # Fixed: Use db.session.get() instead of User.query.get()
+        return db.session.get(User, int(user_id))
 
     # Initialize database and create default data
     with app.app_context():

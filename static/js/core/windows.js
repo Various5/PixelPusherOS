@@ -1,6 +1,7 @@
 /**
  * Enhanced Window Manager with Fixed Applications
  * Handles all application windows with proper initialization and modern styling
+ * Browser removed, Music Player enhanced
  */
 
 class WindowManager {
@@ -30,6 +31,7 @@ class WindowManager {
     }
 
     getWindowConfigurations() {
+        // Browser removed from configurations
         return {
             terminal: {
                 title: '💻 Terminal',
@@ -48,15 +50,6 @@ class WindowManager {
                 minHeight: 400,
                 resizable: true,
                 content: 'explorer'
-            },
-            browser: {
-                title: '🌐 Web Browser',
-                width: 1000,
-                height: 700,
-                minWidth: 600,
-                minHeight: 400,
-                resizable: true,
-                content: 'browser'
             },
             settings: {
                 title: '⚙️ System Settings',
@@ -79,9 +72,9 @@ class WindowManager {
             musicplayer: {
                 title: '🎵 Music Player',
                 width: 400,
-                height: 500,
+                height: 550,
                 minWidth: 350,
-                minHeight: 400,
+                minHeight: 450,
                 resizable: true,
                 content: 'musicplayer'
             },
@@ -94,7 +87,7 @@ class WindowManager {
                 minHeight: 400,
                 resizable: false,
                 content: 'game',
-                gameType: 'neonbreaker'
+                gameType: 'snake'
             },
             dino: {
                 title: '🦕 Dino Runner',
@@ -104,7 +97,7 @@ class WindowManager {
                 minHeight: 300,
                 resizable: false,
                 content: 'game',
-                gameType: 'galacticdefense'
+                gameType: 'dino'
             },
             memory: {
                 title: '🧠 Memory Match',
@@ -114,16 +107,17 @@ class WindowManager {
                 minHeight: 500,
                 resizable: false,
                 content: 'game',
-                gameType: 'cyberblocks'
+                gameType: 'memory'
             },
-            clicker: {
+            village: {
                 title: '🏘️ Village Builder',
                 width: 900,
                 height: 650,
                 minWidth: 700,
                 minHeight: 500,
                 resizable: true,
-                content: 'village'
+                content: 'game',
+                gameType: 'village'
             }
         };
     }
@@ -311,13 +305,13 @@ class WindowManager {
                             border-bottom: 1px solid rgba(255, 255, 255, 0.2);
                             backdrop-filter: blur(12px);
                         ">
-                            <button onclick="window.pixelPusher.modules.explorer?.navigateBack()" style="
+                            <button onclick="window.pixelPusher.modules.explorer?.navigateBack('${appId}')" style="
                                 padding: 6px 12px; border: 1px solid rgba(255, 255, 255, 0.2);
                                 border-radius: 8px; background: rgba(255, 255, 255, 0.1);
                                 color: #ffffff; cursor: pointer; font-size: 12px;
                                 transition: all 0.15s ease;
                             ">← Back</button>
-                            <button onclick="window.pixelPusher.modules.explorer?.navigateUp()" style="
+                            <button onclick="window.pixelPusher.modules.explorer?.navigateUp('${appId}')" style="
                                 padding: 6px 12px; border: 1px solid rgba(255, 255, 255, 0.2);
                                 border-radius: 8px; background: rgba(255, 255, 255, 0.1);
                                 color: #ffffff; cursor: pointer; font-size: 12px;
@@ -329,7 +323,7 @@ class WindowManager {
                                 border-radius: 8px; background: rgba(255, 255, 255, 0.1);
                                 color: #ffffff; font-size: 12px; font-family: monospace;
                             ">
-                            <button onclick="window.pixelPusher.modules.explorer?.refresh()" style="
+                            <button onclick="window.pixelPusher.modules.explorer?.refresh('${appId}')" style="
                                 padding: 6px 12px; border: 1px solid rgba(255, 255, 255, 0.2);
                                 border-radius: 8px; background: rgba(255, 255, 255, 0.1);
                                 color: #ffffff; cursor: pointer; font-size: 12px;
@@ -437,11 +431,11 @@ class WindowManager {
                         ">🎵</div>
                         
                         <div class="music-info" style="text-align: center; margin-bottom: 20px;">
-                            <div class="music-title" style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">
+                            <div class="music-title" id="music-title-${appId}" style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">
                                 No music playing
                             </div>
-                            <div class="music-artist" style="font-size: 14px; color: rgba(255, 255, 255, 0.8);">
-                                Unknown Artist
+                            <div class="music-artist" id="music-artist-${appId}" style="font-size: 14px; color: rgba(255, 255, 255, 0.8);">
+                                Click below to load music
                             </div>
                         </div>
                         
@@ -450,31 +444,31 @@ class WindowManager {
                                 height: 4px; background: rgba(255, 255, 255, 0.2);
                                 border-radius: 2px; margin-bottom: 8px;
                             ">
-                                <div class="progress-fill" style="
+                                <div class="progress-fill" id="progress-fill-${appId}" style="
                                     width: 0%; height: 100%; background: #6366f1;
                                     border-radius: 2px; transition: width 0.3s ease;
                                 "></div>
                             </div>
                             <div style="display: flex; justify-content: space-between; font-size: 12px; color: rgba(255, 255, 255, 0.6);">
-                                <span>0:00</span>
-                                <span>0:00</span>
+                                <span id="time-current-${appId}">0:00</span>
+                                <span id="time-total-${appId}">0:00</span>
                             </div>
                         </div>
                         
                         <div class="music-controls" style="
                             display: flex; justify-content: center; gap: 12px; margin-bottom: 20px;
                         ">
-                            <button class="music-btn" style="
+                            <button class="music-btn" onclick="window.pixelPusher.modules.windows.prevTrack('${appId}')" style="
                                 width: 40px; height: 40px; border: none; border-radius: 50%;
                                 background: rgba(255, 255, 255, 0.1); color: #ffffff;
                                 cursor: pointer; font-size: 16px; transition: all 0.2s ease;
                             ">⏮️</button>
-                            <button class="music-btn play-pause" style="
+                            <button class="music-btn play-pause" id="play-pause-${appId}" onclick="window.pixelPusher.modules.windows.togglePlay('${appId}')" style="
                                 width: 50px; height: 50px; border: none; border-radius: 50%;
                                 background: #6366f1; color: white; cursor: pointer;
                                 font-size: 20px; transition: all 0.2s ease;
                             ">▶️</button>
-                            <button class="music-btn" style="
+                            <button class="music-btn" onclick="window.pixelPusher.modules.windows.nextTrack('${appId}')" style="
                                 width: 40px; height: 40px; border: none; border-radius: 50%;
                                 background: rgba(255, 255, 255, 0.1); color: #ffffff;
                                 cursor: pointer; font-size: 16px; transition: all 0.2s ease;
@@ -482,14 +476,34 @@ class WindowManager {
                         </div>
                         
                         <div class="music-volume" style="
-                            display: flex; align-items: center; gap: 12px;
+                            display: flex; align-items: center; gap: 12px; margin-bottom: 20px;
                         ">
                             <span style="font-size: 16px;">🔊</span>
-                            <input type="range" class="volume-slider" min="0" max="100" value="50" style="
+                            <input type="range" class="volume-slider" id="volume-${appId}" min="0" max="100" value="50" style="
                                 flex: 1; height: 4px; background: rgba(255, 255, 255, 0.2);
                                 border-radius: 2px; outline: none; cursor: pointer;
                             ">
                         </div>
+                        
+                        <button onclick="window.pixelPusher.modules.windows.loadMusicLibrary('${appId}')" style="
+                            padding: 10px 20px; background: rgba(255, 255, 255, 0.1);
+                            border: 1px solid rgba(255, 255, 255, 0.2);
+                            border-radius: 8px; color: #ffffff;
+                            cursor: pointer; font-size: 14px;
+                            transition: all 0.2s ease;
+                        ">📁 Load Music Library</button>
+                        
+                        <div class="music-playlist" id="music-playlist-${appId}" style="
+                            margin-top: 20px; max-height: 150px; overflow-y: auto;
+                            background: rgba(255, 255, 255, 0.05);
+                            border-radius: 8px; padding: 10px;
+                            display: none;
+                        ">
+                            <!-- Playlist items will be added here -->
+                        </div>
+                        
+                        <!-- Hidden audio element -->
+                        <audio id="audio-player-${appId}" style="display: none;"></audio>
                     </div>
                 `;
 
@@ -508,7 +522,7 @@ class WindowManager {
 
             case 'game':
                 return `
-                    <div id="game-${appId}" class="game-container" style="
+                    <div id="game-content-${appId}" class="game-container" style="
                         width: 100%; height: 100%; position: relative;
                         background: rgba(0, 0, 0, 0.9);
                     ">
@@ -782,52 +796,251 @@ class WindowManager {
         }
     }
 
-    initializeTaskManager(appId) {
+    async initializeTaskManager(appId) {
         const content = document.getElementById(`taskmanager-content-${appId}`);
         if (content) {
-            content.innerHTML = `
-                <div style="color: #ffffff;">
-                    <h3>Running Processes</h3>
-                    <div style="margin-top: 16px;">
-                        <div style="display: grid; grid-template-columns: 1fr auto auto auto; gap: 16px; padding: 8px; background: rgba(255, 255, 255, 0.1); border-radius: 8px; margin-bottom: 8px;">
-                            <div><strong>Process</strong></div>
-                            <div><strong>CPU</strong></div>
-                            <div><strong>Memory</strong></div>
-                            <div><strong>Status</strong></div>
+            // Auto-refresh task manager every 2 seconds
+            const updateTaskManager = async () => {
+                try {
+                    const response = await fetch('/api/system/info');
+                    const data = await response.json();
+
+                    let html = `
+                        <div style="color: #ffffff;">
+                            <h3>System Information</h3>
+                            <div style="margin-bottom: 20px;">
+                                <div>CPU Usage: ${data.cpu.percent.toFixed(1)}% (${data.cpu.cores} cores)</div>
+                                <div>Memory: ${(data.memory.used / 1024 / 1024 / 1024).toFixed(1)} GB / ${(data.memory.total / 1024 / 1024 / 1024).toFixed(1)} GB (${data.memory.percent.toFixed(1)}%)</div>
+                                <div>Disk: ${(data.disk.used / 1024 / 1024 / 1024).toFixed(1)} GB / ${(data.disk.total / 1024 / 1024 / 1024).toFixed(1)} GB (${data.disk.percent.toFixed(1)}%)</div>
+                            </div>
+                            
+                            <h3>Top Processes</h3>
+                            <div style="margin-top: 16px;">
+                                <div style="display: grid; grid-template-columns: auto 1fr auto auto; gap: 16px; padding: 8px; background: rgba(255, 255, 255, 0.1); border-radius: 8px; margin-bottom: 8px; font-weight: bold;">
+                                    <div>PID</div>
+                                    <div>Process</div>
+                                    <div>CPU%</div>
+                                    <div>Memory</div>
+                                </div>
+                    `;
+
+                    if (data.processes && data.processes.length > 0) {
+                        data.processes.forEach(proc => {
+                            html += `
+                                <div style="display: grid; grid-template-columns: auto 1fr auto auto; gap: 16px; padding: 8px; margin-bottom: 4px;">
+                                    <div>${proc.pid}</div>
+                                    <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${proc.name}</div>
+                                    <div>${proc.cpu_percent.toFixed(1)}%</div>
+                                    <div>${proc.memory_mb.toFixed(0)}MB</div>
+                                </div>
+                            `;
+                        });
+                    } else {
+                        html += '<div style="padding: 20px; text-align: center; color: rgba(255, 255, 255, 0.6);">Unable to load process information</div>';
+                    }
+
+                    html += '</div></div>';
+                    content.innerHTML = html;
+
+                } catch (error) {
+                    content.innerHTML = `
+                        <div style="color: #ffffff; text-align: center; padding: 20px;">
+                            <p>Error loading system information</p>
+                            <p style="font-size: 12px; color: rgba(255, 255, 255, 0.6);">${error.message}</p>
                         </div>
-                        <div style="display: grid; grid-template-columns: 1fr auto auto auto; gap: 16px; padding: 8px; margin-bottom: 4px;">
-                            <div>🖥️ Desktop Manager</div>
-                            <div>2.1%</div>
-                            <div>45MB</div>
-                            <div style="color: #34d399;">Running</div>
-                        </div>
-                        <div style="display: grid; grid-template-columns: 1fr auto auto auto; gap: 16px; padding: 8px; margin-bottom: 4px;">
-                            <div>🪟 Window Manager</div>
-                            <div>1.5%</div>
-                            <div>32MB</div>
-                            <div style="color: #34d399;">Running</div>
-                        </div>
-                        <div style="display: grid; grid-template-columns: 1fr auto auto auto; gap: 16px; padding: 8px; margin-bottom: 4px;">
-                            <div>💻 Terminal</div>
-                            <div>0.8%</div>
-                            <div>12MB</div>
-                            <div style="color: #34d399;">Running</div>
-                        </div>
-                    </div>
-                </div>
-            `;
+                    `;
+                }
+            };
+
+            // Initial load
+            updateTaskManager();
+
+            // Set up auto-refresh
+            const refreshInterval = setInterval(updateTaskManager, 2000);
+
+            // Store interval ID for cleanup
+            if (!this.taskManagerIntervals) {
+                this.taskManagerIntervals = new Map();
+            }
+            this.taskManagerIntervals.set(appId, refreshInterval);
         }
     }
 
-    initializeMusicPlayer(appId) {
-        // Music player is already initialized with the HTML
-        const playBtn = document.querySelector(`#musicplayer-${appId} .play-pause`);
-        if (playBtn) {
-            playBtn.addEventListener('click', () => {
-                const isPlaying = playBtn.textContent === '⏸️';
-                playBtn.textContent = isPlaying ? '▶️' : '⏸️';
+    async initializeMusicPlayer(appId) {
+        // Set up music player controls
+        const audio = document.getElementById(`audio-player-${appId}`);
+        const playBtn = document.getElementById(`play-pause-${appId}`);
+        const volumeSlider = document.getElementById(`volume-${appId}`);
+        const progressFill = document.getElementById(`progress-fill-${appId}`);
+        const currentTime = document.getElementById(`time-current-${appId}`);
+        const totalTime = document.getElementById(`time-total-${appId}`);
+
+        if (!audio) return;
+
+        // Music player state
+        const musicState = {
+            playlist: [],
+            currentTrack: 0,
+            isPlaying: false
+        };
+
+        // Store state on window
+        if (!this.musicPlayers) {
+            this.musicPlayers = new Map();
+        }
+        this.musicPlayers.set(appId, musicState);
+
+        // Volume control
+        if (volumeSlider) {
+            volumeSlider.addEventListener('input', () => {
+                audio.volume = volumeSlider.value / 100;
             });
         }
+
+        // Audio event handlers
+        audio.addEventListener('timeupdate', () => {
+            if (audio.duration) {
+                const progress = (audio.currentTime / audio.duration) * 100;
+                if (progressFill) progressFill.style.width = progress + '%';
+                if (currentTime) currentTime.textContent = this.formatTime(audio.currentTime);
+                if (totalTime) totalTime.textContent = this.formatTime(audio.duration);
+            }
+        });
+
+        audio.addEventListener('ended', () => {
+            this.nextTrack(appId);
+        });
+    }
+
+    async loadMusicLibrary(appId) {
+        const playlist = document.getElementById(`music-playlist-${appId}`);
+        const musicState = this.musicPlayers?.get(appId);
+
+        if (!playlist || !musicState) return;
+
+        try {
+            // Fetch music files from server
+            const response = await fetch('/api/music');
+            const data = await response.json();
+
+            if (data.files && data.files.length > 0) {
+                musicState.playlist = data.files;
+
+                // Display playlist
+                playlist.innerHTML = '<h4 style="margin-bottom: 10px;">Music Library</h4>';
+                data.files.forEach((file, index) => {
+                    const item = document.createElement('div');
+                    item.style.cssText = `
+                        padding: 8px;
+                        cursor: pointer;
+                        border-radius: 4px;
+                        transition: background 0.2s;
+                        margin-bottom: 4px;
+                        font-size: 13px;
+                    `;
+                    item.textContent = `${index + 1}. ${file.title}`;
+                    item.onclick = () => this.playTrack(appId, index);
+
+                    item.addEventListener('mouseenter', () => {
+                        item.style.background = 'rgba(255, 255, 255, 0.1)';
+                    });
+                    item.addEventListener('mouseleave', () => {
+                        item.style.background = 'transparent';
+                    });
+
+                    playlist.appendChild(item);
+                });
+
+                playlist.style.display = 'block';
+
+                // Show notification
+                if (window.pixelPusher) {
+                    window.pixelPusher.showNotification(`Loaded ${data.files.length} music files`, 'success');
+                }
+            } else {
+                playlist.innerHTML = `
+                    <div style="text-align: center; color: rgba(255, 255, 255, 0.6); padding: 20px;">
+                        <p>No music files found</p>
+                        <p style="font-size: 12px; margin-top: 10px;">Add MP3, WAV, OGG, or FLAC files to the music directory</p>
+                    </div>
+                `;
+                playlist.style.display = 'block';
+            }
+
+        } catch (error) {
+            console.error('Error loading music library:', error);
+            playlist.innerHTML = `
+                <div style="text-align: center; color: rgba(255, 255, 255, 0.6); padding: 20px;">
+                    <p>Error loading music library</p>
+                </div>
+            `;
+            playlist.style.display = 'block';
+        }
+    }
+
+    playTrack(appId, index) {
+        const audio = document.getElementById(`audio-player-${appId}`);
+        const musicState = this.musicPlayers?.get(appId);
+        const titleEl = document.getElementById(`music-title-${appId}`);
+        const artistEl = document.getElementById(`music-artist-${appId}`);
+
+        if (!audio || !musicState || !musicState.playlist[index]) return;
+
+        musicState.currentTrack = index;
+        const track = musicState.playlist[index];
+
+        // Update UI
+        if (titleEl) titleEl.textContent = track.title;
+        if (artistEl) artistEl.textContent = track.artist || 'Unknown Artist';
+
+        // Load and play track
+        audio.src = `/api/files/music/${track.path}`;
+        audio.play();
+        musicState.isPlaying = true;
+
+        // Update play button
+        const playBtn = document.getElementById(`play-pause-${appId}`);
+        if (playBtn) playBtn.textContent = '⏸️';
+    }
+
+    togglePlay(appId) {
+        const audio = document.getElementById(`audio-player-${appId}`);
+        const musicState = this.musicPlayers?.get(appId);
+        const playBtn = document.getElementById(`play-pause-${appId}`);
+
+        if (!audio || !musicState) return;
+
+        if (musicState.isPlaying) {
+            audio.pause();
+            musicState.isPlaying = false;
+            if (playBtn) playBtn.textContent = '▶️';
+        } else {
+            audio.play();
+            musicState.isPlaying = true;
+            if (playBtn) playBtn.textContent = '⏸️';
+        }
+    }
+
+    prevTrack(appId) {
+        const musicState = this.musicPlayers?.get(appId);
+        if (!musicState || musicState.playlist.length === 0) return;
+
+        musicState.currentTrack = (musicState.currentTrack - 1 + musicState.playlist.length) % musicState.playlist.length;
+        this.playTrack(appId, musicState.currentTrack);
+    }
+
+    nextTrack(appId) {
+        const musicState = this.musicPlayers?.get(appId);
+        if (!musicState || musicState.playlist.length === 0) return;
+
+        musicState.currentTrack = (musicState.currentTrack + 1) % musicState.playlist.length;
+        this.playTrack(appId, musicState.currentTrack);
+    }
+
+    formatTime(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
     }
 
     focus(appId) {
@@ -852,6 +1065,22 @@ class WindowManager {
     close(appId) {
         const windowElement = this.windows.get(appId);
         if (!windowElement) return;
+
+        // Clean up task manager interval if exists
+        if (this.taskManagerIntervals?.has(appId)) {
+            clearInterval(this.taskManagerIntervals.get(appId));
+            this.taskManagerIntervals.delete(appId);
+        }
+
+        // Clean up music player
+        if (this.musicPlayers?.has(appId)) {
+            const audio = document.getElementById(`audio-player-${appId}`);
+            if (audio) {
+                audio.pause();
+                audio.src = '';
+            }
+            this.musicPlayers.delete(appId);
+        }
 
         // Clean up game if exists
         if (this.games && this.games.has(appId)) {
@@ -1196,6 +1425,35 @@ class WindowManager {
                     border-color: #6366f1;
                     box-shadow: 0 16px 48px rgba(99, 102, 241, 0.3);
                 }
+                
+                /* Music player specific styles */
+                .music-btn:hover {
+                    transform: scale(1.1);
+                    background: rgba(255, 255, 255, 0.2) !important;
+                }
+                
+                .music-btn:active {
+                    transform: scale(0.95);
+                }
+                
+                input[type="range"]::-webkit-slider-thumb {
+                    -webkit-appearance: none;
+                    appearance: none;
+                    width: 12px;
+                    height: 12px;
+                    background: #6366f1;
+                    border-radius: 50%;
+                    cursor: pointer;
+                }
+                
+                input[type="range"]::-moz-range-thumb {
+                    width: 12px;
+                    height: 12px;
+                    background: #6366f1;
+                    border-radius: 50%;
+                    cursor: pointer;
+                    border: none;
+                }
             `;
             document.head.appendChild(style);
         }
@@ -1215,6 +1473,25 @@ class WindowManager {
     }
 
     destroy() {
+        // Clean up all intervals
+        if (this.taskManagerIntervals) {
+            this.taskManagerIntervals.forEach(interval => clearInterval(interval));
+            this.taskManagerIntervals.clear();
+        }
+
+        // Clean up music players
+        if (this.musicPlayers) {
+            this.musicPlayers.forEach((state, appId) => {
+                const audio = document.getElementById(`audio-player-${appId}`);
+                if (audio) {
+                    audio.pause();
+                    audio.src = '';
+                }
+            });
+            this.musicPlayers.clear();
+        }
+
+        // Close all windows
         Array.from(this.windows.keys()).forEach(appId => {
             this.close(appId);
         });

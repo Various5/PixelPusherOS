@@ -30,6 +30,12 @@ class Config:
     USER_FILES_DIR = BASE_DIR / 'user_files'
     UPLOAD_FOLDER = BASE_DIR / 'static' / 'uploads'
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max file upload
+    ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'svg',
+                         'mp3', 'wav', 'ogg', 'flac', 'm4a', 'aac', 'wma',
+                         'mp4', 'avi', 'mov', 'mkv', 'webm',
+                         'zip', 'rar', '7z', 'tar', 'gz',
+                         'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',
+                         'html', 'css', 'js', 'json', 'xml', 'py'}
 
     # Security Settings
     SESSION_TIMEOUT = 3600  # 1 hour in seconds
@@ -51,15 +57,23 @@ class Config:
     DEBUG = os.environ.get('FLASK_ENV') == 'development'
     TESTING = False
 
+    # Application start time
+    START_TIME = None
+
     @classmethod
     def init_app(cls, app):
         """Initialize application with configuration"""
+        # Store start time
+        import time
+        cls.START_TIME = time.time()
+        app.config['START_TIME'] = cls.START_TIME
+
         # Create necessary directories
         cls.USER_FILES_DIR.mkdir(exist_ok=True)
         cls.UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
         (cls.BASE_DIR / 'logs').mkdir(exist_ok=True)
 
-        # Create sample user files
+        # Create sample user files and directories
         cls.create_sample_files()
 
         print(f"✅ Configuration loaded - {cls.APP_NAME} v{cls.APP_VERSION}")
@@ -67,6 +81,35 @@ class Config:
     @classmethod
     def create_sample_files(cls):
         """Create sample files for demonstration"""
+        # First, create all necessary directories
+        directories = [
+            'documents',
+            'downloads',
+            'pictures',
+            'music',  # Ensure music directory exists
+            'videos',
+            'projects',
+            'desktop',
+            'home'
+        ]
+
+        for dirname in directories:
+            dir_path = cls.USER_FILES_DIR / dirname
+            dir_path.mkdir(exist_ok=True)
+
+        # Create subdirectories for organization
+        subdirs = {
+            'documents': ['archive', 'personal', 'work'],
+            'pictures': ['vacation', 'family', 'screenshots'],
+            'music': ['Rock', 'Pop', 'Classical', 'Jazz'],  # Music subdirectories
+            'videos': ['Movies', 'Series', 'Personal']
+        }
+
+        for parent, children in subdirs.items():
+            for child in children:
+                (cls.USER_FILES_DIR / parent / child).mkdir(exist_ok=True)
+
+        # Sample files
         sample_files = {
             'readme.txt': """Welcome to Pixel Pusher OS!
 
@@ -77,6 +120,7 @@ Features:
 - Built-in terminal with 50+ commands
 - File explorer with media support
 - Gaming center with arcade games
+- Music player for your audio files
 - Customizable themes and wallpapers
 - System settings and task manager
 
@@ -101,7 +145,8 @@ Pixel Pusher OS is a **modern web-based desktop environment** that brings the fa
 - 💻 **Advanced Terminal**: 50+ built-in commands for file management and system control
 - 📁 **File Explorer**: Browse, upload, and manage files with media preview support
 - 🎮 **Gaming Center**: Collection of arcade-style games with high score tracking
-- 🎨 **Themes & Customization**: 12+ color themes and custom wallpaper support
+- 🎵 **Music Player**: Play your favorite audio files
+- 🎨 **Themes & Customization**: Multiple color themes and custom wallpaper support
 - ⚙️ **System Tools**: Task manager, performance monitoring, and system settings
 
 ### Getting Started
@@ -110,7 +155,8 @@ Pixel Pusher OS is a **modern web-based desktop environment** that brings the fa
 2. **Try the Terminal**: Press `Ctrl+Alt+T` or click the Terminal icon
 3. **Browse Files**: Use the File Explorer to navigate your files
 4. **Play Games**: Check out the gaming center for entertainment
-5. **Customize**: Open Settings to change themes and preferences
+5. **Listen to Music**: Add MP3 files to the music folder and use the Music Player
+6. **Customize**: Open Settings to change themes and preferences
 
 ### Keyboard Shortcuts
 
@@ -135,6 +181,7 @@ Pixel Pusher OS is a **modern web-based desktop environment** that brings the fa
     "Terminal with 50+ Commands", 
     "File Explorer",
     "Gaming Center",
+    "Music Player",
     "System Settings",
     "Multi-Window Support",
     "Theme Customization"
@@ -198,7 +245,7 @@ ping <host>  - Test network connectivity
 
 APPLICATIONS:
 explorer     - Open file explorer
-game <name>  - Launch game (snake, dino, memory, clicker)
+game <name>  - Launch game (snake, dino, memory, village)
 
 Examples:
 > ls
@@ -208,18 +255,100 @@ Examples:
 > game snake
 > color blue
 > sysinfo
+""",
+            'music/README.txt': """Music Player Instructions
+
+Place your music files in this directory to play them in the Music Player.
+
+Supported formats:
+- MP3 (.mp3)
+- WAV (.wav)
+- OGG (.ogg)
+- FLAC (.flac)
+- M4A (.m4a)
+- AAC (.aac)
+- WMA (.wma)
+
+The Music Player will automatically scan this directory and display all playable files.
+
+Organize your music in subdirectories like:
+- Rock/
+- Pop/
+- Classical/
+- Jazz/
+
+Enjoy your music in Pixel Pusher OS!
+""",
+            'documents/sample.txt': """Sample Document
+
+This is a sample text document created for demonstration purposes.
+
+You can:
+- Edit this file using the terminal (edit command)
+- View it using the File Explorer
+- Copy, move, or delete it
+- Create your own documents
+
+Pixel Pusher OS supports various file operations through both the terminal and the graphical interface.
+""",
+            'documents/project_ideas.txt': """Project Ideas
+
+1. Web Application Projects
+   - Todo List Manager
+   - Weather Dashboard
+   - Personal Blog
+   - Portfolio Website
+
+2. Game Development
+   - Puzzle Games
+   - Adventure Games
+   - Educational Games
+
+3. Utility Tools
+   - Calculator
+   - Timer/Stopwatch
+   - Note Taking App
+   - Password Manager
+
+Feel free to use Pixel Pusher OS as a development environment for your projects!
 """
         }
 
         # Create sample files
         for filename, content in sample_files.items():
             file_path = cls.USER_FILES_DIR / filename
+            # Create parent directory if needed
+            file_path.parent.mkdir(parents=True, exist_ok=True)
             if not file_path.exists():
                 file_path.write_text(content, encoding='utf-8')
 
-        # Create sample directories
-        sample_dirs = ['documents', 'downloads', 'pictures', 'music', 'videos', 'projects']
-        for dirname in sample_dirs:
-            (cls.USER_FILES_DIR / dirname).mkdir(exist_ok=True)
+        # Create some sample music metadata files (since we can't create actual MP3s)
+        music_metadata = {
+            'music/sample_playlist.m3u': """#EXTM3U
+#EXTINF:180,Sample Song 1 - Artist 1
+sample1.mp3
+#EXTINF:240,Sample Song 2 - Artist 2
+sample2.mp3
+#EXTINF:200,Sample Song 3 - Artist 3
+sample3.mp3
+""",
+            'music/Rock/rock_info.txt': """Rock Music Collection
 
-        print(f"📁 Sample files created in {cls.USER_FILES_DIR}")
+Add your rock music files here.
+Supported formats: MP3, WAV, OGG, FLAC, M4A
+""",
+            'music/Classical/classical_info.txt': """Classical Music Collection
+
+Add your classical music files here.
+Supported formats: MP3, WAV, OGG, FLAC, M4A
+"""
+        }
+
+        for filename, content in music_metadata.items():
+            file_path = cls.USER_FILES_DIR / filename
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+            if not file_path.exists():
+                file_path.write_text(content, encoding='utf-8')
+
+        print(f"📁 Sample files and directories created in {cls.USER_FILES_DIR}")
+        print(f"🎵 Music directory created at {cls.USER_FILES_DIR / 'music'}")

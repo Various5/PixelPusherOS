@@ -91,7 +91,7 @@ class FileBrowser:
         elif cmd == 'game':
             if args:
                 return f"__GAME__::{args[0]}"
-            return "Available games: snake, dino, memory, clicker"
+            return "Available games: snake, dino, memory, village"
         else:
             return f"Command '{cmd}' not found. Type 'help' for available commands."
 

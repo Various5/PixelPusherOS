@@ -120,7 +120,7 @@ class StateManager {
             // Games
             { id: 'snake', name: 'Snake Game', icon: '🐍', x: 180, y: 80, category: 'games' },
             { id: 'dino', name: 'Dino Runner', icon: '🦕', x: 180, y: 200, category: 'games' },
-            { id: 'clicker', name: 'Village Builder', icon: '🏘️', x: 180, y: 320, category: 'games' },
+            { id: 'village', name: 'Village Builder', icon: '🏘️', x: 180, y: 320, category: 'games' },
             { id: 'memory', name: 'Memory Match', icon: '🧠', x: 300, y: 80, category: 'games' },
 
             // Media and tools

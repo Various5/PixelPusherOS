@@ -290,7 +290,7 @@ class PixelPusherApp {
             { id: 'snake', name: '🐍 Snake Game', description: 'Classic snake game' },
             { id: 'dino', name: '🦕 Dino Runner', description: 'Jump over obstacles' },
             { id: 'memory', name: '🧠 Memory Match', description: 'Match pairs of cards' },
-            { id: 'clicker', name: '🏘️ Village Builder', description: 'Build and manage your village' }
+            { id: 'village', name: '🏘️ Village Builder', description: 'Build and manage your village' }
         ];
 
         let menuHTML = '<div class="games-menu"><h3>🎮 Choose a Game</h3>';

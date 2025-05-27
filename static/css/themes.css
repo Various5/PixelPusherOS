@@ -1,0 +1,471 @@
+/**
+ * Pixel Pusher OS - Comprehensive Theme System
+ * All themes with desktop backgrounds and window styles
+ */
+
+/* Default Theme */
+body {
+    --primary: #00d9ff;
+    --primary-light: #66e5ff;
+    --primary-dark: #0099cc;
+    --secondary: #ff00d9;
+    --success: #00ff88;
+    --warning: #ffaa00;
+    --error: #ff4444;
+    --background: #1a1a2e;
+    --surface: #252538;
+    --surface-light: #2d2d44;
+    --surface-dark: #1a1a2e;
+    --text-primary: #ffffff;
+    --text-secondary: #b0b0c0;
+    --text-disabled: #606070;
+    --border: rgba(255, 255, 255, 0.1);
+    --shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.6);
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 16px;
+    --desktop-bg: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    --window-bg: rgba(37, 37, 56, 0.95);
+    --window-header-bg: rgba(45, 45, 68, 0.98);
+}
+
+/* Light Theme */
+body.theme-light {
+    --primary: #2196f3;
+    --primary-light: #64b5f6;
+    --primary-dark: #1976d2;
+    --secondary: #ff4081;
+    --success: #4caf50;
+    --warning: #ff9800;
+    --error: #f44336;
+    --background: #f5f5f5;
+    --surface: #ffffff;
+    --surface-light: #ffffff;
+    --surface-dark: #e0e0e0;
+    --text-primary: #212121;
+    --text-secondary: #757575;
+    --text-disabled: #bdbdbd;
+    --border: rgba(0, 0, 0, 0.12);
+    --shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 4px 20px rgba(0, 0, 0, 0.15);
+    --desktop-bg: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+    --window-bg: rgba(255, 255, 255, 0.98);
+    --window-header-bg: rgba(245, 245, 245, 1);
+}
+
+/* Gray Theme */
+body.theme-gray {
+    --primary: #607d8b;
+    --primary-light: #8eacbb;
+    --primary-dark: #34515e;
+    --secondary: #ff5722;
+    --success: #8bc34a;
+    --warning: #ffc107;
+    --error: #e91e63;
+    --background: #263238;
+    --surface: #37474f;
+    --surface-light: #455a64;
+    --surface-dark: #263238;
+    --text-primary: #eceff1;
+    --text-secondary: #b0bec5;
+    --text-disabled: #607d8b;
+    --border: rgba(255, 255, 255, 0.12);
+    --shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+    --desktop-bg: linear-gradient(135deg, #263238 0%, #37474f 100%);
+    --window-bg: rgba(55, 71, 79, 0.95);
+    --window-header-bg: rgba(69, 90, 100, 0.98);
+}
+
+/* Dark Theme */
+body.theme-dark {
+    --primary: #bb86fc;
+    --primary-light: #e7b9ff;
+    --primary-dark: #7f39fb;
+    --secondary: #03dac6;
+    --success: #00c853;
+    --warning: #ffab00;
+    --error: #cf6679;
+    --background: #121212;
+    --surface: #1e1e1e;
+    --surface-light: #2c2c2c;
+    --surface-dark: #121212;
+    --text-primary: #ffffff;
+    --text-secondary: #aaaaaa;
+    --text-disabled: #666666;
+    --border: rgba(255, 255, 255, 0.1);
+    --shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
+    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.9);
+    --desktop-bg: radial-gradient(circle at 20% 50%, #1e1e1e 0%, #121212 100%);
+    --window-bg: rgba(30, 30, 30, 0.95);
+    --window-header-bg: rgba(44, 44, 44, 0.98);
+}
+
+/* Neon Theme */
+body.theme-neon {
+    --primary: #00ffff;
+    --primary-light: #66ffff;
+    --primary-dark: #00cccc;
+    --secondary: #ff00ff;
+    --success: #00ff00;
+    --warning: #ffff00;
+    --error: #ff0066;
+    --background: #0a0a0a;
+    --surface: #1a1a1a;
+    --surface-light: #2a2a2a;
+    --surface-dark: #0a0a0a;
+    --text-primary: #ffffff;
+    --text-secondary: #cccccc;
+    --text-disabled: #666666;
+    --border: rgba(0, 255, 255, 0.3);
+    --shadow: 0 4px 20px rgba(0, 255, 255, 0.4);
+    --shadow-lg: 0 8px 32px rgba(0, 255, 255, 0.6);
+    --desktop-bg: linear-gradient(135deg, #0a0a0a 0%, #1a0a1a 50%, #0a1a1a 100%);
+    --window-bg: rgba(26, 26, 26, 0.95);
+    --window-header-bg: rgba(42, 42, 42, 0.98);
+}
+
+/* Cyberpunk Theme */
+body.theme-cyberpunk {
+    --primary: #f0e68c;
+    --primary-light: #fff9c4;
+    --primary-dark: #c9b037;
+    --secondary: #e91e63;
+    --success: #76ff03;
+    --warning: #ff6f00;
+    --error: #d50000;
+    --background: #0f0f23;
+    --surface: #1a1a2e;
+    --surface-light: #252542;
+    --surface-dark: #0f0f23;
+    --text-primary: #f0e68c;
+    --text-secondary: #b8a85a;
+    --text-disabled: #5a5a3e;
+    --border: rgba(240, 230, 140, 0.3);
+    --shadow: 0 4px 20px rgba(240, 230, 140, 0.3);
+    --shadow-lg: 0 8px 32px rgba(240, 230, 140, 0.5);
+    --desktop-bg:
+        linear-gradient(180deg, transparent 0%, rgba(240, 230, 140, 0.1) 100%),
+        linear-gradient(90deg, #0f0f23 0%, #1a0f23 50%, #230f23 100%);
+    --window-bg: rgba(26, 26, 46, 0.95);
+    --window-header-bg: rgba(37, 37, 66, 0.98);
+}
+
+/* Matrix Theme */
+body.theme-matrix {
+    --primary: #00ff41;
+    --primary-light: #66ff7f;
+    --primary-dark: #00cc33;
+    --secondary: #00ff41;
+    --success: #00ff41;
+    --warning: #ffff00;
+    --error: #ff0000;
+    --background: #000000;
+    --surface: #0a0a0a;
+    --surface-light: #1a1a1a;
+    --surface-dark: #000000;
+    --text-primary: #00ff41;
+    --text-secondary: #00cc33;
+    --text-disabled: #006619;
+    --border: rgba(0, 255, 65, 0.3);
+    --shadow: 0 4px 20px rgba(0, 255, 65, 0.4);
+    --shadow-lg: 0 8px 32px rgba(0, 255, 65, 0.6);
+    --desktop-bg: #000000;
+    --window-bg: rgba(10, 10, 10, 0.95);
+    --window-header-bg: rgba(26, 26, 26, 0.98);
+}
+
+/* Hackerman Theme */
+body.theme-hackerman {
+    --primary: #20c20e;
+    --primary-light: #60ff60;
+    --primary-dark: #108810;
+    --secondary: #ffa500;
+    --success: #00ff00;
+    --warning: #ffaa00;
+    --error: #ff0000;
+    --background: #000000;
+    --surface: #0d0d0d;
+    --surface-light: #1a1a1a;
+    --surface-dark: #000000;
+    --text-primary: #20c20e;
+    --text-secondary: #189818;
+    --text-disabled: #0a5a0a;
+    --border: rgba(32, 194, 14, 0.3);
+    --shadow: 0 4px 20px rgba(32, 194, 14, 0.4);
+    --shadow-lg: 0 8px 32px rgba(32, 194, 14, 0.6);
+    --desktop-bg:
+        repeating-linear-gradient(
+            0deg,
+            #000000,
+            #000000 2px,
+            #0a0a0a 2px,
+            #0a0a0a 4px
+        );
+    --window-bg: rgba(13, 13, 13, 0.95);
+    --window-header-bg: rgba(26, 26, 26, 0.98);
+}
+
+/* Metallic Blue Theme */
+body.theme-metallicblue {
+    --primary: #4fc3f7;
+    --primary-light: #8bf6ff;
+    --primary-dark: #0093c4;
+    --secondary: #81c784;
+    --success: #66bb6a;
+    --warning: #ffa726;
+    --error: #ef5350;
+    --background: #0d47a1;
+    --surface: #1565c0;
+    --surface-light: #1976d2;
+    --surface-dark: #0d47a1;
+    --text-primary: #e3f2fd;
+    --text-secondary: #bbdefb;
+    --text-disabled: #64b5f6;
+    --border: rgba(255, 255, 255, 0.2);
+    --shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.6);
+    --desktop-bg:
+        linear-gradient(135deg, #0d47a1 0%, #1565c0 50%, #1976d2 100%),
+        radial-gradient(circle at 30% 40%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+    --window-bg: rgba(21, 101, 192, 0.95);
+    --window-header-bg: rgba(25, 118, 210, 0.98);
+}
+
+/* Metallic Green Theme */
+body.theme-metallicgreen {
+    --primary: #81c784;
+    --primary-light: #b2fab4;
+    --primary-dark: #519657;
+    --secondary: #4fc3f7;
+    --success: #66bb6a;
+    --warning: #ffb74d;
+    --error: #e57373;
+    --background: #1b5e20;
+    --surface: #2e7d32;
+    --surface-light: #388e3c;
+    --surface-dark: #1b5e20;
+    --text-primary: #e8f5e9;
+    --text-secondary: #c8e6c9;
+    --text-disabled: #81c784;
+    --border: rgba(255, 255, 255, 0.2);
+    --shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.6);
+    --desktop-bg:
+        linear-gradient(135deg, #1b5e20 0%, #2e7d32 50%, #388e3c 100%),
+        radial-gradient(circle at 70% 60%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+    --window-bg: rgba(46, 125, 50, 0.95);
+    --window-header-bg: rgba(56, 142, 60, 0.98);
+}
+
+/* Metallic Violet Theme */
+body.theme-metallicviolet {
+    --primary: #ba68c8;
+    --primary-light: #ee98fb;
+    --primary-dark: #883997;
+    --secondary: #64b5f6;
+    --success: #81c784;
+    --warning: #ffb74d;
+    --error: #e57373;
+    --background: #4a148c;
+    --surface: #6a1b9a;
+    --surface-light: #7b1fa2;
+    --surface-dark: #4a148c;
+    --text-primary: #f3e5f5;
+    --text-secondary: #e1bee7;
+    --text-disabled: #ba68c8;
+    --border: rgba(255, 255, 255, 0.2);
+    --shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.6);
+    --desktop-bg:
+        linear-gradient(135deg, #4a148c 0%, #6a1b9a 50%, #7b1fa2 100%),
+        radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+    --window-bg: rgba(106, 27, 154, 0.95);
+    --window-header-bg: rgba(123, 31, 162, 0.98);
+}
+
+/* Desktop background application */
+#desktop {
+    background: var(--desktop-bg);
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+}
+
+/* Window styling based on theme */
+.window {
+    background: var(--window-bg) !important;
+    border: 1px solid var(--border) !important;
+    box-shadow: var(--shadow-lg) !important;
+}
+
+.window-header {
+    background: var(--window-header-bg) !important;
+    border-bottom: 1px solid var(--border) !important;
+}
+
+.window-title {
+    color: var(--text-primary) !important;
+}
+
+.window-content {
+    background: var(--background) !important;
+    color: var(--text-primary) !important;
+}
+
+/* Terminal specific theme adjustments */
+.theme-neon .terminal-container,
+.theme-cyberpunk .terminal-container {
+    text-shadow: 0 0 5px currentColor;
+}
+
+.theme-matrix .terminal-container {
+    font-family: 'Courier New', monospace;
+    text-shadow: 0 0 10px #00ff41;
+}
+
+.theme-hackerman .terminal-container {
+    font-family: 'Consolas', 'Monaco', monospace;
+    text-shadow: 0 0 8px #20c20e;
+}
+
+/* Metallic themes - glossy effect on windows */
+.theme-metallicblue .window,
+.theme-metallicgreen .window,
+.theme-metallicviolet .window {
+    background:
+        linear-gradient(135deg,
+            rgba(255, 255, 255, 0.1) 0%,
+            transparent 50%,
+            rgba(0, 0, 0, 0.1) 100%),
+        var(--window-bg) !important;
+}
+
+/* Theme-specific taskbar */
+#taskbar {
+    background: var(--surface-dark) !important;
+    border-top: 1px solid var(--border) !important;
+}
+
+.taskbar-button {
+    background: var(--surface) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border) !important;
+}
+
+.taskbar-button:hover {
+    background: var(--surface-light) !important;
+}
+
+.taskbar-button.active {
+    background: var(--primary) !important;
+    color: var(--background) !important;
+}
+
+/* Desktop icon theming */
+.desktop-icon {
+    color: var(--text-primary) !important;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.desktop-icon:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+}
+
+.desktop-icon.selected {
+    background: var(--primary) !important;
+    color: var(--background) !important;
+}
+
+/* Context menu theming */
+.context-menu {
+    background: var(--surface) !important;
+    border: 1px solid var(--border) !important;
+    box-shadow: var(--shadow-lg) !important;
+}
+
+.context-item {
+    color: var(--text-primary) !important;
+}
+
+.context-item:hover {
+    background: var(--primary) !important;
+    color: var(--background) !important;
+}
+
+/* Special effects for certain themes */
+@keyframes matrix-rain {
+    0% { opacity: 1; }
+    100% { opacity: 0; transform: translateY(100vh); }
+}
+
+.theme-matrix #desktop::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image:
+        repeating-linear-gradient(
+            0deg,
+            transparent,
+            transparent 2px,
+            rgba(0, 255, 65, 0.03) 2px,
+            rgba(0, 255, 65, 0.03) 4px
+        );
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Scanline effect for hackerman theme */
+.theme-hackerman #desktop::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+        repeating-linear-gradient(
+            0deg,
+            transparent,
+            transparent 2px,
+            rgba(32, 194, 14, 0.05) 2px,
+            rgba(32, 194, 14, 0.05) 4px
+        );
+    pointer-events: none;
+    z-index: 1;
+    animation: scanline 8s linear infinite;
+}
+
+@keyframes scanline {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(20px); }
+}
+
+/* Glow effects for neon theme */
+.theme-neon .window {
+    box-shadow:
+        0 0 20px rgba(0, 255, 255, 0.5),
+        0 0 40px rgba(0, 255, 255, 0.3),
+        var(--shadow-lg) !important;
+}
+
+.theme-neon .window-btn:hover {
+    box-shadow: 0 0 10px currentColor;
+}
+
+/* Glass effect for light theme */
+.theme-light .window {
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.85) !important;
+}
+
+/* Dark theme optimizations */
+.theme-dark .window,
+.theme-matrix .window,
+.theme-hackerman .window {
+    backdrop-filter: blur(5px);
+}

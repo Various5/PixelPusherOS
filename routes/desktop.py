@@ -36,12 +36,11 @@ def index():
         'explorerSortOrder': 'asc'
     }
 
-    # Default desktop icons configuration
+    # Default desktop icons configuration (Browser removed)
     desktop_icons = [
         # System applications
         {'id': 'terminal', 'name': 'Terminal', 'icon': '💻', 'x': 60, 'y': 80, 'category': 'system'},
         {'id': 'explorer', 'name': 'File Explorer', 'icon': '📁', 'x': 60, 'y': 200, 'category': 'system'},
-        {'id': 'browser', 'name': 'Web Browser', 'icon': '🌐', 'x': 60, 'y': 320, 'category': 'internet'},
 
         # Games
         {'id': 'snake', 'name': 'Snake Game', 'icon': '🐍', 'x': 180, 'y': 80, 'category': 'games'},
@@ -55,7 +54,7 @@ def index():
         {'id': 'taskmanager', 'name': 'Task Manager', 'icon': '📊', 'x': 420, 'y': 80, 'category': 'system'},
 
         # System actions
-        {'id': 'logout', 'name': 'Sign Out', 'icon': '🚪', 'x': 420, 'y': 200, 'category': 'system'}
+        {'id': 'logout', 'name': 'Sign Out', 'icon': '🚪', 'x': 60, 'y': 320, 'category': 'system'}
     ]
 
     # Game high scores (you could load these from database)
@@ -80,15 +79,6 @@ def index():
                            desktop_icons=desktop_icons,
                            game_scores=game_scores,
                            system_info=system_info)
-
-
-@desktop_bp.route('/browser')
-@login_required
-def browser():
-    """
-    Standalone browser page
-    """
-    return render_template('browser.html', user=current_user)
 
 
 @desktop_bp.route('/word')
@@ -195,11 +185,18 @@ def desktop_icons_api():
         # You would save to database here
         return jsonify({'status': 'success', 'message': 'Icon positions saved'})
     else:
-        # Return current icon configuration
+        # Return current icon configuration (without browser)
         icons = [
             {'id': 'terminal', 'name': 'Terminal', 'icon': '💻', 'x': 60, 'y': 80, 'category': 'system'},
-            {'id': 'explorer', 'name': 'File Explorer', 'icon': '📁', 'x': 60, 'y': 200, 'category': 'system'}
-            # ... other icons
+            {'id': 'explorer', 'name': 'File Explorer', 'icon': '📁', 'x': 60, 'y': 200, 'category': 'system'},
+            {'id': 'snake', 'name': 'Snake Game', 'icon': '🐍', 'x': 180, 'y': 80, 'category': 'games'},
+            {'id': 'dino', 'name': 'Dino Runner', 'icon': '🦕', 'x': 180, 'y': 200, 'category': 'games'},
+            {'id': 'clicker', 'name': 'Village Builder', 'icon': '🏘️', 'x': 180, 'y': 320, 'category': 'games'},
+            {'id': 'memory', 'name': 'Memory Match', 'icon': '🧠', 'x': 300, 'y': 80, 'category': 'games'},
+            {'id': 'musicplayer', 'name': 'Music Player', 'icon': '🎵', 'x': 300, 'y': 200, 'category': 'media'},
+            {'id': 'settings', 'name': 'System Settings', 'icon': '⚙️', 'x': 300, 'y': 320, 'category': 'system'},
+            {'id': 'taskmanager', 'name': 'Task Manager', 'icon': '📊', 'x': 420, 'y': 80, 'category': 'system'},
+            {'id': 'logout', 'name': 'Sign Out', 'icon': '🚪', 'x': 60, 'y': 320, 'category': 'system'}
         ]
         return jsonify(icons)
 
