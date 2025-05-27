@@ -2,9 +2,8 @@
  * Pixel Pusher OS - Enhanced File Explorer Manager
  * Fully implemented file system navigation with modern features
  */
-window.ExplorerManager = EnhancedExplorerManager;
 
-class EnhancedExplorerManager {
+class ExplorerManager {
     constructor() {
         this.explorers = new Map();
         this.currentPath = '/';
@@ -911,7 +910,7 @@ class EnhancedExplorerManager {
 
 // Export for module systems
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = EnhancedExplorerManager;
+    module.exports = ExplorerManager;
 }
 
 console.log('📁 Enhanced File Explorer manager loaded successfully');

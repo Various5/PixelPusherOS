@@ -578,87 +578,131 @@
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🎨 Initializing Pixel Pusher OS Desktop Environment');
 
+    // Define variables in outer scope
+    let userPreferences = {};
+    let desktopIcons = [];
+    let gameScores = {};
+    let systemInfo = {};
+
     try {
-        // FIXED: User preferences with safe defaults - this fixes line 540 error
-        const userPreferences = {{ preferences | default({
-            'theme': 'default',
-            'fontSize': 14,
-            'windowOpacity': 1.0,
-            'wallpaper': null,
-            'animations': true,
-            'soundEnabled': true,
-            'autoSave': true,
-            'gameSounds': true,
-            'gameParticles': true,
-            'gameDifficulty': 'normal',
-            'explorerViewMode': 'list',
-            'explorerSortBy': 'name',
-            'explorerSortOrder': 'asc'
-        }) | tojson | safe }};
-
-        // Desktop icons configuration
-        const desktopIcons = {{ desktop_icons | default([]) | tojson | safe }};
-
-        // Game high scores
-        const gameScores = {{ game_scores | default({}) | tojson | safe }};
-
-        // System information
-        const systemInfo = {{ system_info | default({
-            'version': '2.0.0',
-            'user': 'guest',
-            'group': 'user'
-        }) | tojson | safe }};
-
-        // Initialize the application
-        if (window.pixelPusher) {
-            console.log('✅ Pixel Pusher OS application found, initializing...');
-
-            // Store configuration data
-            window.pixelPusher.config = {
-                preferences: userPreferences,
-                icons: desktopIcons,
-                scores: gameScores,
-                system: systemInfo
+        // Parse template variables safely
+        {% if preferences %}
+            userPreferences = {{ preferences | tojson | safe }};
+        {% else %}
+            userPreferences = {
+                'theme': 'default',
+                'fontSize': 14,
+                'windowOpacity': 1.0,
+                'wallpaper': null,
+                'animations': true,
+                'soundEnabled': true,
+                'autoSave': true,
+                'gameSounds': true,
+                'gameParticles': true,
+                'gameDifficulty': 'normal',
+                'explorerViewMode': 'list',
+                'explorerSortBy': 'name',
+                'explorerSortOrder': 'asc'
             };
+        {% endif %}
 
-            // Initialize the application
-            window.pixelPusher.init().then(() => {
-                console.log('🚀 Pixel Pusher OS Desktop Environment ready!');
+        {% if desktop_icons %}
+            desktopIcons = {{ desktop_icons | tojson | safe }};
+        {% else %}
+            desktopIcons = [];
+        {% endif %}
 
-                // Show welcome notification
-                setTimeout(() => {
-                    if (window.pixelPusher.showNotification) {
-                        window.pixelPusher.showNotification(
-                            'Welcome to Pixel Pusher OS! 🎨',
-                            'success',
-                            3000
-                        );
+        {% if game_scores %}
+            gameScores = {{ game_scores | tojson | safe }};
+        {% else %}
+            gameScores = {};
+        {% endif %}
+
+        {% if system_info %}
+            systemInfo = {{ system_info | tojson | safe }};
+        {% else %}
+            systemInfo = {
+                'version': '2.0.0',
+                'user': 'guest',
+                'group': 'user'
+            };
+        {% endif %}
+
+        // Performance monitoring
+        console.log('📊 Desktop template loaded successfully');
+        {% if user %}
+            console.log('🎨 User: {{ user.username if user.username else user }}');
+            console.log('👤 Group: {{ user.group if user.group else "user" }}');
+        {% else %}
+            console.log('🎨 User: guest');
+            console.log('👤 Group: user');
+        {% endif %}
+        console.log('🔧 Preferences loaded:', Object.keys(userPreferences).length, 'settings');
+        console.log('📁 Desktop icons:', desktopIcons.length);
+
+        // Wait for all scripts to load
+        let initAttempts = 0;
+        const maxAttempts = 10;
+
+        function tryInitialize() {
+            initAttempts++;
+
+            if (window.pixelPusher) {
+                console.log('✅ Pixel Pusher OS application found, initializing...');
+
+                // Store configuration data
+                window.pixelPusher.config = {
+                    preferences: userPreferences,
+                    icons: desktopIcons,
+                    scores: gameScores,
+                    system: systemInfo
+                };
+
+                // Initialize the application
+                window.pixelPusher.init().then(() => {
+                    console.log('🚀 Pixel Pusher OS Desktop Environment ready!');
+
+                    // Show welcome notification
+                    setTimeout(() => {
+                        if (window.pixelPusher.showNotification) {
+                            window.pixelPusher.showNotification(
+                                'Welcome to Pixel Pusher OS! 🎨',
+                                'success',
+                                3000
+                            );
+                        }
+                    }, 1000);
+
+                    // Apply user theme
+                    if (userPreferences.theme && userPreferences.theme !== 'default') {
+                        document.body.classList.add('theme-' + userPreferences.theme);
                     }
-                }, 1000);
 
-                // Apply user theme
-                if (userPreferences.theme && userPreferences.theme !== 'default') {
-                    document.body.classList.add(`theme-${userPreferences.theme}`);
-                }
-
-                // Set wallpaper if configured
-                if (userPreferences.wallpaper) {
-                    const desktop = document.getElementById('desktop');
-                    if (desktop) {
-                        desktop.style.backgroundImage = `url(${userPreferences.wallpaper})`;
-                        desktop.style.backgroundSize = 'cover';
-                        desktop.style.backgroundPosition = 'center';
+                    // Set wallpaper if configured
+                    if (userPreferences.wallpaper) {
+                        const desktop = document.getElementById('desktop');
+                        if (desktop) {
+                            desktop.style.backgroundImage = 'url(' + userPreferences.wallpaper + ')';
+                            desktop.style.backgroundSize = 'cover';
+                            desktop.style.backgroundPosition = 'center';
+                        }
                     }
-                }
 
-            }).catch(error => {
-                console.error('❌ Failed to initialize Pixel Pusher OS:', error);
-                showInitializationError(error);
-            });
-        } else {
-            console.error('❌ Pixel Pusher OS application not found!');
-            showInitializationError(new Error('Application core not loaded'));
+                }).catch(error => {
+                    console.error('❌ Failed to initialize Pixel Pusher OS:', error);
+                    showInitializationError(error);
+                });
+            } else if (initAttempts < maxAttempts) {
+                console.log('⏳ Waiting for application core... (attempt ' + initAttempts + '/' + maxAttempts + ')');
+                setTimeout(tryInitialize, 500);
+            } else {
+                console.error('❌ Pixel Pusher OS application not found after ' + maxAttempts + ' attempts!');
+                showInitializationError(new Error('Application core not loaded. Please check that all JavaScript files are loading correctly.'));
+            }
         }
+
+        // Start initialization attempts
+        setTimeout(tryInitialize, 100);
 
     } catch (error) {
         console.error('❌ Desktop initialization error:', error);
@@ -670,41 +714,7 @@ document.addEventListener('DOMContentLoaded', function() {
 function showInitializationError(error) {
     const desktop = document.getElementById('desktop');
     if (desktop) {
-        desktop.innerHTML = `
-            <div style="
-                position: absolute;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                background: rgba(255, 255, 255, 0.95);
-                padding: 30px;
-                border-radius: 15px;
-                text-align: center;
-                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-                max-width: 400px;
-            ">
-                <div style="font-size: 48px; margin-bottom: 20px;">⚠️</div>
-                <h2 style="color: #e84393; margin-bottom: 15px;">Initialization Error</h2>
-                <p style="color: #2d3748; margin-bottom: 20px;">
-                    Pixel Pusher OS encountered an error during startup.
-                </p>
-                <p style="font-size: 14px; color: #718096; margin-bottom: 25px;">
-                    Error: ${error.message}
-                </p>
-                <button onclick="window.location.reload()" style="
-                    background: #00d9ff;
-                    color: white;
-                    border: none;
-                    padding: 12px 24px;
-                    border-radius: 8px;
-                    cursor: pointer;
-                    font-size: 16px;
-                    font-weight: 600;
-                ">
-                    Reload Application
-                </button>
-            </div>
-        `;
+        desktop.innerHTML = '<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(255, 255, 255, 0.95); padding: 30px; border-radius: 15px; text-align: center; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); max-width: 400px;"><div style="font-size: 48px; margin-bottom: 20px;">⚠️</div><h2 style="color: #e84393; margin-bottom: 15px;">Initialization Error</h2><p style="color: #2d3748; margin-bottom: 20px;">Pixel Pusher OS encountered an error during startup.</p><p style="font-size: 14px; color: #718096; margin-bottom: 25px;">Error: ' + error.message + '</p><button onclick="window.location.reload()" style="background: #00d9ff; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 600;">Reload Application</button></div>';
     }
 }
 
@@ -749,11 +759,6 @@ function contextAction(action) {
         window.pixelPusher.closeAllContextMenus();
     }
 }
-
-// Performance monitoring
-console.log('📊 Desktop template loaded successfully');
-console.log('🎨 User:', '{{ user.username }}', '({{ user.group }})');
-console.log('🔧 Preferences loaded:', Object.keys({{ preferences | default({}) | tojson | safe }}).length, 'settings');
-console.log('📁 Desktop icons:', {{ desktop_icons | default([]) | length }});
 </script>
+
 {% endblock %}
