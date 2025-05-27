@@ -1,212 +1,320 @@
 #!/usr/bin/env python3
 """
 Pixel Pusher OS - Setup Script
-Creates the necessary directory structure and files for the application
+Creates necessary directories and files for the application.
 """
 
 import os
 import sys
+from pathlib import Path
 
 
 def create_directory_structure():
-    """Create the required directory structure"""
+    """Create the necessary directory structure for Pixel Pusher OS."""
 
     directories = [
-        'static',
-        'static/js',
+        'templates/errors',
+        'static/css',
         'static/js/core',
         'static/js/apps',
         'static/js/utils',
-        'static/css',
         'static/images',
-        'templates',
+        'static/uploads',
         'routes',
         'utils',
-        'user_files',
-        'user_files/documents',
-        'user_files/pictures',
-        'user_files/music',
-        'user_files/videos',
-        'user_files/downloads',
-        'user_files/desktop',
+        'instance',
+        'data',
         'logs'
     ]
 
     print("📁 Creating directory structure...")
 
     for directory in directories:
-        if not os.path.exists(directory):
-            os.makedirs(directory)
-            print(f"  ✅ Created: {directory}")
-        else:
-            print(f"  📂 Exists: {directory}")
+        Path(directory).mkdir(parents=True, exist_ok=True)
+        print(f"  ✅ Created: {directory}")
+
+    print("✅ Directory structure created successfully")
 
 
-def create_init_files():
-    """Create __init__.py files for Python packages"""
+def create_empty_init_files():
+    """Create empty __init__.py files for Python packages."""
 
     init_files = [
         'routes/__init__.py',
         'utils/__init__.py'
     ]
 
-    print("\n📄 Creating __init__.py files...")
+    print("📝 Creating __init__.py files...")
 
     for init_file in init_files:
         if not os.path.exists(init_file):
             with open(init_file, 'w') as f:
-                f.write('# Package initialization file\n')
+                f.write('# Pixel Pusher OS Package\n')
             print(f"  ✅ Created: {init_file}")
-        else:
-            print(f"  📄 Exists: {init_file}")
+
+    print("✅ __init__.py files created successfully")
 
 
-def check_requirements():
-    """Check if required Python packages are installed"""
+def create_config_file():
+    """Create config.py if it doesn't exist."""
 
-    required_packages = [
-        'flask',
-        'flask-sqlalchemy',
-        'flask-login',
-        'werkzeug',
-        'psutil'  # Optional but recommended
+    if os.path.exists('config.py'):
+        print("⚠️  config.py already exists, skipping...")
+        return
+
+    print("⚙️  Creating config.py...")
+
+    config_content = '''#!/usr/bin/env python3
+"""
+Pixel Pusher OS - Configuration
+Application configuration settings and environment variables.
+"""
+
+import os
+import secrets
+
+class Config:
+    """Base configuration class with common settings."""
+
+    # Flask Configuration
+    SECRET_KEY = os.environ.get('SECRET_KEY') or secrets.token_hex(32)
+
+    # Database Configuration
+    BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \\
+        f'sqlite:///{os.path.join(BASE_DIR, "instance", "pixelpusher.db")}'
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+    # File Upload Configuration
+    UPLOAD_FOLDER = os.path.join(BASE_DIR, 'static', 'uploads')
+    MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max file size
+
+    # Session Configuration
+    PERMANENT_SESSION_LIFETIME = 3600  # 1 hour
+    SESSION_COOKIE_SECURE = False  # Set to True for HTTPS in production
+    SESSION_COOKIE_HTTPONLY = True
+
+    # Application Settings
+    DEBUG = True
+    TESTING = False
+
+    # File System Security
+    ALLOWED_EXTENSIONS = {
+        'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'svg',
+        'mp3', 'wav', 'mp4', 'avi', 'mov', 'zip', 'tar', 'gz'
+    }
+
+    # Terminal Settings
+    MAX_COMMAND_HISTORY = 100
+    TERMINAL_TIMEOUT = 300  # 5 minutes
+
+    @staticmethod
+    def init_app(app):
+        """Initialize app with configuration."""
+        # Create upload directory if it doesn't exist
+        os.makedirs(Config.UPLOAD_FOLDER, exist_ok=True)
+
+
+class DevelopmentConfig(Config):
+    """Development configuration."""
+    DEBUG = True
+
+
+class ProductionConfig(Config):
+    """Production configuration."""
+    DEBUG = False
+    SESSION_COOKIE_SECURE = True
+
+
+class TestingConfig(Config):
+    """Testing configuration."""
+    TESTING = True
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
+
+
+# Configuration dictionary
+config = {
+    'development': DevelopmentConfig,
+    'production': ProductionConfig,
+    'testing': TestingConfig,
+    'default': DevelopmentConfig
+}
+'''
+
+    with open('config.py', 'w') as f:
+        f.write(config_content)
+
+    print("  ✅ Created: config.py")
+
+
+def create_requirements_file():
+    """Create requirements.txt with necessary dependencies."""
+
+    print("📋 Creating requirements.txt...")
+
+    requirements = [
+        "Flask==2.3.3",
+        "Flask-SQLAlchemy==3.0.5",
+        "Flask-Login==0.6.3",
+        "Werkzeug==2.3.7",
+        "Jinja2==3.1.2",
+        "psutil==5.9.5",
+        "python-dotenv==1.0.0"
     ]
 
-    print("\n📦 Checking required packages...")
+    with open('requirements.txt', 'w') as f:
+        f.write('\n'.join(requirements))
+        f.write('\n')
 
-    missing_packages = []
+    print("  ✅ Created: requirements.txt")
 
-    for package in required_packages:
-        try:
-            __import__(package.replace('-', '_'))
-            print(f"  ✅ {package}")
-        except ImportError:
-            print(f"  ❌ {package} - Missing")
-            missing_packages.append(package)
 
-    if missing_packages:
-        print(f"\n⚠️  Missing packages: {', '.join(missing_packages)}")
-        print("Install with: pip install " + " ".join(missing_packages))
+def create_gitignore():
+    """Create .gitignore file."""
+
+    print("📝 Creating .gitignore...")
+
+    gitignore_content = '''# Pixel Pusher OS - Git Ignore File
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# Flask
+instance/
+.flaskenv
+*.db
+*.sqlite
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Uploads
+static/uploads/*
+!static/uploads/.gitkeep
+
+# Environment
+.env
+.env.local
+.env.production
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+'''
+
+    with open('.gitignore', 'w') as f:
+        f.write(gitignore_content)
+
+    print("  ✅ Created: .gitignore")
+
+
+def create_gitkeep_files():
+    """Create .gitkeep files for empty directories."""
+
+    print("📂 Creating .gitkeep files...")
+
+    gitkeep_dirs = [
+        'static/uploads',
+        'logs',
+        'instance'
+    ]
+
+    for directory in gitkeep_dirs:
+        gitkeep_path = os.path.join(directory, '.gitkeep')
+        if not os.path.exists(gitkeep_path):
+            with open(gitkeep_path, 'w') as f:
+                f.write('# Keep this directory in git\n')
+            print(f"  ✅ Created: {gitkeep_path}")
+
+
+def check_python_version():
+    """Check if Python version is compatible."""
+
+    if sys.version_info < (3, 8):
+        print("❌ Python 3.8 or higher is required")
+        print(f"   Current version: {sys.version}")
         return False
 
+    print(f"✅ Python version: {sys.version.split()[0]} (Compatible)")
     return True
 
 
-def create_basic_css():
-    """Create basic CSS file if it doesn't exist"""
-
-    css_file = 'static/css/style.css'
-
-    if not os.path.exists(css_file):
-        css_content = """/* Pixel Pusher OS - Basic Styles */
-:root {
-    --primary: #00d9ff;
-    --background: #f8f9fa;
-    --surface: #ffffff;
-    --text-primary: #202124;
-    --border: #dadce0;
-}
-
-* {
-    box-sizing: border-box;
-}
-
-body {
-    margin: 0;
-    padding: 0;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: var(--background);
-    color: var(--text-primary);
-}
-
-/* Basic button styles */
-.btn {
-    padding: 8px 16px;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    background: var(--surface);
-    color: var(--text-primary);
-    cursor: pointer;
-    font-size: 14px;
-    transition: all 0.2s ease;
-}
-
-.btn:hover {
-    background: var(--primary);
-    color: white;
-}
-
-/* Loading indicator */
-.loading {
-    text-align: center;
-    padding: 20px;
-    color: #666;
-}
-"""
-
-        with open(css_file, 'w') as f:
-            f.write(css_content)
-
-        print(f"  ✅ Created: {css_file}")
-
-
 def main():
-    """Main setup function"""
+    """Main setup function."""
 
     print("🎨 Pixel Pusher OS Setup Script")
-    print("=" * 40)
+    print("=" * 50)
+
+    # Check Python version
+    if not check_python_version():
+        sys.exit(1)
 
     # Create directory structure
     create_directory_structure()
 
-    # Create __init__.py files
-    create_init_files()
+    # Create Python package files
+    create_empty_init_files()
 
-    # Create basic CSS
-    create_basic_css()
+    # Create configuration
+    create_config_file()
 
-    # Check requirements
-    packages_ok = check_requirements()
+    # Create requirements file
+    create_requirements_file()
 
-    print("\n" + "=" * 40)
+    # Create git files
+    create_gitignore()
+    create_gitkeep_files()
 
-    if packages_ok:
-        print("✅ Setup completed successfully!")
-        print("\nNext steps:")
-        print("1. Make sure all your JavaScript files are in place")
-        print("2. Run: python app.py")
-        print("3. Visit: http://localhost:5000")
-        print("4. Use demo accounts: admin/admin, user/user, demo/demo")
-
-        # Check for critical files
-        critical_files = [
-            'app.py',
-            'models.py',
-            'config.py',
-            'routes/auth.py',
-            'routes/desktop.py',
-            'routes/api.py',
-            'templates/base.html',
-            'templates/desktop.html',
-            'templates/login.html'
-        ]
-
-        missing_files = []
-        for file in critical_files:
-            if not os.path.exists(file):
-                missing_files.append(file)
-
-        if missing_files:
-            print(f"\n⚠️  Missing critical files:")
-            for file in missing_files:
-                print(f"   - {file}")
-            print("\nPlease create these files using the provided code examples.")
-    else:
-        print("❌ Setup incomplete - install missing packages first")
-        return 1
-
-    return 0
+    print("\n🎉 Setup completed successfully!")
+    print("\n📋 Next steps:")
+    print("1. Install dependencies: pip install -r requirements.txt")
+    print("2. Make sure you have all the required files:")
+    print("   - models.py (database models)")
+    print("   - app.py (main Flask application)")
+    print("   - templates/ (HTML templates)")
+    print("   - static/ (CSS, JS, images)")
+    print("   - routes/ (Flask blueprints)")
+    print("3. Run the application: python app.py")
+    print("\n🌐 The application will be available at: http://localhost:5000")
+    print("👤 Demo accounts: admin/admin, user/user, demo/demo")
 
 
-if __name__ == "__main__":
-    sys.exit(main())
+if __name__ == '__main__':
+    main()
