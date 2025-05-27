@@ -118,6 +118,76 @@ async loadCoreModules() {
         console.log('  ✅ Desktop environment modules loaded');
     }
 }
+    console.log('📦 Loading core modules...');
+
+    this.modules.state = new StateManager();
+    console.log('  ✅ State Manager loaded');
+
+    if (document.getElementById('loginOverlay') || this.isUserAuthenticated()) {
+        this.modules.auth = new AuthManager();
+        await this.modules.auth.init();
+        console.log('  ✅ Authentication Manager loaded');
+    }
+
+    if (this.isUserAuthenticated()) {
+        // Use a small delay to ensure all classes are fully loaded
+        await new Promise(resolve => setTimeout(resolve, 10));
+
+        // Check and load modules with proper error handling
+        try {
+            if (typeof DesktopManager !== 'undefined') {
+                this.modules.desktop = new DesktopManager();
+            }
+        } catch (e) {
+            console.warn('Desktop Manager not available:', e);
+        }
+
+        try {
+            if (typeof WindowManager !== 'undefined') {
+                this.modules.windows = new WindowManager();
+            }
+        } catch (e) {
+            console.warn('Window Manager not available:', e);
+        }
+
+        try {
+            if (typeof TerminalManager !== 'undefined') {
+                this.modules.terminal = new TerminalManager();
+            }
+        } catch (e) {
+            console.warn('Terminal Manager not available:', e);
+        }
+
+        try {
+            // ExplorerManager might need special handling
+            if (typeof window.ExplorerManager !== 'undefined') {
+                this.modules.explorer = new window.ExplorerManager();
+            } else if (typeof ExplorerManager !== 'undefined') {
+                this.modules.explorer = new ExplorerManager();
+            }
+        } catch (e) {
+            console.warn('Explorer Manager not available:', e);
+        }
+
+        try {
+            if (typeof GameManager !== 'undefined') {
+                this.modules.games = new GameManager();
+            }
+        } catch (e) {
+            console.warn('Game Manager not available:', e);
+        }
+
+        try {
+            if (typeof SettingsManager !== 'undefined') {
+                this.modules.settings = new SettingsManager();
+            }
+        } catch (e) {
+            console.warn('Settings Manager not available:', e);
+        }
+
+        console.log('  ✅ Desktop environment modules loaded');
+    }
+}
         console.log('📦 Loading core modules...');
 
         this.modules.state = new StateManager();
