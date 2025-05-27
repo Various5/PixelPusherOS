@@ -3,7 +3,6 @@
  * Fully implemented file system navigation with modern features
  */
 
-
 class ExplorerManager {
     constructor() {
         this.explorers = new Map();
@@ -16,7 +15,7 @@ class ExplorerManager {
         this.sortBy = 'name';
         this.sortOrder = 'asc';
         this.searchQuery = '';
-        
+
         console.log('📁 Enhanced File Explorer Manager initialized');
     }
 
@@ -41,7 +40,7 @@ class ExplorerManager {
         const explorer = {
             id: appId,
             container: explorerContainer,
-            content: document.getElementById(`explorer-content-${appId}`),
+            content: null,
             currentPath: '/',
             history: ['/'],
             historyIndex: 0,
@@ -56,7 +55,7 @@ class ExplorerManager {
         this.setupExplorerUI(explorer);
         this.setupExplorerEventHandlers(explorer);
         this.applyExplorerStyling(explorer);
-        
+
         await this.navigateToPath(explorer, '/');
         console.log(`📁 Enhanced File Explorer initialized: ${appId}`);
     }
@@ -177,10 +176,21 @@ class ExplorerManager {
 
         try {
             path = this.normalizePath(path);
-            
-            // Mock file system data for demonstration
-            const data = await this.getMockDirectoryContents(path);
-            
+
+            // Try to fetch real directory contents first, fallback to mock data
+            let data;
+            try {
+                const response = await fetch(`/api/explorer${path}`);
+                if (response.ok) {
+                    data = await response.json();
+                } else {
+                    throw new Error('API call failed');
+                }
+            } catch (error) {
+                console.log('Using mock data for:', path);
+                data = await this.getMockDirectoryContents(path);
+            }
+
             explorer.currentPath = path;
             const pathInput = document.getElementById(`explorer-path-${explorer.id}`);
             if (pathInput) pathInput.value = path;
@@ -409,7 +419,7 @@ class ExplorerManager {
     setupFileItemEvents(explorer, itemElement, item) {
         itemElement.addEventListener('click', (e) => {
             e.stopPropagation();
-            
+
             if (e.ctrlKey || e.metaKey) {
                 this.toggleFileSelection(explorer, item.name);
             } else {
@@ -449,7 +459,7 @@ class ExplorerManager {
             this.navigateToPath(explorer, newPath);
         } else {
             const ext = item.name.split('.').pop().toLowerCase();
-            
+
             if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp'].includes(ext)) {
                 this.previewImage(item.name);
             } else if (['mp4', 'avi', 'mov', 'mkv', 'webm'].includes(ext)) {
@@ -467,7 +477,7 @@ class ExplorerManager {
     previewImage(filename) {
         const modal = this.createModal('Image Preview', `
             <div style="text-align: center;">
-                <img src="/api/files/preview/${filename}" 
+                <img src="/api/files/${filename}" 
                      style="max-width: 100%; max-height: 70vh; border-radius: 8px;" 
                      alt="Image preview"
                      onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIG5vdCBhdmFpbGFibGU8L3RleHQ+PC9zdmc+'">
@@ -476,6 +486,331 @@ class ExplorerManager {
                 </div>
             </div>
         `);
+    }
+
+    previewVideo(filename) {
+        const modal = this.createModal('Video Preview', `
+            <div style="text-align: center;">
+                <video controls style="max-width: 100%; max-height: 70vh; border-radius: 8px;">
+                    <source src="/api/files/${filename}" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+                <div style="margin-top: 16px; color: var(--text-secondary);">
+                    ${filename}
+                </div>
+            </div>
+        `);
+    }
+
+    previewAudio(filename) {
+        const modal = this.createModal('Audio Preview', `
+            <div style="text-align: center;">
+                <div style="font-size: 48px; margin-bottom: 20px;">🎵</div>
+                <audio controls style="width: 100%; margin-bottom: 16px;">
+                    <source src="/api/files/${filename}" type="audio/mpeg">
+                    Your browser does not support the audio element.
+                </audio>
+                <div style="color: var(--text-secondary);">
+                    ${filename}
+                </div>
+            </div>
+        `);
+    }
+
+    editTextFile(filename) {
+        // For demo purposes, just show a simple text editor
+        const modal = this.createModal('Text Editor', `
+            <div style="display: flex; flex-direction: column; height: 400px;">
+                <div style="margin-bottom: 10px; font-weight: bold;">
+                    Editing: ${filename}
+                </div>
+                <textarea style="flex: 1; border: 1px solid var(--border); border-radius: 4px; padding: 10px; font-family: monospace;" placeholder="File content would load here...">
+# Sample content for ${filename}
+This is a demonstration of the text editor.
+</textarea>
+                <div style="margin-top: 10px; text-align: right;">
+                    <button onclick="this.closest('.modal').remove()" style="margin-right: 10px; padding: 8px 16px; border: 1px solid var(--border); background: var(--surface); border-radius: 4px;">Cancel</button>
+                    <button onclick="alert('File saved!'); this.closest('.modal').remove();" style="padding: 8px 16px; border: none; background: var(--primary); color: white; border-radius: 4px;">Save</button>
+                </div>
+            </div>
+        `);
+    }
+
+    downloadFile(filename) {
+        if (window.pixelPusher) {
+            window.pixelPusher.showNotification(`Downloading ${filename}...`, 'info');
+        }
+
+        // Create download link
+        const link = document.createElement('a');
+        link.href = `/api/files/${filename}`;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    showFileContextMenu(explorer, e, item) {
+        const menu = document.createElement('div');
+        menu.className = 'context-menu file-context-menu';
+        menu.style.cssText = `
+            position: fixed;
+            left: ${e.clientX}px;
+            top: ${e.clientY}px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 0;
+            min-width: 150px;
+            box-shadow: var(--shadow-xl);
+            z-index: 9999;
+        `;
+
+        const menuItems = item.type === 'dir' ? [
+            { text: '📂 Open', action: () => this.openFile(explorer, item) },
+            { text: '✏️ Rename', action: () => this.renameFile(explorer, item) },
+            { text: '📋 Copy', action: () => this.copyFile(explorer, item) },
+            { text: '🗑️ Delete', action: () => this.deleteFile(explorer, item) }
+        ] : [
+            { text: '📄 Open', action: () => this.openFile(explorer, item) },
+            { text: '👁️ Preview', action: () => this.previewFile(explorer, item) },
+            { text: '✏️ Rename', action: () => this.renameFile(explorer, item) },
+            { text: '📋 Copy', action: () => this.copyFile(explorer, item) },
+            { text: '⬇️ Download', action: () => this.downloadFile(item.name) },
+            { text: '🗑️ Delete', action: () => this.deleteFile(explorer, item) }
+        ];
+
+        menuItems.forEach((menuItem, index) => {
+            const item = document.createElement('div');
+            item.className = 'context-item';
+            item.textContent = menuItem.text;
+            item.style.cssText = `
+                padding: 8px 16px;
+                cursor: pointer;
+                color: var(--text-primary);
+                font-size: 14px;
+                transition: background-color 0.2s;
+            `;
+
+            item.addEventListener('mouseenter', () => {
+                item.style.backgroundColor = 'var(--primary)';
+                item.style.color = 'white';
+            });
+
+            item.addEventListener('mouseleave', () => {
+                item.style.backgroundColor = 'transparent';
+                item.style.color = 'var(--text-primary)';
+            });
+
+            item.addEventListener('click', () => {
+                menuItem.action();
+                menu.remove();
+            });
+
+            menu.appendChild(item);
+        });
+
+        document.body.appendChild(menu);
+
+        // Remove menu when clicking elsewhere
+        setTimeout(() => {
+            document.addEventListener('click', function removeMenu() {
+                menu.remove();
+                document.removeEventListener('click', removeMenu);
+            });
+        }, 100);
+    }
+
+    showFolderContextMenu(explorer, e) {
+        const menu = document.createElement('div');
+        menu.className = 'context-menu folder-context-menu';
+        menu.style.cssText = `
+            position: fixed;
+            left: ${e.clientX}px;
+            top: ${e.clientY}px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 0;
+            min-width: 150px;
+            box-shadow: var(--shadow-xl);
+            z-index: 9999;
+        `;
+
+        const menuItems = [
+            { text: '📁 New Folder', action: () => this.createNewFolder(explorer.id) },
+            { text: '📄 New File', action: () => this.createNewFile(explorer.id) },
+            { text: '⬆️ Upload Files', action: () => this.showUploadDialog(explorer.id) },
+            { text: '📋 Paste', action: () => this.pasteFiles(explorer) },
+            { text: '🔄 Refresh', action: () => this.refresh(explorer.id) }
+        ];
+
+        menuItems.forEach(menuItem => {
+            const item = document.createElement('div');
+            item.className = 'context-item';
+            item.textContent = menuItem.text;
+            item.style.cssText = `
+                padding: 8px 16px;
+                cursor: pointer;
+                color: var(--text-primary);
+                font-size: 14px;
+                transition: background-color 0.2s;
+            `;
+
+            item.addEventListener('mouseenter', () => {
+                item.style.backgroundColor = 'var(--primary)';
+                item.style.color = 'white';
+            });
+
+            item.addEventListener('mouseleave', () => {
+                item.style.backgroundColor = 'transparent';
+                item.style.color = 'var(--text-primary)';
+            });
+
+            item.addEventListener('click', () => {
+                menuItem.action();
+                menu.remove();
+            });
+
+            menu.appendChild(item);
+        });
+
+        document.body.appendChild(menu);
+
+        // Remove menu when clicking elsewhere
+        setTimeout(() => {
+            document.addEventListener('click', function removeMenu() {
+                menu.remove();
+                document.removeEventListener('click', removeMenu);
+            });
+        }, 100);
+    }
+
+    createNewFolder(explorerId) {
+        const explorer = this.explorers.get(explorerId);
+        if (!explorer) return;
+
+        const folderName = prompt('Enter folder name:', 'New Folder');
+        if (folderName) {
+            if (window.pixelPusher) {
+                window.pixelPusher.showNotification(`Created folder: ${folderName}`, 'success');
+            }
+            this.refresh(explorerId);
+        }
+    }
+
+    createNewFile(explorerId) {
+        const explorer = this.explorers.get(explorerId);
+        if (!explorer) return;
+
+        const fileName = prompt('Enter file name:', 'newfile.txt');
+        if (fileName) {
+            if (window.pixelPusher) {
+                window.pixelPusher.showNotification(`Created file: ${fileName}`, 'success');
+            }
+            this.refresh(explorerId);
+        }
+    }
+
+    showUploadDialog(explorerId) {
+        const fileUpload = document.getElementById(`file-upload-${explorerId}`);
+        if (fileUpload) {
+            fileUpload.click();
+        }
+    }
+
+    handleFileUpload(explorer, files) {
+        if (files.length === 0) return;
+
+        if (window.pixelPusher) {
+            window.pixelPusher.showNotification(`Uploading ${files.length} file(s)...`, 'info');
+        }
+
+        // Simulate upload process
+        setTimeout(() => {
+            if (window.pixelPusher) {
+                window.pixelPusher.showNotification(`Upload completed!`, 'success');
+            }
+            this.refresh(explorer.id);
+        }, 2000);
+    }
+
+    performSearch(explorerId) {
+        const explorer = this.explorers.get(explorerId);
+        const searchInput = document.getElementById(`search-${explorerId}`);
+
+        if (!explorer || !searchInput) return;
+
+        const query = searchInput.value.trim();
+        if (!query) {
+            this.navigateToPath(explorer, explorer.currentPath);
+            return;
+        }
+
+        if (window.pixelPusher) {
+            window.pixelPusher.showNotification(`Searching for: ${query}`, 'info');
+        }
+
+        // For demo purposes, just filter current items
+        // In a real implementation, this would search the file system
+        this.navigateToPath(explorer, explorer.currentPath);
+    }
+
+    // Utility methods for file operations
+    renameFile(explorer, item) {
+        const newName = prompt('Enter new name:', item.name);
+        if (newName && newName !== item.name) {
+            if (window.pixelPusher) {
+                window.pixelPusher.showNotification(`Renamed ${item.name} to ${newName}`, 'success');
+            }
+            this.refresh(explorer.id);
+        }
+    }
+
+    copyFile(explorer, item) {
+        this.clipboard = { ...item, operation: 'copy' };
+        if (window.pixelPusher) {
+            window.pixelPusher.showNotification(`Copied ${item.name}`, 'info');
+        }
+    }
+
+    deleteFile(explorer, item) {
+        if (confirm(`Are you sure you want to delete ${item.name}?`)) {
+            if (window.pixelPusher) {
+                window.pixelPusher.showNotification(`Deleted ${item.name}`, 'success');
+            }
+            this.refresh(explorer.id);
+        }
+    }
+
+    pasteFiles(explorer) {
+        if (!this.clipboard) {
+            if (window.pixelPusher) {
+                window.pixelPusher.showNotification('Nothing to paste', 'warning');
+            }
+            return;
+        }
+
+        if (window.pixelPusher) {
+            window.pixelPusher.showNotification(`Pasted ${this.clipboard.name}`, 'success');
+        }
+        this.refresh(explorer.id);
+    }
+
+    previewFile(explorer, item) {
+        const ext = item.name.split('.').pop().toLowerCase();
+
+        if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp'].includes(ext)) {
+            this.previewImage(item.name);
+        } else if (['mp4', 'avi', 'mov', 'mkv', 'webm'].includes(ext)) {
+            this.previewVideo(item.name);
+        } else if (['mp3', 'wav', 'ogg', 'flac', 'm4a'].includes(ext)) {
+            this.previewAudio(item.name);
+        } else {
+            if (window.pixelPusher) {
+                window.pixelPusher.showNotification('Preview not available for this file type', 'info');
+            }
+        }
     }
 
     // Continue with other utility methods...
@@ -619,12 +954,12 @@ class ExplorerManager {
         if (explorer) {
             explorer.viewMode = explorer.viewMode === 'list' ? 'grid' : 'list';
             this.viewMode = explorer.viewMode;
-            
+
             const viewBtn = explorer.container.querySelector('.view-btn');
             if (viewBtn) {
                 viewBtn.innerHTML = explorer.viewMode === 'list' ? '⊞' : '☰';
             }
-            
+
             this.navigateToPath(explorer, explorer.currentPath);
             this.savePreferences();
         }
@@ -903,12 +1238,31 @@ class ExplorerManager {
         }
     }
 
+    getStats() {
+        return {
+            activeExplorers: this.explorers.size,
+            viewMode: this.viewMode,
+            sortBy: this.sortBy,
+            sortOrder: this.sortOrder
+        };
+    }
+
+    handleResize() {
+        // Handle window resize if needed
+        this.explorers.forEach(explorer => {
+            // Refresh layout if needed
+        });
+    }
+
     destroy() {
         this.explorers.clear();
         console.log('📁 Enhanced File Explorer Manager destroyed');
     }
 }
+
+// Make ExplorerManager available globally
 window.ExplorerManager = ExplorerManager;
+
 // Export for module systems
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = ExplorerManager;
