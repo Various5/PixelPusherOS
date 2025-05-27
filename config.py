@@ -1,234 +1,225 @@
 #!/usr/bin/env python3
 """
-Pixel Pusher OS - Configuration
-Application configuration settings
+Pixel Pusher OS - Configuration Settings
+Application configuration and settings management
 """
 
 import os
-import secrets
+from pathlib import Path
 
 
 class Config:
-    """Application configuration class"""
+    """
+    Configuration class for Pixel Pusher OS Flask application.
+    Contains all application settings and configuration variables.
+    """
 
-    # Flask configuration
-    SECRET_KEY = os.environ.get('SECRET_KEY') or secrets.token_hex(32)
+    # Flask Configuration
+    SECRET_KEY = os.environ.get('SECRET_KEY') or 'pixel-pusher-os-secret-key-2024'
 
-    # Database configuration
-    basedir = os.path.abspath(os.path.dirname(__file__))
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
-                              'sqlite:///' + os.path.join(basedir, 'pixelpusher.db')
+    # Database Configuration
+    BASE_DIR = Path(__file__).parent.absolute()
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or f'sqlite:///{BASE_DIR}/pixelpusher.db'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SQLALCHEMY_ENGINE_OPTIONS = {
-        'pool_pre_ping': True,
-        'pool_recycle': 300,
-    }
 
-    # Session configuration
-    PERMANENT_SESSION_LIFETIME = 3600  # 1 hour
-    SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
-    SESSION_COOKIE_HTTPONLY = True
-    SESSION_COOKIE_SAMESITE = 'Lax'
-
-    # File system configuration
-    BASE_DIR = os.path.join(basedir, 'user_files')
-    MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max file upload
-
-    # Security settings
-    WTF_CSRF_ENABLED = True
-    WTF_CSRF_TIME_LIMIT = None
-
-    # Application settings
+    # Application Settings
     APP_NAME = 'Pixel Pusher OS'
     APP_VERSION = '2.0.0'
-    DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
-    # Logging configuration
-    LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')
+    # File System Settings
+    USER_FILES_DIR = BASE_DIR / 'user_files'
+    UPLOAD_FOLDER = BASE_DIR / 'static' / 'uploads'
+    MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max file upload
 
-    # Default user settings
-    DEFAULT_THEME = 'default'
-    DEFAULT_WALLPAPER = None
+    # Security Settings
+    SESSION_TIMEOUT = 3600  # 1 hour in seconds
+    REMEMBER_COOKIE_DURATION = 86400 * 7  # 7 days
+    WTF_CSRF_ENABLED = True
 
-    @staticmethod
-    def init_app(app):
+    # Terminal Settings
+    TERMINAL_HISTORY_SIZE = 1000
+    COMMAND_TIMEOUT = 30  # seconds
+
+    # Game Settings
+    HIGH_SCORES_FILE = BASE_DIR / 'high_scores.json'
+
+    # Logging Configuration
+    LOG_FILE = BASE_DIR / 'logs' / 'pixelpusher.log'
+    LOG_LEVEL = 'INFO'
+
+    # Development Settings
+    DEBUG = os.environ.get('FLASK_ENV') == 'development'
+    TESTING = False
+
+    @classmethod
+    def init_app(cls, app):
         """Initialize application with configuration"""
-
         # Create necessary directories
-        os.makedirs(Config.BASE_DIR, exist_ok=True)
+        cls.USER_FILES_DIR.mkdir(exist_ok=True)
+        cls.UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
+        (cls.BASE_DIR / 'logs').mkdir(exist_ok=True)
 
-        # Create subdirectories for user files
-        user_dirs = [
-            'documents',
-            'pictures',
-            'music',
-            'videos',
-            'downloads',
-            'desktop'
-        ]
+        # Create sample user files
+        cls.create_sample_files()
 
-        for dirname in user_dirs:
-            dir_path = os.path.join(Config.BASE_DIR, dirname)
-            os.makedirs(dir_path, exist_ok=True)
+        print(f"✅ Configuration loaded - {cls.APP_NAME} v{cls.APP_VERSION}")
 
-        # Create sample files for demo
-        Config.create_sample_files()
+    @classmethod
+    def create_sample_files(cls):
+        """Create sample files for demonstration"""
+        sample_files = {
+            'readme.txt': """Welcome to Pixel Pusher OS!
 
-        print(f"✅ Configuration initialized")
-        print(f"📁 User files directory: {Config.BASE_DIR}")
+This is a modern web-based desktop environment built with Flask and JavaScript.
 
-    @staticmethod
-    def create_sample_files():
-        """Create sample files for demo purposes"""
+Features:
+- Professional desktop interface
+- Built-in terminal with 50+ commands
+- File explorer with media support
+- Gaming center with arcade games
+- Customizable themes and wallpapers
+- System settings and task manager
 
-        # Sample text file
-        readme_path = os.path.join(Config.BASE_DIR, 'README.txt')
-        if not os.path.exists(readme_path):
-            with open(readme_path, 'w', encoding='utf-8') as f:
-                f.write("""Welcome to Pixel Pusher OS!
+Try these commands in the terminal:
+- help (show all commands)
+- ls (list files)
+- cat readme.txt (display this file)
+- sysinfo (system information)
+- game snake (play snake game)
 
-This is your personal file space. You can:
+Enjoy exploring your new desktop environment!
+""",
+            'welcome.md': """# Welcome to Pixel Pusher OS
 
-• Create, edit, and manage files
-• Upload and download documents
-• Use the terminal to navigate
-• Play games and use applications
-• Customize your desktop environment
+## What is Pixel Pusher OS?
 
-Sample files are located in the subdirectories:
-- documents/
-- pictures/
-- music/
-- videos/
-- downloads/
+Pixel Pusher OS is a **modern web-based desktop environment** that brings the familiar desktop experience to your web browser.
 
-Enjoy exploring your web-based desktop environment!
-""")
+### Key Features
 
-        # Sample files in documents
-        docs_dir = os.path.join(Config.BASE_DIR, 'documents')
+- 🖥️ **Professional Desktop**: Full desktop environment with icons, windows, and taskbar
+- 💻 **Advanced Terminal**: 50+ built-in commands for file management and system control
+- 📁 **File Explorer**: Browse, upload, and manage files with media preview support
+- 🎮 **Gaming Center**: Collection of arcade-style games with high score tracking
+- 🎨 **Themes & Customization**: 12+ color themes and custom wallpaper support
+- ⚙️ **System Tools**: Task manager, performance monitoring, and system settings
 
-        sample_doc = os.path.join(docs_dir, 'sample_document.txt')
-        if not os.path.exists(sample_doc):
-            with open(sample_doc, 'w', encoding='utf-8') as f:
-                f.write("""Sample Document
+### Getting Started
 
-This is a sample text document to demonstrate the file system.
+1. **Explore the Desktop**: Double-click icons to open applications
+2. **Try the Terminal**: Press `Ctrl+Alt+T` or click the Terminal icon
+3. **Browse Files**: Use the File Explorer to navigate your files
+4. **Play Games**: Check out the gaming center for entertainment
+5. **Customize**: Open Settings to change themes and preferences
 
-You can:
-- Edit this file using the built-in text editor
-- Create new documents
-- Organize files in folders
-- Access files through the terminal
+### Keyboard Shortcuts
 
-The file explorer allows you to browse, preview, and manage all your files.
-""")
+- `Ctrl+Alt+T` - Open Terminal
+- `Ctrl+Alt+E` - Open File Explorer  
+- `Ctrl+Alt+S` - Open Settings
+- `Ctrl+Alt+G` - Open Games Menu
+- `Alt+Tab` - Cycle through windows
+- `F11` - Toggle fullscreen
 
-        # Sample script file
-        script_file = os.path.join(docs_dir, 'hello_world.py')
-        if not os.path.exists(script_file):
-            with open(script_file, 'w', encoding='utf-8') as f:
-                f.write("""#!/usr/bin/env python3
-\"\"\"
-Sample Python Script
-A simple hello world program to demonstrate code files.
-\"\"\"
+---
 
-def main():
-    print("Hello, World!")
-    print("Welcome to Pixel Pusher OS!")
+**Built with ❤️ using Flask, JavaScript, and modern web technologies.**
+""",
+            'system_info.json': """{
+  "system": "Pixel Pusher OS",
+  "version": "2.0.0",
+  "build_date": "2024",
+  "description": "Modern Web-Based Desktop Environment",
+  "features": [
+    "Desktop Environment",
+    "Terminal with 50+ Commands", 
+    "File Explorer",
+    "Gaming Center",
+    "System Settings",
+    "Multi-Window Support",
+    "Theme Customization"
+  ],
+  "tech_stack": [
+    "Flask",
+    "SQLAlchemy", 
+    "JavaScript ES6+",
+    "HTML5 Canvas",
+    "CSS3",
+    "SQLite"
+  ],
+  "supported_browsers": [
+    "Chrome 90+",
+    "Firefox 88+",
+    "Safari 14+",
+    "Edge 90+"
+  ]
+}""",
+            'commands.txt': """Terminal Commands Reference - Pixel Pusher OS
 
-    # Show some system info
-    import platform
-    print(f"Platform: {platform.system()}")
-    print(f"Python Version: {platform.python_version()}")
+GENERAL COMMANDS:
+help        - Show available commands
+about       - About Pixel Pusher OS
+contact     - Contact information
+clear/cls   - Clear terminal screen
+echo <text> - Display text
+time        - Show current time
+date        - Show current date
+uptime      - System uptime
+whoami      - Current user
 
-if __name__ == "__main__":
-    main()
-""")
+FILE OPERATIONS:
+ls/dir [path]      - List directory contents
+cd <directory>     - Change directory  
+pwd               - Show current directory
+mkdir <name>      - Create directory
+touch <file>      - Create empty file
+del/rm <file>     - Delete file
+cat <file>        - Display file content
+edit <file>       - Edit text file
+rename <old> <new> - Rename file/folder
+properties <item>  - Show item properties
+find <pattern>    - Search for files
 
-        # Sample JSON configuration
-        config_file = os.path.join(docs_dir, 'config.json')
-        if not os.path.exists(config_file):
-            import json
-            sample_config = {
-                "application": "Pixel Pusher OS",
-                "version": "2.0.0",
-                "settings": {
-                    "theme": "default",
-                    "language": "en",
-                    "auto_save": True,
-                    "notifications": True
-                },
-                "features": [
-                    "Desktop Environment",
-                    "File Management",
-                    "Terminal Access",
-                    "Games Center",
-                    "Text Editor",
-                    "Web Browser"
-                ]
-            }
+SYSTEM INFORMATION:
+sysinfo     - Detailed system information
+ps          - Running processes
+kill <pid>  - Terminate process
+df          - Disk usage information
+free        - Memory information
 
-            with open(config_file, 'w', encoding='utf-8') as f:
-                json.dump(sample_config, f, indent=2)
+VISUAL & THEMES:
+color <theme>     - Change color theme
+effect <name>     - Start visual effect
+wallpaper <file>  - Set desktop wallpaper
 
+NETWORK:
+curl <url>   - Fetch web content
+ping <host>  - Test network connectivity
 
-class DevelopmentConfig(Config):
-    """Development configuration"""
-    DEBUG = True
-    TESTING = False
+APPLICATIONS:
+explorer     - Open file explorer
+game <name>  - Launch game (snake, dino, memory, clicker)
 
+Examples:
+> ls
+> cd documents
+> cat readme.txt
+> mkdir projects
+> game snake
+> color blue
+> sysinfo
+"""
+        }
 
-class ProductionConfig(Config):
-    """Production configuration"""
-    DEBUG = False
-    TESTING = False
-    SESSION_COOKIE_SECURE = True  # Require HTTPS
+        # Create sample files
+        for filename, content in sample_files.items():
+            file_path = cls.USER_FILES_DIR / filename
+            if not file_path.exists():
+                file_path.write_text(content, encoding='utf-8')
 
-    # Use more secure settings in production
-    @staticmethod
-    def init_app(app):
-        Config.init_app(app)
+        # Create sample directories
+        sample_dirs = ['documents', 'downloads', 'pictures', 'music', 'videos', 'projects']
+        for dirname in sample_dirs:
+            (cls.USER_FILES_DIR / dirname).mkdir(exist_ok=True)
 
-        # Additional production setup
-        import logging
-        from logging.handlers import RotatingFileHandler
-
-        if not app.debug:
-            # Set up file logging
-            if not os.path.exists('logs'):
-                os.mkdir('logs')
-
-            file_handler = RotatingFileHandler(
-                'logs/pixelpusher.log',
-                maxBytes=10240000,
-                backupCount=10
-            )
-
-            file_handler.setFormatter(logging.Formatter(
-                '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
-            ))
-
-            file_handler.setLevel(logging.INFO)
-            app.logger.addHandler(file_handler)
-            app.logger.setLevel(logging.INFO)
-            app.logger.info('Pixel Pusher OS startup')
-
-
-class TestingConfig(Config):
-    """Testing configuration"""
-    TESTING = True
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
-    WTF_CSRF_ENABLED = False
-
-
-# Configuration mapping
-config = {
-    'development': DevelopmentConfig,
-    'production': ProductionConfig,
-    'testing': TestingConfig,
-    'default': DevelopmentConfig
-}
-
-print("✅ Configuration loaded successfully")
+        print(f"📁 Sample files created in {cls.USER_FILES_DIR}")

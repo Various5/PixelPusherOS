@@ -1,43 +1,102 @@
 /**
- * Pixel Pusher OS - Settings & System Manager
- * Comprehensive system settings, task manager, and multimedia controls
- *
- * This module provides:
- * - System settings and preferences management
- * - Advanced task manager with process monitoring
- * - Integrated music player with playlist support
- * - Theme and appearance customization
- * - Performance monitoring and system information
- * - User preference persistence
- * - System utilities and tools
+ * Updated Settings Manager with 4 Themes
+ * Light, Dark, Hacker, Rainbow themes with full customization
  */
 
 class SettingsManager {
     constructor() {
         this.settings = new Map(); // Active settings windows
         this.activeTab = 'appearance';
-        this.musicPlayer = {
-            isPlaying: false,
-            currentTrack: null,
-            playlist: [],
-            volume: 0.5,
-            currentTime: 0,
-            duration: 0,
-            audio: null
-        };
-        this.taskManager = {
-            processes: [],
-            updateInterval: null,
-            sortBy: 'cpu',
-            sortOrder: 'desc'
-        };
-        this.systemMonitor = {
-            cpuUsage: [],
-            memoryUsage: [],
-            networkStats: { sent: 0, received: 0 }
+
+        // Define the 4 main themes
+        this.themes = {
+            light: {
+                name: 'Light',
+                description: 'Clean light theme for daytime use',
+                colors: {
+                    '--background': '#ffffff',
+                    '--surface': '#f8f9fa',
+                    '--surface-light': '#e9ecef',
+                    '--surface-dark': '#dee2e6',
+                    '--text-primary': '#212529',
+                    '--text-secondary': '#6c757d',
+                    '--text-disabled': '#adb5bd',
+                    '--primary': '#007bff',
+                    '--primary-light': '#66b3ff',
+                    '--secondary': '#6c757d',
+                    '--success': '#28a745',
+                    '--warning': '#ffc107',
+                    '--error': '#dc3545',
+                    '--border': '#dee2e6',
+                    '--shadow': 'rgba(0, 0, 0, 0.1)'
+                }
+            },
+            dark: {
+                name: 'Dark',
+                description: 'Sleek dark theme for nighttime productivity',
+                colors: {
+                    '--background': '#121212',
+                    '--surface': '#1e1e1e',
+                    '--surface-light': '#2d2d2d',
+                    '--surface-dark': '#0a0a0a',
+                    '--text-primary': '#ffffff',
+                    '--text-secondary': '#b3b3b3',
+                    '--text-disabled': '#666666',
+                    '--primary': '#bb86fc',
+                    '--primary-light': '#d4b3ff',
+                    '--secondary': '#03dac6',
+                    '--success': '#4caf50',
+                    '--warning': '#ff9800',
+                    '--error': '#f44336',
+                    '--border': '#333333',
+                    '--shadow': 'rgba(0, 0, 0, 0.3)'
+                }
+            },
+            hacker: {
+                name: 'Hacker',
+                description: 'Matrix-inspired green on black theme',
+                colors: {
+                    '--background': '#000000',
+                    '--surface': '#0a0a0a',
+                    '--surface-light': '#1a1a1a',
+                    '--surface-dark': '#000000',
+                    '--text-primary': '#00ff41',
+                    '--text-secondary': '#00cc33',
+                    '--text-disabled': '#004d1a',
+                    '--primary': '#00ff41',
+                    '--primary-light': '#66ff80',
+                    '--secondary': '#00d9ff',
+                    '--success': '#00ff41',
+                    '--warning': '#ffff00',
+                    '--error': '#ff0040',
+                    '--border': '#00ff41',
+                    '--shadow': 'rgba(0, 255, 65, 0.2)'
+                }
+            },
+            rainbow: {
+                name: 'Rainbow',
+                description: 'Vibrant rainbow theme with dynamic colors',
+                colors: {
+                    '--background': 'linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #4facfe 100%)',
+                    '--surface': 'rgba(255, 255, 255, 0.1)',
+                    '--surface-light': 'rgba(255, 255, 255, 0.2)',
+                    '--surface-dark': 'rgba(0, 0, 0, 0.2)',
+                    '--text-primary': '#ffffff',
+                    '--text-secondary': '#f0f0f0',
+                    '--text-disabled': '#cccccc',
+                    '--primary': '#ff6b6b',
+                    '--primary-light': '#ff8e8e',
+                    '--secondary': '#4ecdc4',
+                    '--success': '#55efc4',
+                    '--warning': '#fdcb6e',
+                    '--error': '#e84393',
+                    '--border': 'rgba(255, 255, 255, 0.3)',
+                    '--shadow': 'rgba(255, 255, 255, 0.1)'
+                }
+            }
         };
 
-        console.log('⚙️ Settings & System Manager initialized');
+        console.log('⚙️ Settings Manager initialized');
     }
 
     /**
@@ -47,15 +106,6 @@ class SettingsManager {
         try {
             // Load user preferences
             this.loadPreferences();
-
-            // Initialize music player
-            this.initializeMusicPlayer();
-
-            // Initialize task manager
-            this.initializeTaskManager();
-
-            // Start system monitoring
-            this.startSystemMonitoring();
 
             // Set up global settings shortcuts
             this.setupGlobalShortcuts();
@@ -81,10 +131,13 @@ class SettingsManager {
         const settings = {
             id: appId,
             container: settingsContainer,
-            sidebar: settingsContainer.querySelector('.settings-sidebar'),
-            content: settingsContainer.querySelector('.settings-content'),
+            sidebar: null,
+            content: null,
             activeTab: 'appearance'
         };
+
+        // Create settings structure if it doesn't exist
+        this.createSettingsStructure(settings);
 
         // Store settings instance
         this.settings.set(appId, settings);
@@ -102,27 +155,61 @@ class SettingsManager {
     }
 
     /**
+     * Create settings structure if needed
+     */
+    createSettingsStructure(settings) {
+        if (settings.container.children.length === 0) {
+            settings.container.innerHTML = `
+                <div class="settings-sidebar">
+                    <div class="settings-nav-item active" data-section="appearance">
+                        🎨 Appearance
+                    </div>
+                    <div class="settings-nav-item" data-section="system">
+                        ⚙️ System
+                    </div>
+                    <div class="settings-nav-item" data-section="games">
+                        🎮 Games
+                    </div>
+                    <div class="settings-nav-item" data-section="about">
+                        ℹ️ About
+                    </div>
+                </div>
+                <div class="settings-content" id="settings-content-${settings.id}">
+                    Loading settings...
+                </div>
+            `;
+        }
+
+        settings.sidebar = settings.container.querySelector('.settings-sidebar');
+        settings.content = settings.container.querySelector('.settings-content');
+    }
+
+    /**
      * Set up event handlers for settings window
      */
     setupSettingsEventHandlers(settings) {
         // Sidebar navigation
-        settings.sidebar.addEventListener('click', (e) => {
-            const navItem = e.target.closest('.settings-nav-item');
-            if (navItem) {
-                const section = navItem.dataset.section;
-                this.switchSettingsTab(settings, section);
-            }
-        });
+        if (settings.sidebar) {
+            settings.sidebar.addEventListener('click', (e) => {
+                const navItem = e.target.closest('.settings-nav-item');
+                if (navItem) {
+                    const section = navItem.dataset.section;
+                    this.switchSettingsTab(settings, section);
+                }
+            });
+        }
 
         // Handle settings form changes
-        settings.content.addEventListener('change', (e) => {
-            this.handleSettingChange(settings, e);
-        });
+        if (settings.content) {
+            settings.content.addEventListener('change', (e) => {
+                this.handleSettingChange(settings, e);
+            });
 
-        // Handle button clicks
-        settings.content.addEventListener('click', (e) => {
-            this.handleSettingAction(settings, e);
-        });
+            // Handle button clicks
+            settings.content.addEventListener('click', (e) => {
+                this.handleSettingAction(settings, e);
+            });
+        }
     }
 
     /**
@@ -134,58 +221,65 @@ class SettingsManager {
             display: flex;
             height: 100%;
             background: var(--background);
-            font-family: var(--font-family);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            border-radius: 8px;
+            overflow: hidden;
         `;
 
         // Style sidebar
-        settings.sidebar.style.cssText = `
-            width: 200px;
-            background: var(--surface-dark);
-            border-right: 1px solid var(--border);
-            padding: 16px 0;
-            flex-shrink: 0;
-        `;
-
-        // Style sidebar items
-        settings.sidebar.querySelectorAll('.settings-nav-item').forEach(item => {
-            item.style.cssText = `
-                padding: 12px 20px;
-                cursor: pointer;
-                color: var(--text-secondary);
-                font-size: 14px;
-                font-weight: 500;
-                transition: all 0.2s ease;
-                border-left: 3px solid transparent;
-                display: flex;
-                align-items: center;
-                gap: 12px;
+        if (settings.sidebar) {
+            settings.sidebar.style.cssText = `
+                width: 200px;
+                background: var(--surface-dark);
+                border-right: 1px solid var(--border);
+                padding: 16px 0;
+                flex-shrink: 0;
             `;
 
-            item.addEventListener('mouseenter', () => {
-                if (!item.classList.contains('active')) {
-                    item.style.backgroundColor = 'var(--surface-light)';
-                    item.style.color = 'var(--text-primary)';
-                }
-            });
+            // Style sidebar items
+            settings.sidebar.querySelectorAll('.settings-nav-item').forEach(item => {
+                item.style.cssText = `
+                    padding: 12px 20px;
+                    cursor: pointer;
+                    color: var(--text-secondary);
+                    font-size: 14px;
+                    font-weight: 500;
+                    transition: all 0.2s ease;
+                    border-left: 3px solid transparent;
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    user-select: none;
+                `;
 
-            item.addEventListener('mouseleave', () => {
-                if (!item.classList.contains('active')) {
-                    item.style.backgroundColor = 'transparent';
-                    item.style.color = 'var(--text-secondary)';
-                }
+                item.addEventListener('mouseenter', () => {
+                    if (!item.classList.contains('active')) {
+                        item.style.backgroundColor = 'var(--surface-light)';
+                        item.style.color = 'var(--text-primary)';
+                    }
+                });
+
+                item.addEventListener('mouseleave', () => {
+                    if (!item.classList.contains('active')) {
+                        item.style.backgroundColor = 'transparent';
+                        item.style.color = 'var(--text-secondary)';
+                    }
+                });
             });
-        });
+        }
 
         // Update active item
         this.updateActiveNavItem(settings, 'appearance');
 
         // Style content area
-        settings.content.style.cssText = `
-            flex: 1;
-            padding: 24px;
-            overflow-y: auto;
-            background: var(--background);
-        `;
+        if (settings.content) {
+            settings.content.style.cssText = `
+                flex: 1;
+                padding: 24px;
+                overflow-y: auto;
+                background: var(--background);
+            `;
+        }
     }
 
     /**
@@ -201,6 +295,8 @@ class SettingsManager {
      * Update active navigation item
      */
     updateActiveNavItem(settings, tabName) {
+        if (!settings.sidebar) return;
+
         settings.sidebar.querySelectorAll('.settings-nav-item').forEach(item => {
             const isActive = item.dataset.section === tabName;
             item.classList.toggle('active', isActive);
@@ -240,7 +336,9 @@ class SettingsManager {
                 content = '<div>Settings section not found</div>';
         }
 
-        settings.content.innerHTML = content;
+        if (settings.content) {
+            settings.content.innerHTML = content;
+        }
 
         // Initialize tab-specific functionality
         setTimeout(() => {
@@ -252,80 +350,74 @@ class SettingsManager {
      * Generate appearance settings content
      */
     generateAppearanceSettings() {
-        const currentTheme = this.getPreference('theme', 'default');
-        const currentWallpaper = this.getPreference('wallpaper', '');
+        const currentTheme = this.getPreference('theme', 'dark');
         const animationsEnabled = this.getPreference('animations', true);
         const fontSize = this.getPreference('fontSize', 14);
 
         return `
             <div class="settings-section">
-                <h2>🎨 Appearance & Themes</h2>
-                <p class="settings-description">Customize the look and feel of Pixel Pusher OS</p>
+                <h2 style="color: var(--text-primary); margin-bottom: 20px;">🎨 Appearance & Themes</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 30px;">Customize the look and feel of Pixel Pusher OS</p>
                 
-                <div class="settings-group">
-                    <h3>Color Themes</h3>
-                    <div class="theme-grid">
+                <div class="settings-group" style="margin-bottom: 30px;">
+                    <h3 style="color: var(--text-primary); margin-bottom: 15px;">Color Themes</h3>
+                    <div class="theme-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 20px;">
                         ${this.generateThemeOptions(currentTheme)}
                     </div>
                 </div>
                 
-                <div class="settings-group">
-                    <h3>Desktop Wallpaper</h3>
-                    <div class="wallpaper-section">
-                        <input type="file" id="wallpaper-upload" accept="image/*" style="display: none;">
-                        <button class="btn secondary" onclick="document.getElementById('wallpaper-upload').click()">
-                            📁 Upload Wallpaper
-                        </button>
-                        <button class="btn secondary" onclick="window.pixelPusher.modules.settings.clearWallpaper()">
-                            🗑️ Clear Wallpaper
-                        </button>
-                    </div>
-                    <div class="wallpaper-preview" id="wallpaper-preview">
-                        ${currentWallpaper ? `<img src="${currentWallpaper}" alt="Current wallpaper">` : 'No wallpaper set'}
-                    </div>
-                </div>
-                
-                <div class="settings-group">
-                    <h3>Interface Options</h3>
-                    <div class="setting-item">
-                        <label class="setting-label">
+                <div class="settings-group" style="margin-bottom: 30px;">
+                    <h3 style="color: var(--text-primary); margin-bottom: 15px;">Interface Options</h3>
+                    
+                    <div class="setting-item" style="margin-bottom: 15px;">
+                        <label class="setting-label" style="display: flex; align-items: center; gap: 10px; color: var(--text-primary); cursor: pointer;">
                             <input type="checkbox" ${animationsEnabled ? 'checked' : ''} 
-                                   data-setting="animations">
+                                   data-setting="animations" style="margin: 0;">
                             Enable animations and transitions
                         </label>
                     </div>
                     
-                    <div class="setting-item">
-                        <label class="setting-label">
+                    <div class="setting-item" style="margin-bottom: 15px;">
+                        <label class="setting-label" style="color: var(--text-primary);">
                             Font Size: <span id="fontSize-value">${fontSize}px</span>
                             <input type="range" min="12" max="20" value="${fontSize}" 
-                                   data-setting="fontSize" class="setting-slider">
+                                   data-setting="fontSize" class="setting-slider" style="width: 100%; margin-top: 5px;">
                         </label>
                     </div>
                     
-                    <div class="setting-item">
-                        <label class="setting-label">
+                    <div class="setting-item" style="margin-bottom: 15px;">
+                        <label class="setting-label" style="display: flex; align-items: center; gap: 10px; color: var(--text-primary); cursor: pointer;">
                             <input type="checkbox" ${this.getPreference('soundEnabled', true) ? 'checked' : ''} 
-                                   data-setting="soundEnabled">
+                                   data-setting="soundEnabled" style="margin: 0;">
                             Enable sound effects
                         </label>
                     </div>
                 </div>
                 
                 <div class="settings-group">
-                    <h3>Visual Effects</h3>
-                    <div class="effects-grid">
-                        <button class="effect-btn" onclick="window.pixelPusher.modules.settings.startEffect('matrix')">
-                            🟢 Matrix Rain
+                    <h3 style="color: var(--text-primary); margin-bottom: 15px;">Visual Effects</h3>
+                    <div class="effects-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                        <button class="effect-btn" onclick="window.pixelPusher.modules.settings.resetToDefaults()" style="
+                            padding: 10px 15px;
+                            background: var(--primary);
+                            color: white;
+                            border: none;
+                            border-radius: 5px;
+                            cursor: pointer;
+                            transition: all 0.2s;
+                        ">
+                            🔄 Reset to Defaults
                         </button>
-                        <button class="effect-btn" onclick="window.pixelPusher.modules.settings.startEffect('particles')">
-                            ✨ Particles
-                        </button>
-                        <button class="effect-btn" onclick="window.pixelPusher.modules.settings.startEffect('stars')">
-                            ⭐ Starfield
-                        </button>
-                        <button class="effect-btn" onclick="window.pixelPusher.modules.settings.startEffect('stop')">
-                            ⏹️ Stop Effects
+                        <button class="effect-btn" onclick="window.pixelPusher.modules.settings.exportSettings()" style="
+                            padding: 10px 15px;
+                            background: var(--secondary);
+                            color: white;
+                            border: none;
+                            border-radius: 5px;
+                            cursor: pointer;
+                            transition: all 0.2s;
+                        ">
+                            📤 Export Settings
                         </button>
                     </div>
                 </div>
@@ -337,29 +429,47 @@ class SettingsManager {
      * Generate theme options
      */
     generateThemeOptions(currentTheme) {
-        const themes = [
-            { id: 'default', name: 'Default', color: '#00d9ff' },
-            { id: 'blue', name: 'Ocean Blue', color: '#3498db' },
-            { id: 'green', name: 'Forest Green', color: '#27ae60' },
-            { id: 'red', name: 'Crimson Red', color: '#e74c3c' },
-            { id: 'purple', name: 'Deep Purple', color: '#9b59b6' },
-            { id: 'orange', name: 'Sunset Orange', color: '#e67e22' },
-            { id: 'pink', name: 'Hot Pink', color: '#e91e63' },
-            { id: 'cyan', name: 'Cyber Cyan', color: '#1abc9c' },
-            { id: 'yellow', name: 'Electric Yellow', color: '#f1c40f' },
-            { id: 'dark', name: 'Dark Mode', color: '#2c3e50' },
-            { id: 'neon', name: 'Neon Glow', color: '#00ff41' },
-            { id: 'matrix', name: 'Matrix Green', color: '#00ff41' }
-        ];
-
-        return themes.map(theme => `
-            <div class="theme-option ${currentTheme === theme.id ? 'active' : ''}" 
-                 data-theme="${theme.id}" 
-                 onclick="window.pixelPusher.modules.settings.setTheme('${theme.id}')">
-                <div class="theme-color" style="background: ${theme.color}"></div>
-                <div class="theme-name">${theme.name}</div>
+        return Object.entries(this.themes).map(([themeId, theme]) => `
+            <div class="theme-option ${currentTheme === themeId ? 'active' : ''}" 
+                 data-theme="${themeId}" 
+                 onclick="window.pixelPusher.modules.settings.setTheme('${themeId}')"
+                 style="
+                    padding: 15px;
+                    background: var(--surface);
+                    border: 2px solid ${currentTheme === themeId ? 'var(--primary)' : 'var(--border)'};
+                    border-radius: 8px;
+                    cursor: pointer;
+                    text-align: center;
+                    transition: all 0.2s;
+                    position: relative;
+                    overflow: hidden;
+                 "
+                 onmouseover="this.style.transform='scale(1.05)'"
+                 onmouseout="this.style.transform='scale(1)'">
+                <div class="theme-preview" style="
+                    width: 100%;
+                    height: 40px;
+                    border-radius: 4px;
+                    margin-bottom: 10px;
+                    ${this.getThemePreviewStyle(themeId)}
+                "></div>
+                <div class="theme-name" style="font-weight: 600; color: var(--text-primary);">${theme.name}</div>
+                <div class="theme-description" style="font-size: 12px; color: var(--text-secondary); margin-top: 5px;">${theme.description}</div>
+                ${currentTheme === themeId ? '<div style="position: absolute; top: 5px; right: 5px; color: var(--primary);">✓</div>' : ''}
             </div>
         `).join('');
+    }
+
+    /**
+     * Get theme preview style
+     */
+    getThemePreviewStyle(themeId) {
+        const theme = this.themes[themeId];
+        if (themeId === 'rainbow') {
+            return `background: ${theme.colors['--background']};`;
+        } else {
+            return `background: linear-gradient(45deg, ${theme.colors['--background']}, ${theme.colors['--surface']}, ${theme.colors['--primary']});`;
+        }
     }
 
     /**
@@ -368,320 +478,155 @@ class SettingsManager {
     generateSystemSettings() {
         return `
             <div class="settings-section">
-                <h2>💻 System & Performance</h2>
-                <p class="settings-description">Monitor system performance and manage processes</p>
+                <h2 style="color: var(--text-primary); margin-bottom: 20px;">💻 System & Performance</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 30px;">Monitor system performance and manage settings</p>
                 
-                <div class="settings-tabs">
-                    <button class="tab-btn active" onclick="window.pixelPusher.modules.settings.switchSystemTab('taskmanager')">
-                        📊 Task Manager
-                    </button>
-                    <button class="tab-btn" onclick="window.pixelPusher.modules.settings.switchSystemTab('performance')">
-                        📈 Performance
-                    </button>
-                    <button class="tab-btn" onclick="window.pixelPusher.modules.settings.switchSystemTab('storage')">
-                        💾 Storage
-                    </button>
-                    <button class="tab-btn" onclick="window.pixelPusher.modules.settings.switchSystemTab('music')">
-                        🎵 Music Player
-                    </button>
-                </div>
-                
-                <div id="system-tab-content">
-                    ${this.generateTaskManagerContent()}
-                </div>
-            </div>
-        `;
-    }
-
-    /**
-     * Generate task manager content
-     */
-    generateTaskManagerContent() {
-        const processes = this.getSystemProcesses();
-
-        return `
-            <div class="task-manager">
-                <div class="task-manager-header">
-                    <h3>Running Processes</h3>
-                    <button class="btn primary" onclick="window.pixelPusher.modules.settings.refreshProcesses()">
-                        🔄 Refresh
-                    </button>
-                </div>
-                
-                <div class="process-table">
-                    <div class="process-header">
-                        <div class="process-col name">Process Name</div>
-                        <div class="process-col cpu">CPU %</div>
-                        <div class="process-col memory">Memory</div>
-                        <div class="process-col status">Status</div>
-                        <div class="process-col actions">Actions</div>
-                    </div>
-                    
-                    <div class="process-list" id="process-list">
-                        ${processes.map(process => `
-                            <div class="process-row" data-pid="${process.pid}">
-                                <div class="process-col name">
-                                    <span class="process-icon">${process.icon}</span>
-                                    ${process.name}
-                                </div>
-                                <div class="process-col cpu">${process.cpu}%</div>
-                                <div class="process-col memory">${process.memory}</div>
-                                <div class="process-col status">
-                                    <span class="status-badge ${process.status.toLowerCase()}">${process.status}</span>
-                                </div>
-                                <div class="process-col actions">
-                                    <button class="btn-small danger" 
-                                            onclick="window.pixelPusher.modules.settings.terminateProcess('${process.pid}')"
-                                            ${process.critical ? 'disabled' : ''}>
-                                        ${process.critical ? '🔒' : '⏹️'}
-                                    </button>
-                                </div>
+                <div class="settings-group" style="margin-bottom: 30px;">
+                    <h3 style="color: var(--text-primary); margin-bottom: 15px;">System Information</h3>
+                    <div class="system-info" style="background: var(--surface); padding: 20px; border-radius: 8px; border: 1px solid var(--border);">
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+                            <div>
+                                <strong style="color: var(--text-primary);">Browser:</strong>
+                                <div style="color: var(--text-secondary);">${navigator.userAgent.split(' ')[0]}</div>
                             </div>
-                        `).join('')}
+                            <div>
+                                <strong style="color: var(--text-primary);">Platform:</strong>
+                                <div style="color: var(--text-secondary);">${navigator.platform}</div>
+                            </div>
+                            <div>
+                                <strong style="color: var(--text-primary);">Screen:</strong>
+                                <div style="color: var(--text-secondary);">${screen.width}x${screen.height}</div>
+                            </div>
+                            <div>
+                                <strong style="color: var(--text-primary);">Memory:</strong>
+                                <div style="color: var(--text-secondary);">${Math.round(performance.memory?.usedJSHeapSize / 1024 / 1024) || 'N/A'} MB</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
-                <div class="system-stats">
-                    <div class="stat-card">
-                        <h4>CPU Usage</h4>
-                        <div class="stat-value">${this.getSystemCPU()}%</div>
-                        <div class="stat-bar">
-                            <div class="stat-fill" style="width: ${this.getSystemCPU()}%"></div>
+                <div class="settings-group" style="margin-bottom: 30px;">
+                    <h3 style="color: var(--text-primary); margin-bottom: 15px;">Performance</h3>
+                    <div class="performance-info" style="background: var(--surface); padding: 20px; border-radius: 8px; border: 1px solid var(--border);">
+                        <div>
+                            <strong style="color: var(--text-primary);">Uptime:</strong>
+                            <span style="color: var(--text-secondary);">${this.formatUptime(performance.now())}</span>
+                        </div>
+                        <div style="margin-top: 10px;">
+                            <strong style="color: var(--text-primary);">Active Windows:</strong>
+                            <span style="color: var(--text-secondary);">${window.pixelPusher?.modules?.windows?.getStats().openWindows || 0}</span>
                         </div>
                     </div>
-                    
-                    <div class="stat-card">
-                        <h4>Memory Usage</h4>
-                        <div class="stat-value">${this.getSystemMemory()}%</div>
-                        <div class="stat-bar">
-                            <div class="stat-fill" style="width: ${this.getSystemMemory()}%"></div>
-                        </div>
-                    </div>
-                    
-                    <div class="stat-card">
-                        <h4>Active Windows</h4>
-                        <div class="stat-value">${this.getActiveWindowCount()}</div>
+                </div>
+                
+                <div class="settings-group">
+                    <h3 style="color: var(--text-primary); margin-bottom: 15px;">System Actions</h3>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button onclick="window.pixelPusher.modules.settings.clearCache()" style="
+                            padding: 10px 15px;
+                            background: var(--warning);
+                            color: white;
+                            border: none;
+                            border-radius: 5px;
+                            cursor: pointer;
+                        ">🗑️ Clear Cache</button>
+                        <button onclick="window.pixelPusher.modules.settings.reloadApp()" style="
+                            padding: 10px 15px;
+                            background: var(--primary);
+                            color: white;
+                            border: none;
+                            border-radius: 5px;
+                            cursor: pointer;
+                        ">🔄 Reload App</button>
                     </div>
                 </div>
             </div>
         `;
-    }
-
-    /**
-     * Generate performance monitor content
-     */
-    generatePerformanceContent() {
-        return `
-            <div class="performance-monitor">
-                <h3>System Performance</h3>
-                
-                <div class="performance-charts">
-                    <div class="chart-container">
-                        <h4>CPU Usage History</h4>
-                        <canvas id="cpu-chart" width="400" height="200"></canvas>
-                    </div>
-                    
-                    <div class="chart-container">
-                        <h4>Memory Usage History</h4>
-                        <canvas id="memory-chart" width="400" height="200"></canvas>
-                    </div>
-                </div>
-                
-                <div class="performance-details">
-                    <div class="detail-group">
-                        <h4>System Information</h4>
-                        <div class="detail-item">
-                            <span>Browser:</span>
-                            <span>${navigator.userAgent.split(' ')[0]}</span>
-                        </div>
-                        <div class="detail-item">
-                            <span>Platform:</span>
-                            <span>${navigator.platform}</span>
-                        </div>
-                        <div class="detail-item">
-                            <span>Screen Resolution:</span>
-                            <span>${screen.width}x${screen.height}</span>
-                        </div>
-                        <div class="detail-item">
-                            <span>Color Depth:</span>
-                            <span>${screen.colorDepth} bits</span>
-                        </div>
-                    </div>
-                    
-                    <div class="detail-group">
-                        <h4>Performance Metrics</h4>
-                        <div class="detail-item">
-                            <span>JavaScript Heap:</span>
-                            <span>${this.formatBytes(performance.memory?.usedJSHeapSize || 0)}</span>
-                        </div>
-                        <div class="detail-item">
-                            <span>Load Time:</span>
-                            <span>${Math.round(performance.now())}ms</span>
-                        </div>
-                        <div class="detail-item">
-                            <span>Connection:</span>
-                            <span>${navigator.connection?.effectiveType || 'Unknown'}</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
-    /**
-     * Generate music player content
-     */
-    generateMusicPlayerContent() {
-        return `
-            <div class="music-player">
-                <h3>🎵 Music Player</h3>
-                
-                <div class="player-main">
-                    <div class="album-art">
-                        <div class="album-placeholder">
-                            🎵
-                        </div>
-                    </div>
-                    
-                    <div class="player-info">
-                        <div class="track-title" id="track-title">
-                            ${this.musicPlayer.currentTrack?.title || 'No track selected'}
-                        </div>
-                        <div class="track-artist" id="track-artist">
-                            ${this.musicPlayer.currentTrack?.artist || 'Unknown Artist'}
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="player-controls">
-                    <button class="control-btn" onclick="window.pixelPusher.modules.settings.musicPrevious()">
-                        ⏮️
-                    </button>
-                    <button class="control-btn play-pause" id="play-pause-btn" 
-                            onclick="window.pixelPusher.modules.settings.musicToggle()">
-                        ${this.musicPlayer.isPlaying ? '⏸️' : '▶️'}
-                    </button>
-                    <button class="control-btn" onclick="window.pixelPusher.modules.settings.musicNext()">
-                        ⏭️
-                    </button>
-                </div>
-                
-                <div class="player-progress">
-                    <span class="time-current" id="time-current">0:00</span>
-                    <div class="progress-bar" onclick="window.pixelPusher.modules.settings.seekTo(event)">
-                        <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
-                    </div>
-                    <span class="time-total" id="time-total">0:00</span>
-                </div>
-                
-                <div class="player-volume">
-                    <span>🔊</span>
-                    <input type="range" min="0" max="100" value="${this.musicPlayer.volume * 100}" 
-                           class="volume-slider" onchange="window.pixelPusher.modules.settings.setVolume(this.value)">
-                </div>
-                
-                <div class="playlist-section">
-                    <h4>Playlist</h4>
-                    <div class="playlist-controls">
-                        <input type="file" id="music-upload" accept="audio/*" multiple style="display: none;">
-                        <button class="btn secondary" onclick="document.getElementById('music-upload').click()">
-                            📁 Add Music
-                        </button>
-                        <button class="btn secondary" onclick="window.pixelPusher.modules.settings.clearPlaylist()">
-                            🗑️ Clear Playlist
-                        </button>
-                    </div>
-                    
-                    <div class="playlist" id="playlist">
-                        ${this.generatePlaylistItems()}
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
-    /**
-     * Generate playlist items
-     */
-    generatePlaylistItems() {
-        if (this.musicPlayer.playlist.length === 0) {
-            return '<div class="playlist-empty">No music in playlist. Add some music files to get started!</div>';
-        }
-
-        return this.musicPlayer.playlist.map((track, index) => `
-            <div class="playlist-item ${this.musicPlayer.currentTrack === track ? 'active' : ''}" 
-                 onclick="window.pixelPusher.modules.settings.playTrack(${index})">
-                <div class="track-info">
-                    <div class="track-name">${track.title}</div>
-                    <div class="track-artist">${track.artist}</div>
-                </div>
-                <div class="track-duration">${this.formatTime(track.duration || 0)}</div>
-            </div>
-        `).join('');
     }
 
     /**
      * Generate game settings content
      */
     generateGameSettings() {
-        const gameStats = window.pixelPusher?.modules?.games?.getStats() || {};
-
         return `
             <div class="settings-section">
-                <h2>🎮 Games & High Scores</h2>
-                <p class="settings-description">View your gaming achievements and adjust game settings</p>
+                <h2 style="color: var(--text-primary); margin-bottom: 20px;">🎮 Games & Entertainment</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 30px;">Configure games and view achievements</p>
                 
-                <div class="game-stats">
-                    <h3>High Scores</h3>
-                    <div class="highscore-grid">
-                        ${Object.entries(gameStats.highScores || {}).map(([game, score]) => `
-                            <div class="highscore-card">
-                                <div class="game-icon">${this.getGameIcon(game)}</div>
-                                <div class="game-name">${this.getGameName(game)}</div>
-                                <div class="game-score">${score.toLocaleString()}</div>
-                            </div>
-                        `).join('')}
+                <div class="settings-group" style="margin-bottom: 30px;">
+                    <h3 style="color: var(--text-primary); margin-bottom: 15px;">Available Games</h3>
+                    <div class="games-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+                        <div class="game-card" style="background: var(--surface); padding: 15px; border-radius: 8px; border: 1px solid var(--border); text-align: center;">
+                            <div style="font-size: 32px; margin-bottom: 10px;">🐍</div>
+                            <div style="font-weight: 600; color: var(--text-primary);">Snake Game</div>
+                            <div style="font-size: 12px; color: var(--text-secondary); margin: 5px 0;">Classic arcade game</div>
+                            <button onclick="window.pixelPusher.modules.windows.open('snake')" style="
+                                padding: 5px 10px;
+                                background: var(--primary);
+                                color: white;
+                                border: none;
+                                border-radius: 4px;
+                                cursor: pointer;
+                                font-size: 12px;
+                            ">Play Now</button>
+                        </div>
+                        
+                        <div class="game-card" style="background: var(--surface); padding: 15px; border-radius: 8px; border: 1px solid var(--border); text-align: center;">
+                            <div style="font-size: 32px; margin-bottom: 10px;">🧩</div>
+                            <div style="font-weight: 600; color: var(--text-primary);">CyberBlocks</div>
+                            <div style="font-size: 12px; color: var(--text-secondary); margin: 5px 0;">Futuristic Tetris</div>
+                            <button onclick="window.pixelPusher.modules.windows.open('tetris')" style="
+                                padding: 5px 10px;
+                                background: var(--primary);
+                                color: white;
+                                border: none;
+                                border-radius: 4px;
+                                cursor: pointer;
+                                font-size: 12px;
+                            ">Play Now</button>
+                        </div>
+                        
+                        <div class="game-card" style="background: var(--surface); padding: 15px; border-radius: 8px; border: 1px solid var(--border); text-align: center;">
+                            <div style="font-size: 32px; margin-bottom: 10px;">🧠</div>
+                            <div style="font-weight: 600; color: var(--text-primary);">Memory Match</div>
+                            <div style="font-size: 12px; color: var(--text-secondary); margin: 5px 0;">Card matching game</div>
+                            <button onclick="window.pixelPusher.modules.windows.open('memory')" style="
+                                padding: 5px 10px;
+                                background: var(--primary);
+                                color: white;
+                                border: none;
+                                border-radius: 4px;
+                                cursor: pointer;
+                                font-size: 12px;
+                            ">Play Now</button>
+                        </div>
+                        
+                        <div class="game-card" style="background: var(--surface); padding: 15px; border-radius: 8px; border: 1px solid var(--border); text-align: center;">
+                            <div style="font-size: 32px; margin-bottom: 10px;">🦕</div>
+                            <div style="font-weight: 600; color: var(--text-primary);">Dino Runner</div>
+                            <div style="font-size: 12px; color: var(--text-secondary); margin: 5px 0;">Endless runner</div>
+                            <button onclick="window.pixelPusher.modules.windows.open('dino')" style="
+                                padding: 5px 10px;
+                                background: var(--primary);
+                                color: white;
+                                border: none;
+                                border-radius: 4px;
+                                cursor: pointer;
+                                font-size: 12px;
+                            ">Play Now</button>
+                        </div>
                     </div>
                 </div>
                 
                 <div class="settings-group">
-                    <h3>Game Preferences</h3>
-                    <div class="setting-item">
-                        <label class="setting-label">
+                    <h3 style="color: var(--text-primary); margin-bottom: 15px;">Game Preferences</h3>
+                    <div class="setting-item" style="margin-bottom: 15px;">
+                        <label class="setting-label" style="display: flex; align-items: center; gap: 10px; color: var(--text-primary); cursor: pointer;">
                             <input type="checkbox" ${this.getPreference('gameSounds', true) ? 'checked' : ''} 
-                                   data-setting="gameSounds">
+                                   data-setting="gameSounds" style="margin: 0;">
                             Enable game sound effects
                         </label>
                     </div>
-                    
-                    <div class="setting-item">
-                        <label class="setting-label">
-                            <input type="checkbox" ${this.getPreference('gameParticles', true) ? 'checked' : ''} 
-                                   data-setting="gameParticles">
-                            Enable particle effects in games
-                        </label>
-                    </div>
-                    
-                    <div class="setting-item">
-                        <label class="setting-label">
-                            Game Difficulty: 
-                            <select data-setting="gameDifficulty">
-                                <option value="easy" ${this.getPreference('gameDifficulty', 'normal') === 'easy' ? 'selected' : ''}>Easy</option>
-                                <option value="normal" ${this.getPreference('gameDifficulty', 'normal') === 'normal' ? 'selected' : ''}>Normal</option>
-                                <option value="hard" ${this.getPreference('gameDifficulty', 'normal') === 'hard' ? 'selected' : ''}>Hard</option>
-                            </select>
-                        </label>
-                    </div>
-                </div>
-                
-                <div class="settings-group">
-                    <h3>Game Actions</h3>
-                    <button class="btn danger" onclick="window.pixelPusher.modules.settings.resetHighScores()">
-                        🗑️ Reset All High Scores
-                    </button>
-                    <button class="btn secondary" onclick="window.pixelPusher.modules.settings.exportGameData()">
-                        📤 Export Game Data
-                    </button>
                 </div>
             </div>
         `;
@@ -691,87 +636,41 @@ class SettingsManager {
      * Generate about content
      */
     generateAboutContent() {
-        const stats = window.pixelPusher?.getStats() || {};
-
         return `
             <div class="settings-section">
-                <h2>ℹ️ About Pixel Pusher OS</h2>
-                
-                <div class="about-header">
-                    <div class="logo">🎨</div>
-                    <div class="about-info">
-                        <h1>Pixel Pusher OS</h1>
-                        <p class="version">Version 2.0.0</p>
-                        <p class="tagline">A Modern Web-Based Desktop Environment</p>
-                    </div>
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <div style="font-size: 64px; margin-bottom: 15px;">🎨</div>
+                    <h1 style="color: var(--text-primary); margin-bottom: 10px;">Pixel Pusher OS</h1>
+                    <p style="color: var(--text-secondary); font-size: 18px;">Version 2.0.0</p>
+                    <p style="color: var(--text-secondary);">A Modern Web-Based Desktop Environment</p>
                 </div>
                 
-                <div class="about-stats">
-                    <div class="stat-item">
-                        <span class="stat-label">Uptime:</span>
-                        <span class="stat-value">${this.formatUptime(performance.now())}</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Active Windows:</span>
-                        <span class="stat-value">${stats.activeWindows || 0}</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Modules Loaded:</span>
-                        <span class="stat-value">${stats.activeModules || 0}</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Current Theme:</span>
-                        <span class="stat-value">${this.getPreference('theme', 'default')}</span>
-                    </div>
-                </div>
-                
-                <div class="about-features">
-                    <h3>Features</h3>
-                    <div class="feature-grid">
-                        <div class="feature-item">
-                            <div class="feature-icon">💻</div>
-                            <div class="feature-text">Built-in Terminal with 50+ commands</div>
+                <div class="about-stats" style="background: var(--surface); padding: 20px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 30px;">
+                    <h3 style="color: var(--text-primary); margin-bottom: 15px;">System Stats</h3>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+                        <div>
+                            <strong style="color: var(--text-primary);">Uptime:</strong>
+                            <div style="color: var(--text-secondary);">${this.formatUptime(performance.now())}</div>
                         </div>
-                        <div class="feature-item">
-                            <div class="feature-icon">📁</div>
-                            <div class="feature-text">Advanced File Explorer with media support</div>
+                        <div>
+                            <strong style="color: var(--text-primary);">Active Windows:</strong>
+                            <div style="color: var(--text-secondary);">${window.pixelPusher?.modules?.windows?.getStats().openWindows || 0}</div>
                         </div>
-                        <div class="feature-item">
-                            <div class="feature-icon">🎮</div>
-                            <div class="feature-text">Arcade Gaming Center with 4 games</div>
+                        <div>
+                            <strong style="color: var(--text-primary);">Current Theme:</strong>
+                            <div style="color: var(--text-secondary);">${this.getPreference('theme', 'dark')}</div>
                         </div>
-                        <div class="feature-item">
-                            <div class="feature-icon">🎨</div>
-                            <div class="feature-text">12+ Customizable Themes</div>
-                        </div>
-                        <div class="feature-item">
-                            <div class="feature-icon">🪟</div>
-                            <div class="feature-text">Professional Window Management</div>
-                        </div>
-                        <div class="feature-item">
-                            <div class="feature-icon">📊</div>
-                            <div class="feature-text">System Monitoring & Task Manager</div>
+                        <div>
+                            <strong style="color: var(--text-primary);">Build:</strong>
+                            <div style="color: var(--text-secondary);">Production</div>
                         </div>
                     </div>
                 </div>
                 
-                <div class="about-tech">
-                    <h3>Technology Stack</h3>
-                    <div class="tech-list">
-                        <span class="tech-item">Flask</span>
-                        <span class="tech-item">JavaScript ES6+</span>
-                        <span class="tech-item">HTML5 Canvas</span>
-                        <span class="tech-item">CSS3</span>
-                        <span class="tech-item">Web APIs</span>
-                        <span class="tech-item">SQLAlchemy</span>
-                    </div>
-                </div>
-                
-                <div class="about-credits">
-                    <h3>Credits</h3>
-                    <p>Built with ❤️ for modern web browsers</p>
-                    <p>© 2024 Pixel Pusher OS Team</p>
-                    <p>Licensed under MIT License</p>
+                <div class="about-credits" style="text-align: center; color: var(--text-secondary);">
+                    <p>Built with modern web technologies</p>
+                    <p>Flask • JavaScript • HTML5 • CSS3</p>
+                    <p style="margin-top: 20px;">© 2024 Pixel Pusher OS</p>
                 </div>
             </div>
         `;
@@ -809,9 +708,6 @@ class SettingsManager {
      */
     applySettingChange(settingName, value) {
         switch (settingName) {
-            case 'theme':
-                this.setTheme(value);
-                break;
             case 'fontSize':
                 document.documentElement.style.fontSize = `${value}px`;
                 break;
@@ -819,9 +715,7 @@ class SettingsManager {
                 document.body.classList.toggle('no-animations', !value);
                 break;
             case 'soundEnabled':
-                if (window.pixelPusher?.modules?.games) {
-                    window.pixelPusher.modules.games.soundEnabled = value;
-                }
+                // Apply to games if available
                 break;
         }
     }
@@ -843,129 +737,35 @@ class SettingsManager {
      * Set theme
      */
     setTheme(themeName) {
+        if (!this.themes[themeName]) {
+            console.error(`Unknown theme: ${themeName}`);
+            return;
+        }
+
+        const theme = this.themes[themeName];
+
+        // Apply CSS custom properties
+        Object.entries(theme.colors).forEach(([property, value]) => {
+            document.documentElement.style.setProperty(property, value);
+        });
+
+        // Update body class
         document.body.className = document.body.className.replace(/theme-\w+/g, '');
         document.body.classList.add(`theme-${themeName}`);
 
         this.setPreference('theme', themeName);
 
-        // Update desktop manager
-        if (window.pixelPusher?.modules?.desktop) {
-            window.pixelPusher.modules.desktop.setTheme(themeName);
-        }
-
         // Show notification
         if (window.pixelPusher) {
-            window.pixelPusher.showNotification(`Theme changed to ${themeName}`, 'success');
+            window.pixelPusher.showNotification(`Theme changed to ${theme.name}`, 'success');
         }
-    }
 
-    /**
-     * Music player functions
-     */
-    musicToggle() {
-        if (this.musicPlayer.isPlaying) {
-            this.musicPause();
-        } else {
-            this.musicPlay();
-        }
-    }
-
-    musicPlay() {
-        if (this.musicPlayer.audio) {
-            this.musicPlayer.audio.play();
-            this.musicPlayer.isPlaying = true;
-            this.updatePlayButton();
-        }
-    }
-
-    musicPause() {
-        if (this.musicPlayer.audio) {
-            this.musicPlayer.audio.pause();
-            this.musicPlayer.isPlaying = false;
-            this.updatePlayButton();
-        }
-    }
-
-    musicNext() {
-        // Implementation for next track
-        console.log('Next track');
-    }
-
-    musicPrevious() {
-        // Implementation for previous track
-        console.log('Previous track');
-    }
-
-    updatePlayButton() {
-        const playBtn = document.getElementById('play-pause-btn');
-        if (playBtn) {
-            playBtn.textContent = this.musicPlayer.isPlaying ? '⏸️' : '▶️';
-        }
-    }
-
-    /**
-     * Get system processes (mock data)
-     */
-    getSystemProcesses() {
-        return [
-            { pid: 'system', name: 'System', icon: '⚙️', cpu: 2.1, memory: '45MB', status: 'Running', critical: true },
-            { pid: 'desktop', name: 'Desktop Manager', icon: '🖥️', cpu: 1.5, memory: '32MB', status: 'Running', critical: true },
-            { pid: 'terminal', name: 'Terminal', icon: '💻', cpu: 0.8, memory: '12MB', status: 'Running', critical: false },
-            { pid: 'explorer', name: 'File Explorer', icon: '📁', cpu: 0.5, memory: '18MB', status: 'Running', critical: false },
-            { pid: 'games', name: 'Game Engine', icon: '🎮', cpu: 3.2, memory: '67MB', status: 'Running', critical: false },
-            { pid: 'audio', name: 'Audio System', icon: '🔊', cpu: 0.3, memory: '8MB', status: 'Running', critical: true }
-        ];
-    }
-
-    getSystemCPU() {
-        return Math.floor(Math.random() * 30) + 10; // Mock CPU usage
-    }
-
-    getSystemMemory() {
-        return Math.floor(Math.random() * 40) + 30; // Mock memory usage
-    }
-
-    getActiveWindowCount() {
-        return window.pixelPusher?.modules?.windows?.getStats().openWindows || 0;
+        console.log(`🎨 Theme changed to: ${themeName}`);
     }
 
     /**
      * Utility functions
      */
-    getGameIcon(gameType) {
-        const icons = {
-            'neonbreaker': '🏓',
-            'galacticdefense': '🚀',
-            'cyberblocks': '🧩',
-            'quantumrunner': '🏃'
-        };
-        return icons[gameType] || '🎮';
-    }
-
-    getGameName(gameType) {
-        const names = {
-            'neonbreaker': 'Neon Breaker',
-            'galacticdefense': 'Galactic Defense',
-            'cyberblocks': 'Cyber Blocks',
-            'quantumrunner': 'Quantum Runner'
-        };
-        return names[gameType] || gameType;
-    }
-
-    formatBytes(bytes) {
-        if (bytes === 0) return '0 Bytes';
-        const k = 1024;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-    }
-
-    formatTime(seconds) {
-        const mins = Math.floor(seconds / 60);
-        const secs = Math.floor(seconds % 60);
-        return `${mins}:${secs.toString().padStart(2, '0')}`;
-    }
-
     formatUptime(ms) {
         const seconds = Math.floor(ms / 1000);
         const minutes = Math.floor(seconds / 60);
@@ -976,170 +776,81 @@ class SettingsManager {
         return `${seconds}s`;
     }
 
+    resetToDefaults() {
+        if (confirm('Reset all settings to defaults?')) {
+            localStorage.removeItem('pixelpusher_preferences');
+            this.setTheme('dark');
+            window.location.reload();
+        }
+    }
+
+    exportSettings() {
+        const settings = JSON.stringify({
+            theme: this.getPreference('theme'),
+            fontSize: this.getPreference('fontSize'),
+            animations: this.getPreference('animations'),
+            soundEnabled: this.getPreference('soundEnabled')
+        }, null, 2);
+
+        const blob = new Blob([settings], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'pixelpusher-settings.json';
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    clearCache() {
+        if (confirm('Clear application cache? This will reload the page.')) {
+            localStorage.clear();
+            window.location.reload();
+        }
+    }
+
+    reloadApp() {
+        window.location.reload();
+    }
+
     /**
      * Preference management
      */
     getPreference(key, defaultValue) {
-        if (window.pixelPusher?.modules?.state) {
-            return window.pixelPusher.modules.state.getPreference(key, defaultValue);
+        try {
+            const prefs = JSON.parse(localStorage.getItem('pixelpusher_preferences') || '{}');
+            return prefs[key] !== undefined ? prefs[key] : defaultValue;
+        } catch {
+            return defaultValue;
         }
-        return defaultValue;
     }
 
     setPreference(key, value) {
-        if (window.pixelPusher?.modules?.state) {
-            window.pixelPusher.modules.state.setPreference(key, value);
+        try {
+            const prefs = JSON.parse(localStorage.getItem('pixelpusher_preferences') || '{}');
+            prefs[key] = value;
+            localStorage.setItem('pixelpusher_preferences', JSON.stringify(prefs));
+        } catch (error) {
+            console.error('Failed to save preference:', error);
         }
     }
 
-    /**
-     * Initialize music player
-     */
-    initializeMusicPlayer() {
-        // Set up audio event listeners
-        console.log('🎵 Music player initialized');
-    }
-
-    /**
-     * Initialize task manager
-     */
-    initializeTaskManager() {
-        // Start periodic process updates
-        this.taskManager.updateInterval = setInterval(() => {
-            this.updateProcessList();
-        }, 5000);
-    }
-
-    updateProcessList() {
-        const processList = document.getElementById('process-list');
-        if (processList) {
-            // Update process information
-            processList.innerHTML = this.getSystemProcesses().map(process => `
-                <div class="process-row" data-pid="${process.pid}">
-                    <div class="process-col name">
-                        <span class="process-icon">${process.icon}</span>
-                        ${process.name}
-                    </div>
-                    <div class="process-col cpu">${process.cpu}%</div>
-                    <div class="process-col memory">${process.memory}</div>
-                    <div class="process-col status">
-                        <span class="status-badge ${process.status.toLowerCase()}">${process.status}</span>
-                    </div>
-                    <div class="process-col actions">
-                        <button class="btn-small danger" 
-                                onclick="window.pixelPusher.modules.settings.terminateProcess('${process.pid}')"
-                                ${process.critical ? 'disabled' : ''}>
-                            ${process.critical ? '🔒' : '⏹️'}
-                        </button>
-                    </div>
-                </div>
-            `).join('');
-        }
-    }
-
-    /**
-     * Start system monitoring
-     */
-    startSystemMonitoring() {
-        setInterval(() => {
-            // Collect system metrics
-            this.systemMonitor.cpuUsage.push(this.getSystemCPU());
-            this.systemMonitor.memoryUsage.push(this.getSystemMemory());
-
-            // Keep only last 60 data points
-            if (this.systemMonitor.cpuUsage.length > 60) {
-                this.systemMonitor.cpuUsage.shift();
-                this.systemMonitor.memoryUsage.shift();
-            }
-        }, 1000);
-    }
-
-    /**
-     * Switch system tab
-     */
-    switchSystemTab(tabName) {
-        const content = document.getElementById('system-tab-content');
-        if (!content) return;
-
-        // Update tab buttons
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.classList.remove('active');
-        });
-        event.target.classList.add('active');
-
-        // Load tab content
-        switch (tabName) {
-            case 'taskmanager':
-                content.innerHTML = this.generateTaskManagerContent();
-                break;
-            case 'performance':
-                content.innerHTML = this.generatePerformanceContent();
-                break;
-            case 'music':
-                content.innerHTML = this.generateMusicPlayerContent();
-                break;
-            default:
-                content.innerHTML = '<div>Content not available</div>';
-        }
-    }
-
-    /**
-     * Initialize tab-specific features
-     */
-    initializeTabFeatures(settings, tabName) {
-        switch (tabName) {
-            case 'appearance':
-                this.initializeAppearanceTab();
-                break;
-            case 'system':
-                this.initializeSystemTab();
-                break;
-        }
-    }
-
-    initializeAppearanceTab() {
-        // Set up wallpaper upload
-        const wallpaperUpload = document.getElementById('wallpaper-upload');
-        if (wallpaperUpload) {
-            wallpaperUpload.addEventListener('change', (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        const wallpaperUrl = e.target.result;
-                        this.setWallpaper(wallpaperUrl);
-                    };
-                    reader.readAsDataURL(file);
-                }
-            });
-        }
-    }
-
-    initializeSystemTab() {
-        // Start task manager updates
-        this.updateProcessList();
-    }
-
-    setWallpaper(url) {
-        if (window.pixelPusher?.modules?.desktop) {
-            window.pixelPusher.modules.desktop.setWallpaper(url);
-            this.setPreference('wallpaper', url);
-        }
-    }
-
-    clearWallpaper() {
-        if (window.pixelPusher?.modules?.desktop) {
-            window.pixelPusher.modules.desktop.setWallpaper(null);
-            this.setPreference('wallpaper', '');
-        }
-    }
-
-    /**
-     * Load preferences
-     */
     loadPreferences() {
-        // Preferences are loaded through state manager
+        // Apply saved theme
+        const savedTheme = this.getPreference('theme', 'dark');
+        this.setTheme(savedTheme);
+
+        // Apply other preferences
+        const fontSize = this.getPreference('fontSize', 14);
+        document.documentElement.style.fontSize = `${fontSize}px`;
+
+        const animations = this.getPreference('animations', true);
+        document.body.classList.toggle('no-animations', !animations);
+
         console.log('📋 Settings preferences loaded');
+    }
+
+    initializeTabFeatures(settings, tabName) {
+        // Tab-specific initialization can go here
     }
 
     setupGlobalShortcuts() {
@@ -1157,26 +868,17 @@ class SettingsManager {
     getStats() {
         return {
             activeSettings: this.settings.size,
-            musicPlayerStatus: this.musicPlayer.isPlaying,
-            playlistLength: this.musicPlayer.playlist.length,
-            monitoredProcesses: this.getSystemProcesses().length
+            currentTheme: this.getPreference('theme', 'dark'),
+            availableThemes: Object.keys(this.themes)
         };
     }
 
     handleResize() {
-        // Handle window resize for settings windows
         console.log('⚙️ Settings window resized');
     }
 
     destroy() {
-        // Clean up intervals
-        if (this.taskManager.updateInterval) {
-            clearInterval(this.taskManager.updateInterval);
-        }
-
-        // Clean up settings windows
         this.settings.clear();
-
         console.log('⚙️ Settings Manager destroyed');
     }
 }
@@ -1186,4 +888,4 @@ if (typeof module !== 'undefined' && module.exports) {
     module.exports = SettingsManager;
 }
 
-console.log('⚙️ Settings & System manager loaded successfully');
+console.log('⚙️ Updated Settings manager loaded successfully');

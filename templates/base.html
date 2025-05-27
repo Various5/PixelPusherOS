@@ -1,76 +1,88 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="default">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="{% block description %}Pixel Pusher OS - Modern Web-Based Desktop Environment{% endblock %}">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    
+    <!-- Page Title -->
+    <title>{% block title %}Pixel Pusher OS - Modern Web Desktop{% endblock %}</title>
+    
+    <!-- Meta Description -->
+    <meta name="description" content="{% block description %}Pixel Pusher OS - A modern web-based desktop environment with terminal, file explorer, games, and productivity tools.{% endblock %}">
+    
+    <!-- SEO and Social Meta Tags -->
+    <meta name="keywords" content="web desktop, online os, browser desktop, pixel pusher, web applications">
     <meta name="author" content="Pixel Pusher OS Team">
-    <meta name="robots" content="noindex, nofollow">
-
-    <title>{% block title %}Pixel Pusher OS{% endblock %}</title>
-
+    <meta name="robots" content="index, follow">
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="{% block og_title %}{{ self.title() }}{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}{{ self.description() }}{% endblock %}">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="{{ url_for('static', filename='images/og-image.png') }}">
+    
     <!-- Favicon -->
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎨</text></svg>">
-
-    <!-- Fonts -->
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='favicon-16x16.png') }}">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    
+    <!-- Preconnect to external domains for performance -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
-    <!-- Base CSS Variables -->
+    
+    <!-- CSS Variables for Theming -->
     <style>
         :root {
-            /* Color System */
+            /* Color Palette */
             --primary: #00d9ff;
-            --primary-light: #33e1ff;
-            --primary-dark: #00b8e6;
-            --secondary: #667eea;
+            --primary-light: #33e2ff;
+            --primary-dark: #00b8db;
+            --secondary: #6c5ce7;
             --success: #00b894;
             --warning: #fdcb6e;
             --error: #e84393;
             --info: #74b9ff;
-
+            
             /* Neutral Colors */
             --background: #ffffff;
             --surface: #f8f9fa;
             --surface-light: #ffffff;
             --surface-dark: #e9ecef;
             --border: #dee2e6;
-
+            --shadow: rgba(0, 0, 0, 0.1);
+            
             /* Text Colors */
-            --text-primary: #2d3748;
-            --text-secondary: #718096;
-            --text-disabled: #a0aec0;
-            --text-inverse: #ffffff;
-
+            --text-primary: #212529;
+            --text-secondary: #6c757d;
+            --text-disabled: #adb5bd;
+            
             /* Spacing */
-            --space-xs: 0.25rem;
-            --space-sm: 0.5rem;
-            --space-md: 1rem;
-            --space-lg: 1.5rem;
-            --space-xl: 2rem;
-            --space-2xl: 3rem;
-
+            --spacing-xs: 0.25rem;
+            --spacing-sm: 0.5rem;
+            --spacing-md: 1rem;
+            --spacing-lg: 1.5rem;
+            --spacing-xl: 3rem;
+            
             /* Border Radius */
             --radius-sm: 0.25rem;
             --radius-md: 0.5rem;
             --radius-lg: 1rem;
             --radius-xl: 1.5rem;
-
+            
             /* Shadows */
-            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
             --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
             --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
-            --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1);
-
+            --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.15);
+            
             /* Transitions */
-            --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            --transition-fast: all 0.1s ease;
-            --transition-slow: all 0.4s ease;
-
+            --transition: all 0.2s ease;
+            --transition-slow: all 0.3s ease;
+            
             /* Typography */
             --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            --font-mono: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            --font-mono: 'Fira Code', 'Monaco', 'Consolas', monospace;
         }
 
         /* Dark Theme */
@@ -78,24 +90,12 @@
             --background: #1a202c;
             --surface: #2d3748;
             --surface-light: #4a5568;
-            --surface-dark: #171923;
+            --surface-dark: #1a202c;
             --border: #4a5568;
-            --text-primary: #f7fafc;
-            --text-secondary: #e2e8f0;
-            --text-disabled: #a0aec0;
+            --text-primary: #ffffff;
+            --text-secondary: #a0aec0;
+            --text-disabled: #718096;
         }
-
-        /* Theme Colors */
-        .theme-blue { --primary: #3498db; }
-        .theme-green { --primary: #27ae60; }
-        .theme-red { --primary: #e74c3c; }
-        .theme-purple { --primary: #9b59b6; }
-        .theme-orange { --primary: #e67e22; }
-        .theme-pink { --primary: #e91e63; }
-        .theme-cyan { --primary: #1abc9c; }
-        .theme-yellow { --primary: #f1c40f; }
-        .theme-matrix { --primary: #00ff41; --background: #000000; --surface: #001100; }
-        .theme-neon { --primary: #ff0080; --background: #0a0a0a; --surface: #1a001a; }
 
         /* Base Styles */
         * {
@@ -104,162 +104,46 @@
 
         html {
             font-size: 16px;
-            line-height: 1.6;
+            line-height: 1.5;
+            -webkit-text-size-adjust: 100%;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
 
         body {
             margin: 0;
             padding: 0;
             font-family: var(--font-family);
-            background: var(--background);
+            background-color: var(--background);
             color: var(--text-primary);
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
+            overflow-x: hidden;
         }
 
         /* Utility Classes */
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: var(--space-sm);
-            padding: var(--space-sm) var(--space-md);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-md);
-            background: var(--surface);
-            color: var(--text-primary);
-            font-family: inherit;
-            font-size: 0.875rem;
-            font-weight: 500;
-            line-height: 1;
-            text-decoration: none;
-            cursor: pointer;
-            transition: var(--transition);
-            user-select: none;
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
         }
 
-        .btn:hover {
-            background: var(--surface-light);
-            border-color: var(--primary);
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
         }
 
-        .btn.primary {
-            background: var(--primary);
-            border-color: var(--primary);
-            color: white;
-        }
-
-        .btn.primary:hover {
-            background: var(--primary-dark);
-        }
-
-        .btn.secondary {
-            background: var(--secondary);
-            border-color: var(--secondary);
-            color: white;
-        }
-
-        .btn.success {
-            background: var(--success);
-            border-color: var(--success);
-            color: white;
-        }
-
-        .btn.warning {
-            background: var(--warning);
-            border-color: var(--warning);
-            color: white;
-        }
-
-        .btn.danger {
-            background: var(--error);
-            border-color: var(--error);
-            color: white;
-        }
-
-        /* Flash Messages */
-        .flash-messages {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 10000;
-            max-width: 400px;
-        }
-
-        .flash-message {
-            padding: 12px 16px;
-            margin-bottom: 10px;
-            border-radius: var(--radius-md);
-            box-shadow: var(--shadow-lg);
-            animation: slideInRight 0.3s ease-out;
-        }
-
-        .flash-message.success {
-            background: var(--success);
-            color: white;
-        }
-
-        .flash-message.error {
-            background: var(--error);
-            color: white;
-        }
-
-        .flash-message.info {
-            background: var(--info);
-            color: white;
-        }
-
-        .flash-message.warning {
-            background: var(--warning);
-            color: white;
-        }
-
-        @keyframes slideInRight {
-            from {
-                opacity: 0;
-                transform: translateX(100px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-
-        /* Responsive Design */
-        @media (max-width: 768px) {
-            html {
-                font-size: 14px;
-            }
-
-            .flash-messages {
-                left: 10px;
-                right: 10px;
-                max-width: none;
-            }
-        }
-
-        /* Accessibility */
-        @media (prefers-reduced-motion: reduce) {
-            * {
-                animation-duration: 0.01ms !important;
-                animation-iteration-count: 1 !important;
-                transition-duration: 0.01ms !important;
-            }
-        }
-
-        /* Focus Styles */
-        :focus-visible {
+        /* Focus Styles for Accessibility */
+        *:focus {
             outline: 2px solid var(--primary);
             outline-offset: 2px;
         }
 
-        /* Selection */
-        ::selection {
-            background: var(--primary);
-            color: white;
-        }
-
-        /* Scrollbar */
+        /* Scrollbar Styling */
         ::-webkit-scrollbar {
             width: 8px;
             height: 8px;
@@ -271,70 +155,141 @@
 
         ::-webkit-scrollbar-thumb {
             background: var(--border);
-            border-radius: var(--radius-sm);
+            border-radius: var(--radius-md);
         }
 
         ::-webkit-scrollbar-thumb:hover {
             background: var(--text-secondary);
         }
+
+        /* Reduced Motion Support */
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
     </style>
 
+    <!-- Page-specific CSS -->
     {% block extra_css %}{% endblock %}
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@300;400;500&display=swap" rel="stylesheet">
 </head>
-<body class="{% block body_class %}{% endblock %}">
-    <!-- Flash Messages -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            <div class="flash-messages">
-                {% for category, message in messages %}
-                    <div class="flash-message {{ category }}" onclick="this.remove()">
-                        {{ message }}
-                    </div>
-                {% endfor %}
-            </div>
-        {% endif %}
-    {% endwith %}
 
-    <!-- Main Content -->
-    {% block content %}{% endblock %}
+<body class="{% block body_class %}{% endblock %}" data-theme="light">
+    <!-- Skip to main content for accessibility -->
+    <a href="#main-content" class="sr-only">Skip to main content</a>
 
-    <!-- Base JavaScript -->
+    <!-- Main Content Area -->
+    <main id="main-content" role="main">
+        {% block content %}
+        <div style="padding: 2rem; text-align: center;">
+            <h1>🎨 Pixel Pusher OS</h1>
+            <p>Modern Web Desktop Environment</p>
+        </div>
+        {% endblock %}
+    </main>
+
+    <!-- Error Boundary -->
+    <div id="error-boundary" style="display: none; position: fixed; top: 20px; right: 20px; background: var(--error); color: white; padding: 1rem; border-radius: var(--radius-md); z-index: 9999;">
+        <h4>⚠️ Error Detected</h4>
+        <p id="error-message">An unexpected error occurred.</p>
+        <button onclick="this.parentElement.style.display='none'" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 0.5rem; border-radius: var(--radius-sm); cursor: pointer;">
+            Dismiss
+        </button>
+    </div>
+
+    <!-- Core JavaScript -->
     <script>
-        // Global configuration
-        window.PIXELPUSHER_CONFIG = {
-            version: '2.0.0',
-            apiBase: '/api',
-            user: {% if current_user.is_authenticated %}{
-                username: '{{ current_user.username }}',
-                group: '{{ current_user.group }}',
-                isAuthenticated: true
-            }{% else %}null{% endif %},
-            debug: {{ 'true' if config.DEBUG else 'false' }}
-        };
+        // Global error handler to prevent crashes
+        window.addEventListener('error', function(e) {
+            console.error('Global error caught:', e.error);
+            
+            const errorBoundary = document.getElementById('error-boundary');
+            const errorMessage = document.getElementById('error-message');
+            
+            if (errorBoundary && errorMessage) {
+                errorMessage.textContent = e.error?.message || 'An unexpected error occurred.';
+                errorBoundary.style.display = 'block';
+                
+                // Auto-hide after 10 seconds
+                setTimeout(() => {
+                    errorBoundary.style.display = 'none';
+                }, 10000);
+            }
+        });
+
+        // Prevent recursive errors
+        window.addEventListener('unhandledrejection', function(e) {
+            console.error('Unhandled promise rejection:', e.reason);
+            e.preventDefault(); // Prevent the default browser behavior
+        });
 
         // Theme management
-        function setTheme(themeName) {
-            document.documentElement.setAttribute('data-theme', themeName);
-            localStorage.setItem('pixelpusher_theme', themeName);
+        function setTheme(theme) {
+            document.body.setAttribute('data-theme', theme);
+            localStorage.setItem('preferred-theme', theme);
         }
 
-        // Load saved theme
-        const savedTheme = localStorage.getItem('pixelpusher_theme');
-        if (savedTheme) {
-            document.documentElement.setAttribute('data-theme', savedTheme);
+        function getTheme() {
+            return localStorage.getItem('preferred-theme') || 
+                   (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
         }
 
-        // Auto-hide flash messages
-        setTimeout(() => {
-            document.querySelectorAll('.flash-message').forEach(msg => {
-                msg.style.opacity = '0';
-                setTimeout(() => msg.remove(), 300);
-            });
-        }, 5000);
+        // Apply saved theme
+        document.addEventListener('DOMContentLoaded', function() {
+            setTheme(getTheme());
+        });
 
-        console.log('🎨 Pixel Pusher OS Base Template Loaded');
+        // Listen for system theme changes
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+            if (!localStorage.getItem('preferred-theme')) {
+                setTheme(e.matches ? 'dark' : 'light');
+            }
+        });
+
+        // Console branding
+        console.log('%c🎨 Pixel Pusher OS', 'color: #00d9ff; font-size: 20px; font-weight: bold;');
+        console.log('%cModern Web Desktop Environment', 'color: #6c757d; font-size: 14px;');
     </script>
-    
+
+    <!-- Page-specific JavaScript -->
     {% block extra_js %}{% endblock %}
+
+    <!-- Load Application Scripts (only if authenticated) -->
+    {% if current_user.is_authenticated %}
+    <script>
+        // Initialize application modules after DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add user data to page for JavaScript access
+            if (!document.querySelector('[data-user]')) {
+                const userDataElement = document.createElement('div');
+                userDataElement.setAttribute('data-user', '{{ current_user.username if current_user.is_authenticated else "" }}');
+                userDataElement.setAttribute('data-group', '{{ current_user.group if current_user.is_authenticated else "" }}');
+                userDataElement.style.display = 'none';
+                document.body.appendChild(userDataElement);
+            }
+        });
+    </script>
+    {% endif %}
+
+    <!-- Performance monitoring -->
+    <script>
+        // Simple performance monitoring
+        window.addEventListener('load', function() {
+            const loadTime = performance.now();
+            console.log(`📊 Page loaded in ${Math.round(loadTime)}ms`);
+            
+            // Report Core Web Vitals if available
+            if ('web-vital' in window) {
+                console.log('📈 Core Web Vitals monitoring enabled');
+            }
+        });
+    </script>
 </body>
 </html>

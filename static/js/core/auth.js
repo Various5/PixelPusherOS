@@ -17,6 +17,7 @@ class AuthManager {
         this.activityTimer = null;
         this.sessionTimer = null;
         this.isAuthenticated = false;
+        this.initialized = false;
 
         console.log('🔐 Authentication Manager initialized');
     }
@@ -25,6 +26,11 @@ class AuthManager {
      * Initialize authentication system
      */
     async init() {
+        if (this.initialized) {
+            console.warn('⚠️ AuthManager already initialized');
+            return;
+        }
+
         try {
             // Check if user is already logged in
             this.checkAuthenticationStatus();
@@ -35,9 +41,12 @@ class AuthManager {
             // Set up registration form handlers if present
             this.setupRegistrationHandlers();
 
-            // Start session monitoring
-            this.startSessionMonitoring();
+            // Start session monitoring only if authenticated
+            if (this.isAuthenticated) {
+                this.startSessionMonitoring();
+            }
 
+            this.initialized = true;
             console.log('✅ Authentication system ready');
 
         } catch (error) {
@@ -65,18 +74,22 @@ class AuthManager {
      * Extract user information from the page
      */
     extractUserInfo() {
-        // Try to get user info from global variables or DOM
-        const userElement = document.querySelector('[data-user]');
-        const groupElement = document.querySelector('[data-group]');
+        try {
+            // Try to get user info from global variables or DOM
+            const userElement = document.querySelector('[data-user]');
+            const groupElement = document.querySelector('[data-group]');
 
-        if (userElement) {
-            this.currentUser = {
-                username: userElement.dataset.user || 'unknown',
-                group: groupElement?.dataset.group || 'user',
-                loginTime: Date.now()
-            };
+            if (userElement) {
+                this.currentUser = {
+                    username: userElement.dataset.user || 'unknown',
+                    group: groupElement?.dataset.group || 'user',
+                    loginTime: Date.now()
+                };
 
-            console.log(`👤 Current user: ${this.currentUser.username} (${this.currentUser.group})`);
+                console.log(`👤 Current user: ${this.currentUser.username} (${this.currentUser.group})`);
+            }
+        } catch (error) {
+            console.warn('Could not extract user info:', error);
         }
     }
 
@@ -89,9 +102,21 @@ class AuthManager {
         const usernameInput = document.getElementById('username');
         const passwordInput = document.getElementById('password');
 
-        if (loginForm) {
+        if (!loginForm) {
+            return; // No login form on this page
+        }
+
+        // Prevent multiple event listeners
+        if (loginForm.dataset.handlersAttached) {
+            return;
+        }
+
+        try {
             // Handle form submission
-            loginForm.addEventListener('submit', (e) => this.handleLogin(e));
+            loginForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.handleLogin(e);
+            });
 
             // Handle Enter key in password field
             if (passwordInput) {
@@ -104,14 +129,25 @@ class AuthManager {
             }
 
             // Auto-focus username field
-            if (usernameInput) {
-                setTimeout(() => usernameInput.focus(), 100);
+            if (usernameInput && !usernameInput.value) {
+                setTimeout(() => {
+                    try {
+                        usernameInput.focus();
+                    } catch (e) {
+                        // Ignore focus errors
+                    }
+                }, 500);
             }
 
             // Handle demo login buttons
             this.setupDemoLoginButtons();
 
+            // Mark handlers as attached
+            loginForm.dataset.handlersAttached = 'true';
+
             console.log('🔐 Login form handlers set up');
+        } catch (error) {
+            console.error('Error setting up login handlers:', error);
         }
     }
 
@@ -119,27 +155,67 @@ class AuthManager {
      * Set up demo login buttons
      */
     setupDemoLoginButtons() {
-        const demoButtons = document.querySelectorAll('.demo-login');
+        const demoButtons = document.querySelectorAll('.demo-login, .demo-use-button');
 
         demoButtons.forEach(button => {
+            // Prevent multiple event listeners
+            if (button.dataset.handlerAttached) {
+                return;
+            }
+
             button.addEventListener('click', (e) => {
                 e.preventDefault();
+
                 const username = button.dataset.username;
                 const password = button.dataset.password;
 
-                // Fill form with demo credentials
-                const usernameInput = document.getElementById('username');
-                const passwordInput = document.getElementById('password');
-
-                if (usernameInput && passwordInput) {
-                    usernameInput.value = username;
-                    passwordInput.value = password;
-
-                    // Trigger login
-                    setTimeout(() => this.handleLogin(), 100);
+                if (!username || !password) {
+                    // Get from button text or onclick attribute
+                    const buttonText = button.textContent || button.innerText;
+                    if (buttonText.includes('admin')) {
+                        this.fillDemoCredentials('admin', 'admin');
+                    } else if (buttonText.includes('user')) {
+                        this.fillDemoCredentials('user', 'user');
+                    } else if (buttonText.includes('demo')) {
+                        this.fillDemoCredentials('demo', 'demo');
+                    }
+                } else {
+                    this.fillDemoCredentials(username, password);
                 }
             });
+
+            button.dataset.handlerAttached = 'true';
         });
+    }
+
+    /**
+     * Fill form with demo credentials
+     */
+    fillDemoCredentials(username, password) {
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+
+        if (usernameInput && passwordInput) {
+            usernameInput.value = username;
+            passwordInput.value = password;
+
+            // Animate the fill
+            usernameInput.style.animation = 'pulse 0.5s ease-out';
+            passwordInput.style.animation = 'pulse 0.5s ease-out';
+
+            // Clear animations after they complete
+            setTimeout(() => {
+                usernameInput.style.animation = '';
+                passwordInput.style.animation = '';
+            }, 500);
+
+            // Optional: Auto-submit after a short delay
+            setTimeout(() => {
+                if (confirm('Submit login with demo account?')) {
+                    this.handleLogin();
+                }
+            }, 1000);
+        }
     }
 
     /**
@@ -147,14 +223,20 @@ class AuthManager {
      */
     setupRegistrationHandlers() {
         const registerForm = document.getElementById('registerForm');
-        const passwordInput = document.getElementById('password');
-        const confirmPasswordInput = document.getElementById('confirmPassword');
 
-        if (registerForm) {
+        if (!registerForm || registerForm.dataset.handlersAttached) {
+            return;
+        }
+
+        try {
             // Handle form submission
-            registerForm.addEventListener('submit', (e) => this.handleRegistration(e));
+            registerForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.handleRegistration(e);
+            });
 
             // Password confirmation validation
+            const confirmPasswordInput = document.getElementById('confirm_password');
             if (confirmPasswordInput) {
                 confirmPasswordInput.addEventListener('input', () => {
                     this.validatePasswordConfirmation();
@@ -169,7 +251,10 @@ class AuthManager {
                 });
             }
 
+            registerForm.dataset.handlersAttached = 'true';
             console.log('📝 Registration form handlers set up');
+        } catch (error) {
+            console.error('Error setting up registration handlers:', error);
         }
     }
 
@@ -204,7 +289,11 @@ class AuthManager {
         // Show loading state
         if (loginButton) {
             loginButton.disabled = true;
-            loginButton.textContent = 'Signing in...';
+            const spinner = loginButton.querySelector('#loadingSpinner');
+            const buttonText = loginButton.querySelector('#buttonText');
+
+            if (spinner) spinner.style.display = 'inline-block';
+            if (buttonText) buttonText.textContent = 'Signing in...';
         }
 
         try {
@@ -221,7 +310,11 @@ class AuthManager {
             // Reset button state
             if (loginButton) {
                 loginButton.disabled = false;
-                loginButton.textContent = 'Sign In';
+                const spinner = loginButton.querySelector('#loadingSpinner');
+                const buttonText = loginButton.querySelector('#buttonText');
+
+                if (spinner) spinner.style.display = 'none';
+                if (buttonText) buttonText.textContent = 'Sign In';
             }
         }
     }
@@ -230,10 +323,12 @@ class AuthManager {
      * Handle registration form submission
      */
     async handleRegistration(event) {
-        event.preventDefault();
+        if (event) {
+            event.preventDefault();
+        }
 
         const form = document.getElementById('registerForm');
-        const submitButton = form.querySelector('button[type="submit"]');
+        const submitButton = form?.querySelector('button[type="submit"]');
 
         // Show loading state
         if (submitButton) {
@@ -244,7 +339,9 @@ class AuthManager {
         // Validate form before submission
         if (this.validateRegistrationForm()) {
             // Submit form (let Flask handle the actual registration)
-            form.submit();
+            if (form) {
+                form.submit();
+            }
         } else {
             // Reset button state if validation failed
             if (submitButton) {
@@ -283,8 +380,6 @@ class AuthManager {
      */
     validateUsername() {
         const usernameInput = document.getElementById('username');
-        const errorElement = document.getElementById('usernameError');
-
         if (!usernameInput) return true;
 
         const username = usernameInput.value.trim();
@@ -301,17 +396,7 @@ class AuthManager {
         }
 
         // Show/hide error message
-        if (errorElement) {
-            if (errorMessage) {
-                errorElement.textContent = errorMessage;
-                errorElement.style.display = 'block';
-                usernameInput.classList.add('error');
-            } else {
-                errorElement.style.display = 'none';
-                usernameInput.classList.remove('error');
-            }
-        }
-
+        this.showFieldError('username', errorMessage);
         return !errorMessage;
     }
 
@@ -320,8 +405,6 @@ class AuthManager {
      */
     validatePassword() {
         const passwordInput = document.getElementById('password');
-        const errorElement = document.getElementById('passwordError');
-
         if (!passwordInput) return true;
 
         const password = passwordInput.value;
@@ -336,17 +419,7 @@ class AuthManager {
         }
 
         // Show/hide error message
-        if (errorElement) {
-            if (errorMessage) {
-                errorElement.textContent = errorMessage;
-                errorElement.style.display = 'block';
-                passwordInput.classList.add('error');
-            } else {
-                errorElement.style.display = 'none';
-                passwordInput.classList.remove('error');
-            }
-        }
-
+        this.showFieldError('password', errorMessage);
         return !errorMessage;
     }
 
@@ -355,8 +428,7 @@ class AuthManager {
      */
     validatePasswordConfirmation() {
         const passwordInput = document.getElementById('password');
-        const confirmPasswordInput = document.getElementById('confirmPassword');
-        const errorElement = document.getElementById('confirmPasswordError');
+        const confirmPasswordInput = document.getElementById('confirm_password');
 
         if (!passwordInput || !confirmPasswordInput) return true;
 
@@ -369,18 +441,35 @@ class AuthManager {
         }
 
         // Show/hide error message
-        if (errorElement) {
-            if (errorMessage) {
-                errorElement.textContent = errorMessage;
-                errorElement.style.display = 'block';
-                confirmPasswordInput.classList.add('error');
-            } else {
-                errorElement.style.display = 'none';
-                confirmPasswordInput.classList.remove('error');
-            }
+        this.showFieldError('confirm_password', errorMessage);
+        return !errorMessage;
+    }
+
+    /**
+     * Show field-specific error
+     */
+    showFieldError(fieldName, message) {
+        const field = document.getElementById(fieldName);
+        if (!field) return;
+
+        // Remove existing error
+        field.classList.remove('error');
+        const existingError = field.parentNode.querySelector('.error-message');
+        if (existingError) {
+            existingError.remove();
         }
 
-        return !errorMessage;
+        if (message) {
+            // Add error styling and message
+            field.classList.add('error');
+
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.style.cssText = 'color: #e53e3e; font-size: 12px; margin-top: 5px;';
+            errorDiv.textContent = message;
+
+            field.parentNode.appendChild(errorDiv);
+        }
     }
 
     /**
@@ -405,7 +494,10 @@ class AuthManager {
         const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
 
         activityEvents.forEach(event => {
-            document.addEventListener(event, () => this.updateActivity(), { passive: true });
+            document.addEventListener(event, () => this.updateActivity(), {
+                passive: true,
+                once: false
+            });
         });
     }
 
@@ -424,7 +516,7 @@ class AuthManager {
         this.resetSessionTimer();
 
         // Update state if available
-        if (window.pixelPusher && window.pixelPusher.modules.state) {
+        if (window.pixelPusher?.modules?.state) {
             window.pixelPusher.modules.state.set('system.lastActivity', Date.now());
         }
     }
@@ -451,15 +543,9 @@ class AuthManager {
         console.warn('⏱️ Session timeout - logging out user');
 
         // Show timeout notification
-        if (window.pixelPusher) {
-            window.pixelPusher.showNotification(
-                'Your session has expired. Please log in again.',
-                'warning',
-                5000
-            );
-        }
+        this.showError('Your session has expired. Please log in again.');
 
-        // Redirect to logout
+        // Redirect to logout after a short delay
         setTimeout(() => {
             window.location.href = '/logout';
         }, 2000);
@@ -482,23 +568,13 @@ class AuthManager {
                 errorElement.style.display = 'none';
             }, 5000);
         } else {
-            // Fallback to notification system
-            if (window.pixelPusher) {
+            // Fallback to notification system or alert
+            if (window.pixelPusher?.showNotification) {
                 window.pixelPusher.showNotification(message, 'error');
             } else {
-                alert(message); // Last resort
+                console.error('Auth Error:', message);
+                // Don't use alert as fallback to avoid blocking
             }
-        }
-    }
-
-    /**
-     * Show success message to user
-     */
-    showSuccess(message) {
-        if (window.pixelPusher) {
-            window.pixelPusher.showNotification(message, 'success');
-        } else {
-            console.log('Success:', message);
         }
     }
 
@@ -520,13 +596,19 @@ class AuthManager {
             }
 
             // Clear local storage
-            localStorage.removeItem('pixelpusher_state');
+            try {
+                localStorage.removeItem('pixelpusher_state');
+            } catch (e) {
+                // Ignore localStorage errors
+            }
 
             // Redirect to logout endpoint
             window.location.href = '/logout';
 
         } catch (error) {
             console.error('Logout error:', error);
+            // Force redirect even if there's an error
+            window.location.href = '/logout';
         }
     }
 
@@ -568,10 +650,8 @@ class AuthManager {
 
             if (loginContainer) {
                 if (isMobile) {
-                    loginContainer.style.width = '90%';
-                    loginContainer.style.padding = '20px';
+                    loginContainer.style.padding = '10px';
                 } else {
-                    loginContainer.style.width = '';
                     loginContainer.style.padding = '';
                 }
             }
@@ -590,10 +670,21 @@ class AuthManager {
             clearTimeout(this.activityTimer);
         }
 
-        // Remove event listeners (would need to track them to remove properly)
+        // Reset state
+        this.initialized = false;
+        this.isAuthenticated = false;
+        this.currentUser = null;
+
         console.log('🔐 Authentication Manager destroyed');
     }
 }
+
+// Global function for demo login buttons (backward compatibility)
+window.useDemoAccount = function(username, password) {
+    if (window.pixelPusher?.modules?.auth) {
+        window.pixelPusher.modules.auth.fillDemoCredentials(username, password);
+    }
+};
 
 // Export for module systems
 if (typeof module !== 'undefined' && module.exports) {

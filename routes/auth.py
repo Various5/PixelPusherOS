@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 """
 Pixel Pusher OS - Authentication Routes
-Flask blueprint for handling user authentication, registration, and session management.
+Handles user login, registration, logout, and session management
 """
 
-from flask import Blueprint, request, render_template, redirect, url_for, flash, jsonify, session
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash
-from models import db, User, UserSession, ApplicationLog
 from datetime import datetime
-import secrets
+import re
+
+from models import db, User, UserSession, SystemLog
 
 # Create authentication blueprint
 auth_bp = Blueprint('auth', __name__)
@@ -18,9 +19,12 @@ auth_bp = Blueprint('auth', __name__)
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     """
-    Handle user login - both GET (show form) and POST (process login)
+    User login page and authentication handling.
+    GET: Display login form
+    POST: Process login credentials
     """
-    # If user is already logged in, redirect to desktop
+
+    # Redirect if already logged in
     if current_user.is_authenticated:
         return redirect(url_for('desktop.index'))
 
@@ -29,97 +33,74 @@ def login():
         password = request.form.get('password', '')
         remember = bool(request.form.get('remember'))
 
-        # Validation
-        errors = []
-        if not username:
-            errors.append('Username is required')
-        elif len(username) < 3:
-            errors.append('Username must be at least 3 characters')
+        # Get client information for logging
+        ip_address = request.environ.get('HTTP_X_FORWARDED_FOR', request.remote_addr)
+        user_agent = request.headers.get('User-Agent', '')
 
-        if not password:
-            errors.append('Password is required')
-        elif len(password) < 4:
-            errors.append('Password must be at least 4 characters')
+        # Validate input
+        if not username or not password:
+            flash('Please enter both username and password.', 'error')
+            SystemLog.log_action('login_attempt_failed',
+                                 f'Missing credentials for username: {username}',
+                                 ip_address=ip_address, user_agent=user_agent)
+            return render_template('login.html')
 
-        if errors:
-            for error in errors:
-                flash(error, 'error')
-            return render_template('login.html'), 400
-
-        # Find user and check password
+        # Find user
         user = User.query.filter_by(username=username).first()
 
-        if user and user.check_password(password) and user.is_active:
+        if user and user.is_active and user.check_password(password):
             # Successful login
             login_user(user, remember=remember)
+
+            # Update user login statistics
             user.update_last_login()
 
             # Create session record
-            session_id = secrets.token_urlsafe(32)
-            user_session = UserSession(
+            session_record = UserSession(
                 user_id=user.id,
-                session_id=session_id,
-                ip_address=request.remote_addr,
-                user_agent=request.headers.get('User-Agent', '')
+                session_id=session.get('_id', ''),
+                ip_address=ip_address,
+                user_agent=user_agent
             )
-            db.session.add(user_session)
+            db.session.add(session_record)
+            db.session.commit()
 
             # Log successful login
-            ApplicationLog.log_event(
-                level='INFO',
-                category='AUTH',
-                message=f'User {username} logged in successfully',
-                user_id=user.id,
-                ip_address=request.remote_addr,
-                details={
-                    'remember': remember,
-                    'user_agent': request.headers.get('User-Agent', '')
-                }
-            )
+            SystemLog.log_action('login_success',
+                                 f'User {username} logged in successfully',
+                                 user_id=user.id,
+                                 ip_address=ip_address,
+                                 user_agent=user_agent)
 
-            try:
-                db.session.commit()
-                flash(f'Welcome back, {user.username}!', 'success')
+            flash(f'Welcome back, {user.username}!', 'success')
 
-                # Redirect to requested page or dashboard
-                next_page = request.args.get('next')
-                if next_page:
-                    return redirect(next_page)
-                return redirect(url_for('desktop.index'))
-
-            except Exception as e:
-                db.session.rollback()
-                print(f"Login session error: {e}")
-                flash('Login successful, but session recording failed', 'warning')
-                return redirect(url_for('desktop.index'))
+            # Redirect to next page or desktop
+            next_page = request.args.get('next')
+            if next_page:
+                return redirect(next_page)
+            return redirect(url_for('desktop.index'))
 
         else:
             # Failed login
-            ApplicationLog.log_event(
-                level='WARNING',
-                category='AUTH',
-                message=f'Failed login attempt for username: {username}',
-                ip_address=request.remote_addr,
-                details={
-                    'username': username,
-                    'user_exists': user is not None,
-                    'user_active': user.is_active if user else None
-                }
-            )
+            flash('Invalid username or password.', 'error')
+            SystemLog.log_action('login_attempt_failed',
+                                 f'Invalid credentials for username: {username}',
+                                 ip_address=ip_address,
+                                 user_agent=user_agent,
+                                 level='WARNING')
 
-            flash('Invalid username or password', 'error')
-            return render_template('login.html'), 401
-
-    # GET request - show login form
     return render_template('login.html')
 
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
     """
-    Handle user registration - both GET (show form) and POST (process registration)
+    User registration page and account creation.
+    GET: Display registration form
+    POST: Process new user registration
     """
-    # If user is already logged in, redirect to desktop
+
+    # Redirect if already logged in
     if current_user.is_authenticated:
         return redirect(url_for('desktop.index'))
 
@@ -127,73 +108,117 @@ def register():
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '')
         confirm_password = request.form.get('confirm_password', '')
-        group = request.form.get('group', 'User')
+        user_group = request.form.get('group', 'User')
+        email = request.form.get('email', '').strip()
+
+        # Get client information for logging
+        ip_address = request.environ.get('HTTP_X_FORWARDED_FOR', request.remote_addr)
+        user_agent = request.headers.get('User-Agent', '')
 
         # Validation
         errors = []
 
         # Username validation
         if not username:
-            errors.append('Username is required')
+            errors.append('Username is required.')
         elif len(username) < 3:
-            errors.append('Username must be at least 3 characters')
+            errors.append('Username must be at least 3 characters long.')
         elif len(username) > 80:
-            errors.append('Username must be less than 80 characters')
-        elif not username.replace('_', '').isalnum():
-            errors.append('Username can only contain letters, numbers, and underscores')
+            errors.append('Username must be less than 80 characters.')
+        elif not re.match(r'^[a-zA-Z0-9_]+$', username):
+            errors.append('Username can only contain letters, numbers, and underscores.')
         elif User.query.filter_by(username=username).first():
-            errors.append('Username already exists')
+            errors.append('Username already exists. Please choose a different one.')
 
         # Password validation
         if not password:
-            errors.append('Password is required')
+            errors.append('Password is required.')
         elif len(password) < 4:
-            errors.append('Password must be at least 4 characters')
+            errors.append('Password must be at least 4 characters long.')
         elif len(password) > 128:
-            errors.append('Password must be less than 128 characters')
+            errors.append('Password must be less than 128 characters.')
 
         # Password confirmation
         if password != confirm_password:
-            errors.append('Passwords do not match')
+            errors.append('Passwords do not match.')
 
-        # Group validation
-        if group not in ['User', 'Admin']:
-            group = 'User'  # Default to User if invalid
+        # Email validation (optional)
+        if email:
+            email_regex = r'^[^\s@]+@[^\s@]+\.[^\s@]+$'
+            if not re.match(email_regex, email):
+                errors.append('Please enter a valid email address.')
+            elif User.query.filter_by(email=email).first():
+                errors.append('Email already registered. Please use a different email.')
 
-        if errors:
-            for error in errors:
-                flash(error, 'error')
-            return render_template('register.html'), 400
+        # User group validation
+        if user_group not in ['User', 'Admin']:
+            user_group = 'User'
 
-        # Create new user
-        try:
-            new_user = User(username=username, password=password, group=group)
-            db.session.add(new_user)
-            db.session.commit()
+        # If validation passed, create user
+        if not errors:
+            try:
+                # Create new user
+                new_user = User(
+                    username=username,
+                    password=password,
+                    user_group=user_group,
+                    email=email if email else None
+                )
 
-            # Log successful registration
-            ApplicationLog.log_event(
-                level='INFO',
-                category='AUTH',
-                message=f'New user registered: {username}',
-                user_id=new_user.id,
-                ip_address=request.remote_addr,
-                details={
-                    'group': group,
-                    'user_agent': request.headers.get('User-Agent', '')
+                # Set default preferences
+                default_preferences = {
+                    'theme': 'default',
+                    'wallpaper': '',
+                    'fontSize': 14,
+                    'animations': True,
+                    'soundEnabled': True,
+                    'autoSave': True,
+                    'explorerViewMode': 'list',
+                    'terminalTheme': 'green'
                 }
-            )
+                new_user.set_preferences(default_preferences)
 
-            flash('Account created successfully! Please log in.', 'success')
-            return redirect(url_for('auth.login'))
+                db.session.add(new_user)
+                db.session.commit()
 
-        except Exception as e:
-            db.session.rollback()
-            print(f"Registration error: {e}")
-            flash('Registration failed. Please try again.', 'error')
-            return render_template('register.html'), 500
+                # Log successful registration
+                SystemLog.log_action('user_registered',
+                                     f'New user registered: {username} ({user_group})',
+                                     user_id=new_user.id,
+                                     ip_address=ip_address,
+                                     user_agent=user_agent)
 
-    # GET request - show registration form
+                flash(f'Account created successfully! Welcome to Pixel Pusher OS, {username}!', 'success')
+
+                # Auto-login the new user
+                login_user(new_user)
+                new_user.update_last_login()
+
+                # Create session record
+                session_record = UserSession(
+                    user_id=new_user.id,
+                    session_id=session.get('_id', ''),
+                    ip_address=ip_address,
+                    user_agent=user_agent
+                )
+                db.session.add(session_record)
+                db.session.commit()
+
+                return redirect(url_for('desktop.index'))
+
+            except Exception as e:
+                db.session.rollback()
+                errors.append('An error occurred while creating your account. Please try again.')
+                SystemLog.log_action('registration_error',
+                                     f'Registration failed for {username}: {str(e)}',
+                                     ip_address=ip_address,
+                                     user_agent=user_agent,
+                                     level='ERROR')
+
+        # Show validation errors
+        for error in errors:
+            flash(error, 'error')
+
     return render_template('register.html')
 
 
@@ -201,42 +226,48 @@ def register():
 @login_required
 def logout():
     """
-    Handle user logout
+    User logout and session cleanup.
+    Logs out the current user and cleans up session data.
     """
-    user_id = current_user.id
+
+    # Get user info before logout
     username = current_user.username
+    user_id = current_user.id
 
-    # Update active session records
-    try:
-        active_sessions = UserSession.query.filter_by(
+    # Get client information for logging
+    ip_address = request.environ.get('HTTP_X_FORWARDED_FOR', request.remote_addr)
+    user_agent = request.headers.get('User-Agent', '')
+
+    # Update user activity
+    current_user.update_activity()
+
+    # Deactivate current session
+    session_id = session.get('_id', '')
+    if session_id:
+        user_session = UserSession.query.filter_by(
             user_id=user_id,
+            session_id=session_id,
             is_active=True
-        ).all()
+        ).first()
 
-        for session_record in active_sessions:
-            session_record.logout_time = datetime.utcnow()
-            session_record.is_active = False
+        if user_session:
+            user_session.deactivate()
+            db.session.commit()
 
-        # Log logout
-        ApplicationLog.log_event(
-            level='INFO',
-            category='AUTH',
-            message=f'User {username} logged out',
-            user_id=user_id,
-            ip_address=request.remote_addr
-        )
-
-        db.session.commit()
-
-    except Exception as e:
-        db.session.rollback()
-        print(f"Logout session update error: {e}")
+    # Log logout
+    SystemLog.log_action('logout',
+                         f'User {username} logged out',
+                         user_id=user_id,
+                         ip_address=ip_address,
+                         user_agent=user_agent)
 
     # Perform logout
     logout_user()
-    session.clear()  # Clear any additional session data
 
-    flash('You have been logged out successfully', 'info')
+    # Clear session data
+    session.clear()
+
+    flash('You have been logged out successfully.', 'info')
     return redirect(url_for('auth.login'))
 
 
@@ -244,209 +275,228 @@ def logout():
 @login_required
 def profile():
     """
-    Show user profile information
+    User profile page showing account information and statistics.
     """
-    user_data = current_user.to_dict()
 
-    # Get recent login sessions
-    recent_sessions = UserSession.query.filter_by(
-        user_id=current_user.id
-    ).order_by(UserSession.login_time.desc()).limit(10).all()
+    # Get user statistics
+    user_stats = current_user.get_stats()
 
-    # Get game statistics if available
+    # Get recent activity
+    recent_logs = SystemLog.query.filter_by(user_id=current_user.id) \
+        .order_by(SystemLog.timestamp.desc()) \
+        .limit(10) \
+        .all()
+
+    # Get game scores
     from models import GameScore
-    game_stats = {}
-    try:
-        high_scores = GameScore.query.filter_by(
-            user_id=current_user.id,
-            is_high_score=True
-        ).all()
+    recent_scores = GameScore.query.filter_by(user_id=current_user.id) \
+        .order_by(GameScore.created_at.desc()) \
+        .limit(5) \
+        .all()
 
-        for score in high_scores:
-            game_stats[score.game_name] = {
-                'high_score': score.score,
-                'level': score.level,
-                'date': score.timestamp.isoformat()
-            }
-    except Exception as e:
-        print(f"Error loading game stats: {e}")
-
-    return jsonify({
-        'user': user_data,
-        'recent_sessions': [
-            {
-                'login_time': session.login_time.isoformat(),
-                'logout_time': session.logout_time.isoformat() if session.logout_time else None,
-                'ip_address': session.ip_address,
-                'is_active': session.is_active
-            }
-            for session in recent_sessions
-        ],
-        'game_stats': game_stats
-    })
+    return render_template('profile.html',
+                           user=current_user,
+                           stats=user_stats,
+                           recent_logs=recent_logs,
+                           recent_scores=recent_scores)
 
 
-@auth_bp.route('/change_password', methods=['POST'])
+@auth_bp.route('/change-password', methods=['POST'])
 @login_required
 def change_password():
     """
-    Handle password change requests
+    Change user password.
+    Requires current password for security.
     """
-    data = request.get_json() or request.form
 
-    current_password = data.get('current_password', '')
-    new_password = data.get('new_password', '')
-    confirm_password = data.get('confirm_password', '')
+    current_password = request.form.get('current_password', '')
+    new_password = request.form.get('new_password', '')
+    confirm_password = request.form.get('confirm_password', '')
+
+    # Get client information for logging
+    ip_address = request.environ.get('HTTP_X_FORWARDED_FOR', request.remote_addr)
+    user_agent = request.headers.get('User-Agent', '')
 
     # Validation
     errors = []
 
     if not current_password:
-        errors.append('Current password is required')
+        errors.append('Current password is required.')
     elif not current_user.check_password(current_password):
-        errors.append('Current password is incorrect')
+        errors.append('Current password is incorrect.')
 
     if not new_password:
-        errors.append('New password is required')
+        errors.append('New password is required.')
     elif len(new_password) < 4:
-        errors.append('New password must be at least 4 characters')
+        errors.append('New password must be at least 4 characters long.')
     elif len(new_password) > 128:
-        errors.append('New password must be less than 128 characters')
+        errors.append('New password must be less than 128 characters.')
 
     if new_password != confirm_password:
-        errors.append('New passwords do not match')
+        errors.append('New passwords do not match.')
 
     if current_password == new_password:
-        errors.append('New password must be different from current password')
+        errors.append('New password must be different from current password.')
 
-    if errors:
-        return jsonify({'success': False, 'errors': errors}), 400
+    if not errors:
+        try:
+            # Update password
+            current_user.set_password(new_password)
+            current_user.update_activity()
+            db.session.commit()
 
-    # Update password
-    try:
-        current_user.set_password(new_password)
-        db.session.commit()
+            # Log password change
+            SystemLog.log_action('password_changed',
+                                 f'User {current_user.username} changed password',
+                                 user_id=current_user.id,
+                                 ip_address=ip_address,
+                                 user_agent=user_agent)
 
-        # Log password change
-        ApplicationLog.log_event(
-            level='INFO',
-            category='AUTH',
-            message=f'User {current_user.username} changed password',
-            user_id=current_user.id,
-            ip_address=request.remote_addr
-        )
+            flash('Password changed successfully!', 'success')
 
-        return jsonify({
-            'success': True,
-            'message': 'Password changed successfully'
-        })
+        except Exception as e:
+            db.session.rollback()
+            flash('An error occurred while changing your password. Please try again.', 'error')
+            SystemLog.log_action('password_change_error',
+                                 f'Password change failed for {current_user.username}: {str(e)}',
+                                 user_id=current_user.id,
+                                 ip_address=ip_address,
+                                 user_agent=user_agent,
+                                 level='ERROR')
+    else:
+        for error in errors:
+            flash(error, 'error')
 
-    except Exception as e:
-        db.session.rollback()
-        print(f"Password change error: {e}")
-        return jsonify({
-            'success': False,
-            'errors': ['Failed to change password. Please try again.']
-        }), 500
+    return redirect(url_for('auth.profile'))
 
 
-@auth_bp.route('/delete_account', methods=['POST'])
+@auth_bp.route('/api/session-status')
 @login_required
-def delete_account():
+def session_status():
     """
-    Handle account deletion requests (with confirmation)
+    API endpoint to check current session status.
+    Used by frontend for session management.
     """
-    data = request.get_json() or request.form
-    password = data.get('password', '')
-    confirm_text = data.get('confirm_text', '')
 
-    # Validation
-    if not password:
-        return jsonify({
-            'success': False,
-            'error': 'Password is required to delete account'
-        }), 400
+    return jsonify({
+        'authenticated': True,
+        'user': {
+            'id': current_user.id,
+            'username': current_user.username,
+            'user_group': current_user.user_group,
+            'is_admin': current_user.is_admin(),
+            'last_activity': current_user.last_activity.isoformat() if current_user.last_activity else None
+        },
+        'session': {
+            'login_time': current_user.last_login.isoformat() if current_user.last_login else None,
+            'active': True
+        }
+    })
 
-    if not current_user.check_password(password):
-        return jsonify({
-            'success': False,
-            'error': 'Incorrect password'
-        }), 401
 
-    if confirm_text.lower() != 'delete my account':
-        return jsonify({
-            'success': False,
-            'error': 'Please type "delete my account" to confirm'
-        }), 400
-
-    # Prevent admin from deleting their own account if they're the only admin
-    if current_user.is_admin():
-        admin_count = User.query.filter_by(group='Admin', is_active=True).count()
-        if admin_count <= 1:
-            return jsonify({
-                'success': False,
-                'error': 'Cannot delete the last admin account'
-            }), 400
+@auth_bp.route('/api/update-preferences', methods=['POST'])
+@login_required
+def update_preferences():
+    """
+    API endpoint to update user preferences.
+    Used by frontend settings system.
+    """
 
     try:
-        user_id = current_user.id
-        username = current_user.username
+        # Get JSON data
+        preferences = request.get_json()
 
-        # Log account deletion before deleting
-        ApplicationLog.log_event(
-            level='WARNING',
-            category='AUTH',
-            message=f'User {username} deleted their account',
-            user_id=user_id,
-            ip_address=request.remote_addr
-        )
+        if not preferences:
+            return jsonify({'error': 'No preferences data provided'}), 400
 
-        # Deactivate instead of hard delete to preserve data integrity
-        current_user.is_active = False
-        current_user.username = f"deleted_{user_id}_{username}"
+        # Get current preferences and merge with new ones
+        current_prefs = current_user.get_preferences()
+        current_prefs.update(preferences)
 
-        # Deactivate all sessions
-        UserSession.query.filter_by(user_id=user_id).update({
-            'is_active': False,
-            'logout_time': datetime.utcnow()
-        })
+        # Save updated preferences
+        current_user.set_preferences(current_prefs)
+        current_user.update_activity()
 
-        db.session.commit()
-
-        # Logout user
-        logout_user()
-        session.clear()
+        # Log preference update
+        SystemLog.log_action('preferences_updated',
+                             f'User {current_user.username} updated preferences',
+                             user_id=current_user.id)
 
         return jsonify({
             'success': True,
-            'message': 'Account deleted successfully'
+            'message': 'Preferences updated successfully',
+            'preferences': current_prefs
         })
 
     except Exception as e:
-        db.session.rollback()
-        print(f"Account deletion error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@auth_bp.route('/api/user-stats')
+@login_required
+def user_stats():
+    """
+    API endpoint to get user statistics.
+    Used by frontend for displaying user info.
+    """
+
+    try:
+        stats = current_user.get_stats()
+
+        # Add additional stats
+        from models import GameScore
+        game_stats = {}
+
+        for game in ['snake', 'dino', 'memory', 'clicker']:
+            high_score = GameScore.get_high_score(current_user.id, game)
+            game_stats[game] = {
+                'high_score': high_score,
+                'games_played': GameScore.query.filter_by(
+                    user_id=current_user.id,
+                    game_name=game
+                ).count()
+            }
+
         return jsonify({
-            'success': False,
-            'error': 'Failed to delete account. Please try again.'
-        }), 500
+            'user_stats': stats,
+            'game_stats': game_stats,
+            'account_info': {
+                'username': current_user.username,
+                'user_group': current_user.user_group,
+                'email': current_user.email,
+                'created_at': current_user.created_at.isoformat(),
+                'is_admin': current_user.is_admin()
+            }
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 # Error handlers for authentication blueprint
 @auth_bp.errorhandler(401)
 def unauthorized(error):
-    """Handle unauthorized access"""
+    """Handle unauthorized access attempts"""
     if request.is_json:
-        return jsonify({'error': 'Unauthorized access'}), 401
+        return jsonify({'error': 'Authentication required'}), 401
+    flash('Please log in to access this page.', 'error')
     return redirect(url_for('auth.login'))
 
 
 @auth_bp.errorhandler(403)
 def forbidden(error):
-    """Handle forbidden access"""
+    """Handle forbidden access attempts"""
     if request.is_json:
         return jsonify({'error': 'Access forbidden'}), 403
-    flash('Access denied', 'error')
+    flash('You do not have permission to access this page.', 'error')
     return redirect(url_for('desktop.index'))
 
 
-print("🔐 Authentication routes loaded successfully")
+# Context processor for authentication templates
+@auth_bp.context_processor
+def inject_auth_context():
+    """Inject authentication-related context into templates"""
+    return {
+        'current_user': current_user,
+        'is_authenticated': current_user.is_authenticated if current_user else False
+    }

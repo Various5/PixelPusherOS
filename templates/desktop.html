@@ -1,144 +1,176 @@
 {% extends "base.html" %}
 
-{% block title %}Pixel Pusher OS - Desktop{% endblock %}
-{% block description %}Your Personal Web Desktop Environment{% endblock %}
+{% block title %}Desktop - Pixel Pusher OS{% endblock %}
+{% block description %}Pixel Pusher OS Desktop Environment - Access your applications, files, and games in a modern web-based interface.{% endblock %}
 
-{% block body_class %}desktop-os{% endblock %}
+{% block body_class %}desktop-environment{% endblock %}
 
 {% block extra_css %}
 <style>
     /* Desktop Environment Styles */
-    .desktop-os {
+    .desktop-environment {
         margin: 0;
         padding: 0;
         height: 100vh;
         overflow: hidden;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        font-family: 'Inter', 'Segoe UI', sans-serif;
-        user-select: none;
+        font-family: var(--font-family);
     }
 
+    /* Desktop Container */
     #desktop {
         position: relative;
         width: 100%;
-        height: calc(100vh - 40px);
+        height: 100vh;
         background-size: cover;
         background-position: center;
-        background-repeat: no-repeat;
+        background-attachment: fixed;
+        user-select: none;
         overflow: hidden;
-    }
-
-    /* Loading Screen */
-    #loadingOverlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 999999;
-        transition: opacity 0.8s ease-out;
-    }
-
-    .loading-content {
-        text-align: center;
-        color: white;
-    }
-
-    .loading-logo {
-        font-size: 5rem;
-        margin-bottom: 30px;
-        animation: loadingPulse 2s ease-in-out infinite;
-    }
-
-    .loading-text {
-        font-size: 1.5rem;
-        font-weight: 600;
-        margin-bottom: 40px;
-        opacity: 0.9;
-    }
-
-    .loading-progress {
-        width: 300px;
-        height: 6px;
-        background: rgba(255, 255, 255, 0.2);
-        border-radius: 3px;
-        overflow: hidden;
-        margin: 0 auto;
-    }
-
-    .progress-fill {
-        height: 100%;
-        background: linear-gradient(90deg, #00d9ff, #4facfe);
-        width: 0%;
-        animation: loadingProgress 3s ease-out forwards;
-        border-radius: 3px;
-    }
-
-    @keyframes loadingPulse {
-        0%, 100% { transform: scale(1); opacity: 1; }
-        50% { transform: scale(1.1); opacity: 0.8; }
-    }
-
-    @keyframes loadingProgress {
-        0% { width: 0%; }
-        20% { width: 30%; }
-        40% { width: 60%; }
-        80% { width: 85%; }
-        100% { width: 100%; }
     }
 
     /* Desktop Icons */
     .desktop-icon {
         position: absolute;
         width: 80px;
-        height: 90px;
+        height: 80px;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        cursor: pointer;
         padding: 8px;
-        border-radius: 12px;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        background: transparent;
-        border: 2px solid transparent;
+        border-radius: 8px;
+        cursor: pointer;
+        user-select: none;
+        transition: all 0.2s ease;
+        text-align: center;
     }
 
     .desktop-icon:hover {
-        background: rgba(255, 255, 255, 0.15);
-        border-color: rgba(255, 255, 255, 0.3);
-        transform: translateY(-2px) scale(1.05);
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        background-color: rgba(255, 255, 255, 0.1);
+        transform: scale(1.05);
     }
 
     .desktop-icon.selected {
-        background: rgba(0, 217, 255, 0.25);
-        border-color: #00d9ff;
-        transform: translateY(-2px) scale(1.05);
-        box-shadow: 0 8px 25px rgba(0, 217, 255, 0.3);
+        background-color: rgba(0, 217, 255, 0.3);
+        transform: scale(1.05);
     }
 
-    .icon-image {
-        font-size: 36px;
-        margin-bottom: 6px;
-        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+    .desktop-icon .icon-image {
+        font-size: 32px;
+        margin-bottom: 4px;
+        line-height: 1;
     }
 
-    .icon-label {
-        font-size: 12px;
+    .desktop-icon .icon-label {
+        font-size: 11px;
         color: white;
-        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
-        font-weight: 500;
-        text-align: center;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+        word-wrap: break-word;
         line-height: 1.2;
-        max-width: 70px;
+        max-width: 100%;
         overflow: hidden;
-        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+    }
+
+    /* Window Container */
+    #windowContainer {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 100;
+    }
+
+    /* Window Styles */
+    .window {
+        position: fixed;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        pointer-events: auto;
+        transition: all 0.2s ease;
+        min-width: 300px;
+        min-height: 200px;
+    }
+
+    .window.active {
+        box-shadow: 0 12px 40px rgba(0, 217, 255, 0.2);
+        border-color: var(--primary);
+    }
+
+    /* Window Header */
+    .window-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 12px;
+        background: var(--surface-light);
+        border-bottom: 1px solid var(--border);
+        cursor: move;
+        user-select: none;
+        min-height: 32px;
+    }
+
+    .window-title {
+        font-weight: 600;
+        font-size: 14px;
+        color: var(--text-primary);
+        flex: 1;
+        overflow: hidden;
         white-space: nowrap;
+        text-overflow: ellipsis;
+    }
+
+    .window-controls {
+        display: flex;
+        gap: 4px;
+    }
+
+    .window-btn {
+        width: 24px;
+        height: 24px;
+        border: none;
+        border-radius: 4px;
+        color: white;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        transition: opacity 0.2s;
+    }
+
+    .window-btn:hover {
+        opacity: 0.8;
+    }
+
+    .minimize-btn {
+        background: var(--warning);
+    }
+
+    .maximize-btn {
+        background: var(--success);
+    }
+
+    .close-btn {
+        background: var(--error);
+    }
+
+    /* Window Content */
+    .window-content {
+        flex: 1;
+        overflow: auto;
+        position: relative;
+        background: var(--background);
     }
 
     /* Taskbar */
@@ -148,200 +180,332 @@
         left: 0;
         right: 0;
         height: 40px;
-        background: rgba(0, 0, 0, 0.85);
-        backdrop-filter: blur(20px);
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        background: var(--surface-dark);
+        border-top: 1px solid var(--border);
         display: flex;
         align-items: center;
-        padding: 0 12px;
+        padding: 0 8px;
         z-index: 9999;
-        box-shadow: 0 -2px 20px rgba(0, 0, 0, 0.3);
-    }
-
-    .taskbar-left {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .taskbar-center {
-        flex: 1;
-        display: flex;
-        align-items: center;
         gap: 4px;
-        padding: 0 10px;
+        backdrop-filter: blur(10px);
     }
 
-    .taskbar-right {
+    .taskbar-button {
+        padding: 4px 12px;
+        border: none;
+        border-radius: 4px;
+        background: var(--surface);
+        color: var(--text-primary);
+        cursor: pointer;
+        font-size: 12px;
+        max-width: 150px;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        transition: all 0.2s ease;
+    }
+
+    .taskbar-button:hover {
+        background: var(--surface-light);
+    }
+
+    .taskbar-button.active {
+        background: var(--primary);
+        color: white;
+    }
+
+    .taskbar-button.minimized {
+        opacity: 0.6;
+    }
+
+    /* System Tray */
+    #systemTray {
+        margin-left: auto;
         display: flex;
         align-items: center;
         gap: 8px;
-    }
-
-    .start-button {
-        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-        border: none;
-        color: white;
-        padding: 8px 16px;
-        border-radius: 8px;
-        cursor: pointer;
-        font-weight: 600;
-        font-size: 13px;
-        transition: all 0.3s ease;
-        box-shadow: 0 2px 8px rgba(79, 172, 254, 0.3);
-    }
-
-    .start-button:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(79, 172, 254, 0.4);
-    }
-
-    .system-tray {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        color: rgba(255, 255, 255, 0.9);
-        font-size: 13px;
-        font-weight: 500;
-    }
-
-    .system-time {
-        font-family: 'SF Mono', 'Monaco', monospace;
+        color: var(--text-secondary);
         font-size: 12px;
-        opacity: 0.9;
     }
 
-    .system-icons {
-        display: flex;
-        gap: 6px;
-    }
-
-    .system-icon {
-        padding: 6px;
-        border-radius: 6px;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        opacity: 0.7;
-    }
-
-    .system-icon:hover {
-        background: rgba(255, 255, 255, 0.1);
-        opacity: 1;
+    #systemTime {
+        font-family: var(--font-mono);
+        font-weight: 500;
     }
 
     /* Context Menu */
     .context-menu {
         position: fixed;
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(20px);
-        border-radius: 12px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
         padding: 8px 0;
-        min-width: 180px;
-        z-index: 10001;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+        z-index: 9999;
+        min-width: 150px;
         display: none;
-        border: 1px solid rgba(255, 255, 255, 0.3);
     }
 
     .context-item {
-        padding: 10px 16px;
+        padding: 8px 16px;
         cursor: pointer;
-        color: #2d3748;
+        color: var(--text-primary);
         font-size: 14px;
-        font-weight: 500;
-        transition: all 0.2s ease;
+        transition: background-color 0.2s;
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 8px;
     }
 
     .context-item:hover {
-        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        background-color: var(--primary);
         color: white;
     }
 
     .context-separator {
         height: 1px;
-        background: rgba(0, 0, 0, 0.1);
-        margin: 4px 12px;
+        background-color: var(--border);
+        margin: 4px 0;
+    }
+
+    /* Terminal Styles */
+    .terminal-container {
+        font-family: var(--font-mono);
+        background: #1a1a1a;
+        color: #00ff00;
+        padding: 16px;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .terminal-output {
+        flex: 1;
+        overflow-y: auto;
+        margin-bottom: 8px;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        line-height: 1.4;
+        font-size: 14px;
+    }
+
+    .terminal-input-line {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 0;
+        border-top: 1px solid #333;
+    }
+
+    .terminal-prompt {
+        color: #00d9ff;
+        font-weight: bold;
+        white-space: nowrap;
+    }
+
+    .terminal-input {
+        flex: 1;
+        background: transparent;
+        border: none;
+        outline: none;
+        color: #00ff00;
+        font-family: inherit;
+        font-size: 14px;
+        caret-color: #00ff00;
+    }
+
+    /* Explorer Styles */
+    .explorer-container {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        background: var(--background);
+    }
+
+    .explorer-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        background: var(--surface-light);
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+    }
+
+    .explorer-toolbar button {
+        padding: 6px 12px;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        background: var(--surface);
+        color: var(--text-primary);
+        cursor: pointer;
+        font-size: 12px;
+        transition: all 0.2s ease;
+    }
+
+    .explorer-toolbar button:hover {
+        background: var(--surface-light);
+        border-color: var(--primary);
+    }
+
+    .explorer-path {
+        flex: 1;
+        padding: 6px 8px;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        background: var(--surface);
+        color: var(--text-primary);
+        font-size: 13px;
+        font-family: var(--font-mono);
+    }
+
+    .explorer-content {
+        flex: 1;
+        overflow: auto;
+        padding: 12px;
+        background: var(--background);
+    }
+
+    /* Game Styles */
+    .game-container {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        background: #000;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .game-content {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 18px;
+    }
+
+    /* Settings Styles */
+    .settings-container {
+        display: flex;
+        height: 100%;
+        background: var(--background);
+    }
+
+    .settings-sidebar {
+        width: 200px;
+        background: var(--surface-dark);
+        border-right: 1px solid var(--border);
+        padding: 16px 0;
+        flex-shrink: 0;
+    }
+
+    .settings-nav-item {
+        padding: 12px 20px;
+        cursor: pointer;
+        color: var(--text-secondary);
+        font-size: 14px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        border-left: 3px solid transparent;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .settings-nav-item:hover {
+        background-color: var(--surface-light);
+        color: var(--text-primary);
+    }
+
+    .settings-nav-item.active {
+        background-color: var(--primary);
+        color: white;
+        border-left-color: var(--primary-light);
+    }
+
+    .settings-content {
+        flex: 1;
+        padding: 24px;
+        overflow-y: auto;
+        background: var(--background);
+    }
+
+    /* Loading States */
+    .loading-spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 2px solid var(--border);
+        border-top: 2px solid var(--primary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
     }
 
     /* Responsive Design */
     @media (max-width: 768px) {
         .desktop-icon {
-            width: 70px;
-            height: 80px;
+            width: 60px;
+            height: 60px;
         }
 
-        .icon-image {
-            font-size: 28px;
+        .desktop-icon .icon-image {
+            font-size: 24px;
         }
 
-        .icon-label {
-            font-size: 11px;
+        .desktop-icon .icon-label {
+            font-size: 10px;
         }
 
-        .start-button {
-            padding: 6px 12px;
-            font-size: 12px;
+        .window {
+            min-width: 280px;
+        }
+
+        .settings-sidebar {
+            width: 150px;
+        }
+
+        .settings-content {
+            padding: 16px;
         }
     }
 
-    /* Theme Support */
-    [data-theme="dark"] #desktop {
-        background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+    /* Accessibility */
+    @media (prefers-reduced-motion: reduce) {
+        .desktop-icon,
+        .window,
+        .taskbar-button,
+        .context-item {
+            transition: none;
+        }
+
+        .loading-spinner {
+            animation: none;
+        }
     }
 
-    [data-theme="matrix"] #desktop {
-        background: linear-gradient(135deg, #000000 0%, #001100 100%);
-    }
-
-    [data-theme="neon"] #desktop {
-        background: linear-gradient(135deg, #0a0a0a 0%, #1a001a 100%);
+    /* Print Styles */
+    @media print {
+        #desktop,
+        #taskbar,
+        .context-menu {
+            display: none;
+        }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<!-- Loading Overlay -->
-<div id="loadingOverlay">
-    <div class="loading-content">
-        <div class="loading-logo">🎨</div>
-        <div class="loading-text">Loading Pixel Pusher OS</div>
-        <div class="loading-progress">
-            <div class="progress-fill"></div>
-        </div>
-    </div>
+<!-- Desktop Environment -->
+<div id="desktop">
+    <!-- Desktop icons will be dynamically created by JavaScript -->
 </div>
 
-<!-- Desktop -->
-<div id="desktop" class="desktop"
-     data-user="{{ user.username }}"
-     data-group="{{ user.group }}">
-    <!-- Desktop icons will be added here by JavaScript -->
-</div>
-
-<!-- Taskbar -->
-<div id="taskbar">
-    <div class="taskbar-left">
-        <button class="start-button" onclick="openWindow('terminal')">
-            🎨 Pixel Pusher
-        </button>
-    </div>
-
-    <div class="taskbar-center" id="taskbar-center">
-        <!-- Window buttons will appear here -->
-    </div>
-
-    <div class="taskbar-right">
-        <div class="system-tray">
-            <span id="systemTime" class="system-time">00:00:00</span>
-            <div class="system-icons">
-                <span class="system-icon" onclick="openWindow('settings')" title="Settings">⚙️</span>
-                <span class="system-icon" onclick="contextAction('logout')" title="Logout">🚪</span>
-            </div>
-        </div>
-    </div>
+<!-- Window Container -->
+<div id="windowContainer">
+    <!-- Application windows will be dynamically created here -->
 </div>
 
 <!-- Context Menu -->
@@ -350,7 +514,7 @@
         💻 Open Terminal
     </div>
     <div class="context-item" onclick="contextAction('explorer')">
-        📁 File Explorer
+        📁 Open File Explorer
     </div>
     <div class="context-separator"></div>
     <div class="context-item" onclick="contextAction('newfile')">
@@ -360,139 +524,185 @@
         📂 New Folder
     </div>
     <div class="context-separator"></div>
-    <div class="context-item" onclick="contextAction('settings')">
-        ⚙️ Settings
-    </div>
     <div class="context-item" onclick="contextAction('refresh')">
         🔄 Refresh Desktop
     </div>
 </div>
+
+<!-- Taskbar -->
+<div id="taskbar">
+    <!-- Start button or logo -->
+    <div style="margin-right: 8px; font-weight: bold; color: var(--primary);">
+        🎨 Pixel Pusher OS
+    </div>
+
+    <!-- Taskbar buttons will be dynamically created here -->
+
+    <!-- System tray -->
+    <div id="systemTray">
+        <div id="systemTime">--:--:--</div>
+    </div>
+</div>
+
+<!-- Hidden user data for JavaScript -->
+<div id="userData" style="display: none;">
+    <div data-user="{{ user.username }}" data-group="{{ user.user_group }}"></div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
-<!-- Load all your original JavaScript modules -->
+<!-- Load all JavaScript modules in correct order -->
+
+<!-- Core utilities first -->
 <script src="{{ url_for('static', filename='js/utils/helpers.js') }}"></script>
 <script src="{{ url_for('static', filename='js/utils/state.js') }}"></script>
+
+<!-- Core system modules -->
 <script src="{{ url_for('static', filename='js/core/auth.js') }}"></script>
 <script src="{{ url_for('static', filename='js/core/desktop.js') }}"></script>
 <script src="{{ url_for('static', filename='js/core/windows.js') }}"></script>
+
+<!-- Application modules -->
 <script src="{{ url_for('static', filename='js/apps/terminal.js') }}"></script>
 <script src="{{ url_for('static', filename='js/apps/explorer.js') }}"></script>
 <script src="{{ url_for('static', filename='js/apps/games.js') }}"></script>
 <script src="{{ url_for('static', filename='js/apps/settings.js') }}"></script>
+
+<!-- Main application controller (loads last) -->
 <script src="{{ url_for('static', filename='js/core/app.js') }}"></script>
 
+<!-- Desktop-specific initialization -->
 <script>
-// Your original loading functionality
-function hideLoadingScreen() {
-    const loadingOverlay = document.getElementById('loadingOverlay');
-    if (loadingOverlay) {
-        setTimeout(() => {
-            loadingOverlay.style.opacity = '0';
-            setTimeout(() => {
-                loadingOverlay.style.display = 'none';
-            }, 800);
-        }, 2500);
-    }
-}
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🖥️ Desktop environment loading...');
 
-// System clock
-function updateSystemTime() {
-    const timeElement = document.getElementById('systemTime');
-    if (timeElement) {
-        const now = new Date();
-        timeElement.textContent = now.toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit'
-        });
-    }
-}
+    // Initialize desktop with user preferences
+    const userPreferences = {{ preferences | tojson | safe }};
+    console.log('👤 User preferences loaded:', userPreferences);
 
-// Context menu handling
-document.addEventListener('contextmenu', (e) => {
-    const desktop = document.getElementById('desktop');
-    if (e.target === desktop) {
-        e.preventDefault();
-        showContextMenu(e.clientX, e.clientY);
+    // Apply saved theme
+    if (userPreferences.theme) {
+        window.PixelPusherTheme.set(userPreferences.theme);
     }
+
+    // Apply saved wallpaper
+    if (userPreferences.wallpaper) {
+        const desktop = document.getElementById('desktop');
+        if (desktop) {
+            desktop.style.backgroundImage = `url(${userPreferences.wallpaper})`;
+        }
+    }
+
+    // Set font size
+    if (userPreferences.fontSize) {
+        document.documentElement.style.fontSize = userPreferences.fontSize + 'px';
+    }
+
+    // Disable animations if requested
+    if (userPreferences.animations === false) {
+        document.body.classList.add('no-animations');
+    }
+
+    console.log('✅ Desktop environment ready');
+
+    // Show welcome message for new users
+    {% if user.login_count == 1 %}
+    setTimeout(function() {
+        if (window.pixelPusher && window.pixelPusher.showModal) {
+            const welcomeContent = `
+                <div style="text-align: center;">
+                    <h2>🎉 Welcome to Pixel Pusher OS!</h2>
+                    <p>Welcome, <strong>{{ user.username }}</strong>! Your desktop environment is ready.</p>
+                    <div style="margin: 20px 0; text-align: left;">
+                        <strong>Quick Tips:</strong><br>
+                        • Double-click icons to open applications<br>
+                        • Right-click desktop for context menu<br>
+                        • Use keyboard shortcuts for quick access<br>
+                        • Customize your experience in Settings
+                    </div>
+                    <div style="margin: 20px 0;">
+                        <strong>Keyboard Shortcuts:</strong><br>
+                        <kbd>Ctrl+Alt+T</kbd> Terminal |
+                        <kbd>Ctrl+Alt+E</kbd> Explorer |
+                        <kbd>Ctrl+Alt+S</kbd> Settings
+                    </div>
+                    <button onclick="this.closest('.modal').remove()" class="btn btn-primary">
+                        Let's Get Started! 🚀
+                    </button>
+                </div>
+            `;
+            window.pixelPusher.showModal('Welcome to Pixel Pusher OS', welcomeContent);
+        }
+    }, 2000);
+    {% endif %}
 });
 
-function showContextMenu(x, y) {
-    const menu = document.getElementById('contextMenu');
-    menu.style.display = 'block';
-    menu.style.left = Math.min(x, window.innerWidth - 200) + 'px';
-    menu.style.top = Math.min(y, window.innerHeight - 300) + 'px';
-}
-
-document.addEventListener('click', (e) => {
-    const menu = document.getElementById('contextMenu');
-    if (menu && !menu.contains(e.target)) {
-        menu.style.display = 'none';
-    }
-});
-
-// Context actions
-function contextAction(action) {
-    const menu = document.getElementById('contextMenu');
-    menu.style.display = 'none';
-
-    switch(action) {
-        case 'terminal':
-        case 'explorer':
-        case 'settings':
-            openWindow(action);
-            break;
-        case 'logout':
-            if (confirm('Sign out of Pixel Pusher OS?')) {
-                window.location.href = '/logout';
-            }
-            break;
-        case 'refresh':
-            window.location.reload();
-            break;
-        default:
-            console.log('Context action:', action);
-    }
-}
-
-// Initialize everything
-document.addEventListener('DOMContentLoaded', () => {
-    // Start system clock
-    updateSystemTime();
-    setInterval(updateSystemTime, 1000);
-
-    // Hide loading screen
-    hideLoadingScreen();
-
-    console.log('🎨 Pixel Pusher OS Desktop Loaded');
-});
-
-// Window management compatibility
+// Global helper functions for backward compatibility
 function openWindow(windowId) {
-    if (window.pixelPusher && window.pixelPusher.modules.windows) {
-        window.pixelPusher.modules.windows.open(windowId);
-    } else {
-        console.log(`Opening ${windowId}...`);
+    if (window.pixelPusher) {
+        window.pixelPusher.openApplication(windowId);
     }
 }
 
 function closeWindow(windowId) {
-    if (window.pixelPusher && window.pixelPusher.modules.windows) {
-        window.pixelPusher.modules.windows.close(windowId);
+    if (window.pixelPusher) {
+        window.pixelPusher.closeApplication(windowId);
     }
 }
 
-function minimizeWindow(windowId) {
-    if (window.pixelPusher && window.pixelPusher.modules.windows) {
-        window.pixelPusher.modules.windows.minimize(windowId);
+function contextAction(action) {
+    if (window.pixelPusher) {
+        switch(action) {
+            case 'terminal':
+            case 'explorer':
+                window.pixelPusher.openApplication(action);
+                break;
+            case 'newfile':
+                window.PixelPusherUtils.showNotification('Creating new file...', 'info');
+                break;
+            case 'newfolder':
+                window.PixelPusherUtils.showNotification('Creating new folder...', 'info');
+                break;
+            case 'refresh':
+                window.location.reload();
+                break;
+            default:
+                console.log('Context action:', action);
+        }
+        window.pixelPusher.closeAllContextMenus();
     }
 }
 
-function maximizeWindow(windowId) {
-    if (window.pixelPusher && window.pixelPusher.modules.windows) {
-        window.pixelPusher.modules.windows.maximize(windowId);
+// Performance monitoring
+console.log('📊 Performance Info:');
+console.log('Load Time:', Math.round(performance.now()), 'ms');
+console.log('User Agent:', navigator.userAgent);
+console.log('Screen:', screen.width + 'x' + screen.height);
+console.log('Viewport:', window.innerWidth + 'x' + window.innerHeight);
+
+// Browser compatibility checks
+const features = {
+    'Fetch API': 'fetch' in window,
+    'Local Storage': 'localStorage' in window,
+    'WebGL': (() => {
+        try {
+            const canvas = document.createElement('canvas');
+            return !!(canvas.getContext('webgl') || canvas.getContext('experimental-webgl'));
+        } catch {
+            return false;
+        }
+    })(),
+    'Web Workers': 'Worker' in window,
+    'Service Workers': 'serviceWorker' in navigator
+};
+
+console.log('🔧 Browser Features:', features);
+
+// Warn about unsupported features
+Object.entries(features).forEach(([feature, supported]) => {
+    if (!supported) {
+        console.warn(`⚠️ ${feature} not supported - some features may not work`);
     }
-}
+});
 </script>
 {% endblock %}
