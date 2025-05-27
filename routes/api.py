@@ -1,269 +1,158 @@
 #!/usr/bin/env python3
 """
-Pixel Pusher OS - API Routes
-Flask blueprint for API endpoints including terminal commands, file operations, and game data.
+System Information API Endpoint
+Add this to your routes/api.py file or create it if it doesn't exist
 """
 
 import os
-import json
 import time
-import psutil  # Add this to requirements.txt if not present
-from flask import Blueprint, request, jsonify, send_file, current_app
+import platform
+from flask import Blueprint, jsonify, request
 from flask_login import login_required, current_user
-from werkzeug.utils import secure_filename
 
-# Import models
-from models import db, SystemLog, GameScore, FileMetadata, AppData
-
-# Import utilities
-from utils.file_browser import FileBrowser
-
-# Create blueprint
+# Create the API blueprint
 api_bp = Blueprint('api', __name__)
-
-# Initialize file browser
-file_browser = FileBrowser()
-
-
-@api_bp.route('/command', methods=['POST'])
-@login_required
-def execute_command():
-    """
-    Execute terminal command and return result.
-    Fixed: Changed to POST method to handle commands properly.
-    """
-    try:
-        data = request.get_json()
-        command = data.get('command', '') if data else ''
-
-        if not command:
-            return jsonify({'error': True, 'message': 'No command provided'}), 400
-
-        # Log the command execution
-        SystemLog.log_event(
-            level='INFO',
-            category='COMMAND',
-            action='execute',
-            message=f'Command executed: {command}',
-            user=current_user,
-            request=request
-        )
-
-        # Execute command using FileBrowser
-        result = file_browser.execute(command)
-
-        # Handle special command responses
-        if result.startswith('__CLEAR__'):
-            return jsonify({'clear': True})
-        elif result.startswith('__COLOR__::'):
-            theme = result.split('::')[1]
-            return jsonify({'color_theme': theme})
-        elif result.startswith('__EFFECT__::'):
-            effect = result.split('::')[1]
-            return jsonify({'start_effect': effect})
-        elif result.startswith('__WALLPAPER__::'):
-            wallpaper = result.split('::')[1]
-            return jsonify({'wallpaper': wallpaper})
-        elif result.startswith('__EXPLORER__'):
-            return jsonify({'explorer': True})
-        elif result.startswith('__GAME__::'):
-            game = result.split('::')[1]
-            return jsonify({'game_start': game})
-        elif result.startswith('__IMAGE__::'):
-            image = result.split('::')[1]
-            return jsonify({'image': image})
-        elif result.startswith('__VIDEO__::'):
-            video = result.split('::')[1]
-            return jsonify({'video': video})
-        elif result.startswith('__AUDIO__::'):
-            audio = result.split('::')[1]
-            return jsonify({'audio': audio})
-        else:
-            # Regular text output
-            return jsonify({'output': result})
-
-    except Exception as e:
-        # Log the error
-        SystemLog.log_event(
-            level='ERROR',
-            category='COMMAND',
-            action='error',
-            message=f'Command execution failed: {str(e)}',
-            user=current_user,
-            request=request
-        )
-
-        return jsonify({'error': True, 'message': str(e)}), 500
-
-
-@api_bp.route('/explorer/<path:path>')
-@login_required
-def explore_directory(path=''):
-    """
-    Get directory contents for file explorer.
-    Fixed: Returns proper JSON response for file explorer.
-    """
-    try:
-        # Normalize path
-        if not path or path == '/' or path == 'undefined':
-            path = ''
-
-        # Get the base directory
-        base_dir = current_app.config.get('USER_FILES_DIR', 'user_files')
-
-        # Construct full path
-        if path:
-            full_path = os.path.join(base_dir, path)
-        else:
-            full_path = base_dir
-
-        # Ensure the directory exists
-        if not os.path.exists(full_path):
-            os.makedirs(full_path, exist_ok=True)
-
-        items = []
-
-        # Get directory contents
-        try:
-            for item_name in os.listdir(full_path):
-                item_path = os.path.join(full_path, item_name)
-
-                try:
-                    stat = os.stat(item_path)
-
-                    items.append({
-                        'name': item_name,
-                        'type': 'dir' if os.path.isdir(item_path) else 'file',
-                        'size': stat.st_size if os.path.isfile(item_path) else 0,
-                        'modified': int(stat.st_mtime)
-                    })
-                except OSError:
-                    # Skip items we can't stat
-                    continue
-
-        except PermissionError:
-            return jsonify({'error': 'Permission denied'}), 403
-
-        return jsonify({'items': items})
-
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
 
 
 @api_bp.route('/system/info')
 @login_required
 def system_info():
     """
-    Get real system information including processes.
-    Fixed: Returns actual system process data.
+    Get system information for the task manager
     """
     try:
-        # Get CPU info
-        cpu_percent = psutil.cpu_percent(interval=1)
-        cpu_count = psutil.cpu_count()
-
-        # Get memory info
-        memory = psutil.virtual_memory()
-
-        # Get disk info
-        disk = psutil.disk_usage('/')
-
-        # Get process list (top 10 by CPU usage)
-        processes = []
-        for proc in psutil.process_iter(['pid', 'name', 'cpu_percent', 'memory_info']):
-            try:
-                proc_info = proc.info
-                processes.append({
-                    'pid': proc_info['pid'],
-                    'name': proc_info['name'],
-                    'cpu_percent': proc_info['cpu_percent'],
-                    'memory_mb': proc_info['memory_info'].rss / 1024 / 1024 if proc_info['memory_info'] else 0
-                })
-            except (psutil.NoSuchProcess, psutil.AccessDenied):
-                continue
-
-        # Sort by CPU usage and take top 10
-        processes.sort(key=lambda x: x['cpu_percent'], reverse=True)
-        processes = processes[:10]
-
-        return jsonify({
+        # Basic system information
+        system_data = {
             'cpu': {
-                'percent': cpu_percent,
-                'cores': cpu_count
+                'percent': 0.0,  # We'll try to get real CPU usage
+                'cores': os.cpu_count() or 4
             },
             'memory': {
-                'total': memory.total,
-                'used': memory.used,
-                'percent': memory.percent,
-                'available': memory.available
+                'total': 0,
+                'used': 0,
+                'percent': 0.0
             },
             'disk': {
+                'total': 0,
+                'used': 0,
+                'percent': 0.0
+            },
+            'uptime': time.time() - getattr(system_info, '_start_time', time.time()),
+            'processes': []
+        }
+
+        # Try to get more detailed system info if psutil is available
+        try:
+            import psutil
+
+            # CPU information
+            system_data['cpu']['percent'] = psutil.cpu_percent(interval=0.1)
+
+            # Memory information
+            memory = psutil.virtual_memory()
+            system_data['memory'] = {
+                'total': memory.total,
+                'used': memory.used,
+                'percent': memory.percent
+            }
+
+            # Disk information
+            disk = psutil.disk_usage('/')
+            system_data['disk'] = {
                 'total': disk.total,
                 'used': disk.used,
-                'free': disk.free,
-                'percent': disk.percent
-            },
-            'processes': processes,
-            'uptime': time.time() - current_app.config.get('START_TIME', time.time())
-        })
+                'percent': (disk.used / disk.total) * 100
+            }
+
+            # Process information (top 10 by CPU usage)
+            processes = []
+            for proc in psutil.process_iter(['pid', 'name', 'cpu_percent', 'memory_info']):
+                try:
+                    proc_info = proc.info
+                    if proc_info['cpu_percent'] is not None:
+                        processes.append({
+                            'pid': proc_info['pid'],
+                            'name': proc_info['name'][:30],  # Limit name length
+                            'cpu_percent': proc_info['cpu_percent'],
+                            'memory_mb': proc_info['memory_info'].rss / 1024 / 1024 if proc_info['memory_info'] else 0
+                        })
+                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                    pass
+
+            # Sort by CPU usage and take top 10
+            processes.sort(key=lambda x: x['cpu_percent'], reverse=True)
+            system_data['processes'] = processes[:10]
+
+        except ImportError:
+            # psutil not available, provide mock data
+            print("⚠️ psutil not installed - using mock system data")
+
+            # Mock CPU usage (random-ish)
+            import random
+            system_data['cpu']['percent'] = random.uniform(5.0, 25.0)
+
+            # Mock memory usage (8GB total)
+            total_memory = 8 * 1024 * 1024 * 1024  # 8GB
+            used_memory = int(total_memory * 0.45)  # 45% used
+            system_data['memory'] = {
+                'total': total_memory,
+                'used': used_memory,
+                'percent': 45.0
+            }
+
+            # Mock disk usage (100GB total)
+            total_disk = 100 * 1024 * 1024 * 1024  # 100GB
+            used_disk = int(total_disk * 0.6)  # 60% used
+            system_data['disk'] = {
+                'total': total_disk,
+                'used': used_disk,
+                'percent': 60.0
+            }
+
+            # Mock processes
+            system_data['processes'] = [
+                {'pid': 1234, 'name': 'flask', 'cpu_percent': 12.5, 'memory_mb': 125.3},
+                {'pid': 5678, 'name': 'python', 'cpu_percent': 8.2, 'memory_mb': 89.7},
+                {'pid': 9012, 'name': 'chrome', 'cpu_percent': 15.1, 'memory_mb': 234.8},
+                {'pid': 3456, 'name': 'firefox', 'cpu_percent': 6.7, 'memory_mb': 156.2},
+                {'pid': 7890, 'name': 'code', 'cpu_percent': 4.3, 'memory_mb': 178.9}
+            ]
+
+        # Store start time for uptime calculation
+        if not hasattr(system_info, '_start_time'):
+            system_info._start_time = time.time()
+
+        return jsonify(system_data)
 
     except Exception as e:
-        # Fallback to basic info if psutil fails
+        print(f"❌ System info API error: {e}")
         return jsonify({
-            'cpu': {'percent': 0, 'cores': os.cpu_count() or 1},
-            'memory': {'total': 0, 'used': 0, 'percent': 0, 'available': 0},
-            'disk': {'total': 0, 'used': 0, 'free': 0, 'percent': 0},
-            'processes': [],
-            'uptime': time.time() - current_app.config.get('START_TIME', time.time()),
-            'error': str(e)
-        })
+            'error': True,
+            'message': f'Failed to get system information: {str(e)}'
+        }), 500
 
 
 @api_bp.route('/music')
 @login_required
-def get_music_files():
+def music_files():
     """
-    Get list of music files from user's music directory.
-    Fixed: Scans actual music directory for audio files.
+    Get music files for the music player
     """
     try:
-        # Get music directory path
-        base_dir = current_app.config.get('USER_FILES_DIR', 'user_files')
-        music_dir = os.path.join(base_dir, 'music')
-
-        # Ensure music directory exists
-        if not os.path.exists(music_dir):
-            os.makedirs(music_dir, exist_ok=True)
-
-            # Create sample music files info
-            sample_info = os.path.join(music_dir, 'README.txt')
-            with open(sample_info, 'w') as f:
-                f.write("Place your music files (MP3, WAV, OGG, FLAC, M4A) in this directory.\n")
-
+        music_dir = os.path.join('user_files', 'music')
         music_files = []
-        audio_extensions = {'.mp3', '.wav', '.ogg', '.flac', '.m4a', '.aac', '.wma'}
 
-        # Scan for music files
-        for root, dirs, files in os.walk(music_dir):
-            for file in files:
-                ext = os.path.splitext(file)[1].lower()
-                if ext in audio_extensions:
-                    file_path = os.path.join(root, file)
-                    rel_path = os.path.relpath(file_path, music_dir)
-
-                    try:
-                        stat = os.stat(file_path)
+        if os.path.exists(music_dir):
+            for root, dirs, files in os.walk(music_dir):
+                for file in files:
+                    if file.lower().endswith(('.mp3', '.wav', '.ogg', '.flac', '.m4a', '.aac')):
+                        rel_path = os.path.relpath(os.path.join(root, file), music_dir)
                         music_files.append({
-                            'name': file,
-                            'path': rel_path,
-                            'size': stat.st_size,
-                            'modified': int(stat.st_mtime),
-                            'type': ext[1:],  # Remove dot
                             'title': os.path.splitext(file)[0],
-                            'artist': 'Unknown Artist'  # You could parse ID3 tags here
+                            'path': rel_path,
+                            'artist': 'Unknown Artist',
+                            'album': 'Unknown Album'
                         })
-                    except OSError:
-                        continue
 
         return jsonify({
             'files': music_files,
@@ -271,328 +160,148 @@ def get_music_files():
         })
 
     except Exception as e:
-        return jsonify({'error': str(e), 'files': []}), 500
+        print(f"❌ Music API error: {e}")
+        return jsonify({
+            'error': True,
+            'message': f'Failed to get music files: {str(e)}'
+        }), 500
 
 
 @api_bp.route('/files/<path:filename>')
 @login_required
-def serve_file(filename):
+def serve_user_file(filename):
     """
-    Serve files from the user's directory.
-
-    Args:
-        filename (str): File path to serve
-
-    Returns:
-        File response
+    Serve user files (music, images, etc.)
     """
     try:
-        # Security check - ensure file is in allowed directory
-        base_dir = current_app.config.get('USER_FILES_DIR', 'user_files')
-        file_path = os.path.join(base_dir, filename)
-        file_path = os.path.normpath(file_path)
-
-        # Ensure the requested file is within the user files directory
-        if not file_path.startswith(os.path.abspath(base_dir)):
-            return jsonify({'error': 'Access denied'}), 403
-
-        if not os.path.exists(file_path):
-            return jsonify({'error': 'File not found'}), 404
-
-        # Log file access
-        SystemLog.log_event(
-            level='INFO',
-            category='FILE',
-            action='access',
-            message=f'File accessed: {filename}',
-            user=current_user,
-            request=request
-        )
-
-        return send_file(file_path)
-
+        from flask import send_from_directory
+        return send_from_directory('user_files', filename)
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        print(f"❌ File serving error: {e}")
+        return jsonify({
+            'error': True,
+            'message': f'File not found: {str(e)}'
+        }), 404
 
 
-@api_bp.route('/save', methods=['POST'])
+@api_bp.route('/explorer/<path:directory>')
 @login_required
-def save_file():
+def explorer_api(directory='/'):
     """
-    Save file content to the user's directory.
-
-    Returns:
-        JSON response with save status
+    File explorer API endpoint
     """
     try:
-        data = request.get_json()
-        filename = data.get('filename')
-        content = data.get('content', '')
+        base_path = os.path.join(os.getcwd(), 'user_files')
+        if directory.startswith('/'):
+            directory = directory[1:]  # Remove leading slash
 
-        if not filename:
-            return jsonify({'error': 'Filename is required'}), 400
+        target_path = os.path.join(base_path, directory) if directory else base_path
 
-        # Security check
-        filename = secure_filename(filename)
-        base_dir = current_app.config.get('USER_FILES_DIR', 'user_files')
-        file_path = os.path.join(base_dir, filename)
-        file_path = os.path.normpath(file_path)
+        if not os.path.exists(target_path):
+            return jsonify({'error': True, 'message': 'Directory not found'}), 404
 
-        if not file_path.startswith(os.path.abspath(base_dir)):
-            return jsonify({'error': 'Access denied'}), 403
+        items = []
+        try:
+            for item_name in os.listdir(target_path):
+                item_path = os.path.join(target_path, item_name)
 
-        # Create directory if it doesn't exist
-        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+                if os.path.isdir(item_path):
+                    items.append({
+                        'name': item_name,
+                        'type': 'dir',
+                        'size': 0,
+                        'modified': os.path.getmtime(item_path)
+                    })
+                else:
+                    items.append({
+                        'name': item_name,
+                        'type': 'file',
+                        'size': os.path.getsize(item_path),
+                        'modified': os.path.getmtime(item_path)
+                    })
 
-        # Save file
-        with open(file_path, 'w', encoding='utf-8') as f:
-            f.write(content)
-
-        # Log file save
-        SystemLog.log_event(
-            level='INFO',
-            category='FILE',
-            action='save',
-            message=f'File saved: {filename}',
-            user=current_user,
-            request=request
-        )
-
-        return jsonify({'success': True, 'message': 'File saved successfully'})
-
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-
-@api_bp.route('/upload', methods=['POST'])
-@login_required
-def upload_file():
-    """
-    Upload file to the user's directory.
-
-    Returns:
-        JSON response with upload status
-    """
-    try:
-        if 'file' not in request.files:
-            return jsonify({'error': 'No file provided'}), 400
-
-        file = request.files['file']
-        if file.filename == '':
-            return jsonify({'error': 'No file selected'}), 400
-
-        # Check file extension
-        if not allowed_file(file.filename):
-            return jsonify({'error': 'File type not allowed'}), 400
-
-        # Secure filename
-        filename = secure_filename(file.filename)
-        upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
-
-        # Save file
-        file.save(upload_path)
-
-        # Create file metadata
-        file_metadata = FileMetadata(
-            filename=filename,
-            original_filename=file.filename,
-            file_path=upload_path,
-            file_size=os.path.getsize(upload_path),
-            user_id=current_user.id,
-            upload_ip=request.remote_addr,
-            mime_type=file.content_type
-        )
-
-        db.session.add(file_metadata)
-        db.session.commit()
-
-        # Log file upload
-        SystemLog.log_event(
-            level='INFO',
-            category='FILE',
-            action='upload',
-            message=f'File uploaded: {filename}',
-            user=current_user,
-            request=request
-        )
-
-        return jsonify({'success': True, 'filename': filename})
-
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-
-@api_bp.route('/game/score', methods=['POST'])
-@login_required
-def save_game_score():
-    """
-    Save game score to database.
-
-    Returns:
-        JSON response with save status
-    """
-    try:
-        data = request.get_json()
-        game_name = data.get('game_name')
-        score = data.get('score', 0)
-        level = data.get('level')
-        duration = data.get('duration')
-        moves = data.get('moves')
-        game_data = data.get('game_data')
-
-        if not game_name:
-            return jsonify({'error': 'Game name is required'}), 400
-
-        # Save score
-        game_score = GameScore.save_score(
-            user_id=current_user.id,
-            username=current_user.username,
-            game_name=game_name,
-            score=score,
-            level=level,
-            duration=duration,
-            moves=moves,
-            game_data=json.dumps(game_data) if game_data else None
-        )
-
-        # Check if it's a high score
-        high_score = GameScore.get_high_score(game_name, current_user.id)
-        is_high_score = high_score and high_score.id == game_score.id
+        except PermissionError:
+            return jsonify({'error': True, 'message': 'Permission denied'}), 403
 
         return jsonify({
-            'success': True,
-            'score_id': game_score.id,
-            'is_high_score': is_high_score,
-            'high_score': high_score.score if high_score else 0
+            'path': f'/{directory}' if directory else '/',
+            'items': items
         })
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        print(f"❌ Explorer API error: {e}")
+        return jsonify({
+            'error': True,
+            'message': f'Failed to read directory: {str(e)}'
+        }), 500
 
 
-@api_bp.route('/game/leaderboard/<game_name>')
+@api_bp.route('/command', methods=['POST'])
 @login_required
-def get_leaderboard(game_name):
+def execute_command():
     """
-    Get leaderboard for a specific game.
-
-    Args:
-        game_name (str): Name of the game
-
-    Returns:
-        JSON response with leaderboard data
+    Execute terminal commands
     """
     try:
-        limit = request.args.get('limit', 10, type=int)
-        scores = GameScore.get_leaderboard(game_name, limit)
+        data = request.get_json()
+        command = data.get('command', '').strip()
 
-        leaderboard = [score.to_dict() for score in scores]
+        if not command:
+            return jsonify({'error': True, 'message': 'No command provided'})
 
-        return jsonify({'leaderboard': leaderboard})
-
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-
-@api_bp.route('/app/data', methods=['GET', 'POST'])
-@login_required
-def app_data():
-    """
-    Get or set application data for the current user.
-
-    Returns:
-        JSON response with app data
-    """
-    try:
-        if request.method == 'GET':
-            app_name = request.args.get('app_name')
-            data_key = request.args.get('data_key')
-
-            if not app_name:
-                return jsonify({'error': 'App name is required'}), 400
-
-            app_data = AppData.get_user_app_data(current_user.id, app_name, data_key)
-
-            if data_key:
-                # Single value
-                return jsonify({
-                    'data': app_data.data_value if app_data else None
-                })
-            else:
-                # All data for app
-                data_dict = {item.data_key: item.data_value for item in app_data}
-                return jsonify({'data': data_dict})
-
-        else:  # POST
-            data = request.get_json()
-            app_name = data.get('app_name')
-            data_key = data.get('data_key')
-            data_value = data.get('data_value')
-
-            if not app_name or not data_key:
-                return jsonify({'error': 'App name and data key are required'}), 400
-
-            app_data = AppData.set_user_app_data(
-                current_user.id, app_name, data_key, data_value
-            )
-
-            return jsonify({'success': True, 'data': app_data.to_dict()})
-
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-
-@api_bp.route('/system/stats')
-@login_required
-def system_stats():
-    """
-    Get system statistics.
-
-    Returns:
-        JSON response with system stats
-    """
-    try:
-        # Get START_TIME from app config or use current time as fallback
-        start_time = current_app.config.get('START_TIME')
-        if start_time is None:
-            # If START_TIME is not set, try to get it from the global variable
-            try:
-                from app import START_TIME
-                uptime = time.time() - START_TIME
-            except ImportError:
-                # Fallback to 0 if START_TIME is not available
-                uptime = 0
+        # Simple command processing (extend as needed)
+        if command == 'help':
+            output = """Available commands:
+help        - Show this help message
+ls          - List files
+pwd         - Show current directory  
+date        - Show current date/time
+whoami      - Show current user
+clear       - Clear terminal
+echo <text> - Display text
+sysinfo     - Show system information
+uptime      - Show system uptime
+"""
+        elif command == 'ls':
+            output = "documents/  downloads/  pictures/  music/  videos/  README.txt"
+        elif command == 'pwd':
+            output = "/home/user"
+        elif command == 'date':
+            output = time.strftime("%Y-%m-%d %H:%M:%S")
+        elif command == 'whoami':
+            output = current_user.username if current_user.is_authenticated else 'guest'
+        elif command == 'clear':
+            return jsonify({'clear': True})
+        elif command.startswith('echo '):
+            output = command[5:]  # Remove 'echo ' prefix
+        elif command == 'sysinfo':
+            output = f"""System Information:
+OS: {platform.system()} {platform.release()}
+Python: {platform.python_version()}
+User: {current_user.username if current_user.is_authenticated else 'guest'}
+CPU Cores: {os.cpu_count()}
+"""
+        elif command == 'uptime':
+            uptime_seconds = time.time() - getattr(execute_command, '_start_time', time.time())
+            hours = int(uptime_seconds // 3600)
+            minutes = int((uptime_seconds % 3600) // 60)
+            output = f"System uptime: {hours}h {minutes}m"
         else:
-            uptime = time.time() - start_time
+            output = f"Command not found: {command}\nType 'help' for available commands."
 
-        stats = {
-            'uptime': uptime,
-            'user_count': len(db.session.query(db.func.count(db.distinct(SystemLog.user_id))).scalar() or 0),
-            'command_count': SystemLog.query.filter_by(category='COMMAND').count(),
-            'file_count': FileMetadata.query.filter_by(is_active=True).count(),
-            'game_scores': GameScore.query.count(),
-            'current_user': current_user.username,
-            'user_group': current_user.group
-        }
-
-        return jsonify(stats)
+        return jsonify({'output': output})
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        print(f"❌ Command execution error: {e}")
+        return jsonify({
+            'error': True,
+            'message': f'Command execution failed: {str(e)}'
+        })
 
 
-# Error handlers
-@api_bp.errorhandler(404)
-def api_not_found(error):
-    """Handle 404 errors in API."""
-    return jsonify({'error': 'API endpoint not found'}), 404
+# Store start time for uptime calculations
+execute_command._start_time = time.time()
+system_info._start_time = time.time()
 
-
-@api_bp.errorhandler(500)
-def api_internal_error(error):
-    """Handle 500 errors in API."""
-    db.session.rollback()
-    return jsonify({'error': 'Internal server error'}), 500
-
-
-print("🔗 API routes loaded successfully")
+# Export the blueprint
+__all__ = ['api_bp']

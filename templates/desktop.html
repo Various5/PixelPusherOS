@@ -255,116 +255,6 @@
         caret-color: #00ff00;
     }
 
-    /* Explorer Styles */
-    .explorer-container {
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-        background: var(--background);
-    }
-
-    .explorer-toolbar {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 12px;
-        background: var(--surface-light);
-        border-bottom: 1px solid var(--border);
-        flex-shrink: 0;
-    }
-
-    .explorer-toolbar button {
-        padding: 6px 12px;
-        border: 1px solid var(--border);
-        border-radius: 4px;
-        background: var(--surface);
-        color: var(--text-primary);
-        cursor: pointer;
-        font-size: 12px;
-        transition: all 0.2s ease;
-    }
-
-    .explorer-path {
-        flex: 1;
-        padding: 6px 8px;
-        border: 1px solid var(--border);
-        border-radius: 4px;
-        background: var(--surface);
-        color: var(--text-primary);
-        font-size: 13px;
-        font-family: monospace;
-    }
-
-    .explorer-content {
-        flex: 1;
-        overflow: auto;
-        padding: 12px;
-        background: var(--background);
-    }
-
-    /* Game Styles */
-    .game-container {
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-        background: #000;
-    }
-
-    .game-content {
-        flex: 1;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: #000;
-        color: white;
-    }
-
-    /* Settings Styles */
-    .settings-container {
-        display: flex;
-        height: 100%;
-        background: var(--background);
-    }
-
-    .settings-sidebar {
-        width: 200px;
-        background: var(--surface-dark);
-        border-right: 1px solid var(--border);
-        padding: 16px 0;
-        flex-shrink: 0;
-    }
-
-    .settings-nav-item {
-        padding: 12px 20px;
-        cursor: pointer;
-        color: var(--text-secondary);
-        font-size: 14px;
-        font-weight: 500;
-        transition: all 0.2s ease;
-        border-left: 3px solid transparent;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
-
-    .settings-nav-item:hover {
-        background-color: var(--surface-light);
-        color: var(--text-primary);
-    }
-
-    .settings-nav-item.active {
-        background-color: var(--primary);
-        color: white;
-        border-left-color: var(--primary-light);
-    }
-
-    .settings-content {
-        flex: 1;
-        padding: 24px;
-        overflow-y: auto;
-        background: var(--background);
-    }
-
     /* Taskbar */
     #taskbar {
         position: fixed;
@@ -414,47 +304,6 @@
         font-weight: 500;
     }
 
-    /* Notifications */
-    .notification {
-        position: fixed;
-        top: 70px;
-        right: 20px;
-        padding: 12px 20px;
-        border-radius: 8px;
-        box-shadow: var(--shadow-xl);
-        z-index: 9998;
-        max-width: 350px;
-        min-width: 250px;
-        opacity: 0;
-        transform: translateX(100px);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .notification-info { background: var(--primary); color: white; }
-    .notification-success { background: var(--success); color: white; }
-    .notification-warning { background: var(--warning); color: white; }
-    .notification-error { background: var(--error); color: white; }
-
-    .notification-content {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-    }
-
-    .notification-message {
-        flex: 1;
-        margin-right: 10px;
-    }
-
-    .notification-close {
-        background: none;
-        border: none;
-        color: white;
-        cursor: pointer;
-        font-size: 16px;
-        padding: 0 5px;
-    }
-
     /* Responsive Design */
     @media (max-width: 768px) {
         .desktop-icon {
@@ -481,45 +330,6 @@
         .taskbar-button {
             padding: 8px 12px;
         }
-    }
-
-    /* Theme Support */
-    .theme-dark {
-        --surface: rgba(30, 30, 30, 0.95);
-        --surface-light: rgba(45, 45, 45, 0.98);
-        --surface-dark: rgba(15, 15, 15, 0.98);
-        --background: #1a202c;
-        --text-primary: #ffffff;
-        --text-secondary: #a0aec0;
-        --border: #4a5568;
-    }
-
-    .theme-matrix {
-        --primary: #00ff41;
-        --background: #0d1117;
-        --surface: rgba(13, 17, 23, 0.95);
-        --text-primary: #00ff41;
-    }
-
-    /* Loading States */
-    .loading {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 200px;
-        color: var(--text-secondary);
-        font-size: 16px;
-    }
-
-    /* Error States */
-    .error-state {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        height: 200px;
-        color: var(--error);
-        text-align: center;
     }
 </style>
 {% endblock %}
@@ -567,10 +377,20 @@
 <script src="{{ url_for('static', filename='js/core/auth.js') }}"></script>
 <script src="{{ url_for('static', filename='js/core/desktop.js') }}"></script>
 <script src="{{ url_for('static', filename='js/core/windows.js') }}"></script>
+
+<!-- Application Modules -->
 <script src="{{ url_for('static', filename='js/apps/terminal.js') }}"></script>
 <script src="{{ url_for('static', filename='js/apps/explorer.js') }}"></script>
 <script src="{{ url_for('static', filename='js/apps/games.js') }}"></script>
 <script src="{{ url_for('static', filename='js/apps/settings.js') }}"></script>
+
+<!-- IMPORTANT: Load Game Scripts BEFORE App Core -->
+<script src="{{ url_for('static', filename='js/games/snake.js') }}"></script>
+<script src="{{ url_for('static', filename='js/games/dino.js') }}"></script>
+<script src="{{ url_for('static', filename='js/games/memory.js') }}"></script>
+<script src="{{ url_for('static', filename='js/games/village.js') }}"></script>
+
+<!-- App Core - Must be loaded LAST -->
 <script src="{{ url_for('static', filename='js/core/app.js') }}"></script>
 
 <script>
@@ -649,6 +469,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (window.pixelPusher) {
                 console.log('✅ Pixel Pusher OS application found, initializing...');
+
+                // Verify game classes are loaded
+                console.log('🎮 Checking game classes...');
+                console.log('  - SnakeGame:', typeof SnakeGame);
+                console.log('  - DinoGame:', typeof DinoGame);
+                console.log('  - MemoryGame:', typeof MemoryGame);
+                console.log('  - VillageBuilderGame:', typeof VillageBuilderGame);
 
                 // Store configuration data
                 window.pixelPusher.config = {
