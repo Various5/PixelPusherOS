@@ -1,6 +1,6 @@
 /**
- * Fixed File Explorer Manager
- * Properly working file browser with drag & drop and file display
+ * FIXED File Explorer Manager
+ * Properly working file browser with improved error handling
  */
 
 class ExplorerManager {
@@ -52,9 +52,15 @@ class ExplorerManager {
         this.setupExplorerEventHandlers(explorer);
         this.applyExplorerStyling(explorer);
 
-        // Load files immediately
+        // Load files immediately with better error handling
         console.log('📁 Loading initial directory...');
-        await this.navigateToPath(explorer, '/');
+        try {
+            await this.navigateToPath(explorer, '/');
+            console.log('📁 Initial directory loaded successfully');
+        } catch (error) {
+            console.error('📁 Failed to load initial directory:', error);
+            this.showError(explorer, `Failed to load initial directory: ${error.message}`);
+        }
 
         console.log(`📁 File Explorer initialized: ${appId}`);
     }
@@ -190,9 +196,17 @@ class ExplorerManager {
             path = this.normalizePath(path);
             console.log(`📁 Normalized path: ${path}`);
 
-            // Get directory contents
+            // Get directory contents with improved error handling
             const data = await this.getDirectoryContents(path);
-            console.log(`📁 Got ${data.items ? data.items.length : 0} items`);
+            console.log(`📁 Got directory data:`, data);
+
+            if (!data) {
+                throw new Error('No data received from server');
+            }
+
+            if (data.error) {
+                throw new Error(data.error);
+            }
 
             // Update explorer state
             explorer.currentPath = path;
@@ -214,10 +228,12 @@ class ExplorerManager {
             this.updateBreadcrumb(explorer, path);
 
             // Render directory contents
-            this.renderDirectoryContents(explorer, data.items || []);
+            const items = data.items || [];
+            console.log(`📁 Rendering ${items.length} items`);
+            this.renderDirectoryContents(explorer, items);
 
             // Update status
-            this.updateStatus(explorer, `${data.items ? data.items.length : 0} items`);
+            this.updateStatus(explorer, `${items.length} items`);
 
             console.log('📁 Navigation completed successfully');
 
@@ -232,20 +248,49 @@ class ExplorerManager {
     async getDirectoryContents(path) {
         console.log(`📁 Getting directory contents for: ${path}`);
 
-        // Try API first, fallback to mock data
         try {
-            const response = await fetch(`/api/files?path=${encodeURIComponent(path)}`);
-            if (response.ok) {
-                const data = await response.json();
-                console.log('📁 Got data from API');
-                return data;
-            }
-        } catch (error) {
-            console.log('📁 API failed, using mock data');
-        }
+            const url = `/api/files?path=${encodeURIComponent(path)}`;
+            console.log(`📁 Calling API: ${url}`);
 
-        // Use mock data
-        return this.getMockDirectoryContents(path);
+            const response = await fetch(url);
+            console.log(`📁 API response status: ${response.status}`);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error(`📁 API error: ${response.status} - ${errorText}`);
+                throw new Error(`Server error: ${response.status} - ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            console.log('📁 API response data:', data);
+
+            // Validate the response format
+            if (typeof data !== 'object') {
+                throw new Error('Invalid response format - not an object');
+            }
+
+            if (data.error) {
+                throw new Error(data.error);
+            }
+
+            if (!Array.isArray(data.items)) {
+                console.warn('📁 No items array in response, using empty array');
+                data.items = [];
+            }
+
+            return data;
+
+        } catch (error) {
+            console.error('📁 Error fetching directory contents:', error);
+
+            // Try to provide a fallback
+            if (error.message.includes('fetch')) {
+                console.log('📁 Fetch failed, using mock data as fallback');
+                return this.getMockDirectoryContents(path);
+            }
+
+            throw error;
+        }
     }
 
     getMockDirectoryContents(path) {
@@ -269,47 +314,8 @@ class ExplorerManager {
                 items: [
                     { name: 'sample.txt', type: 'file', size: 1024, modified: Date.now() - 86400000, icon: '📄' },
                     { name: 'project_ideas.txt', type: 'file', size: 2048, modified: Date.now() - 172800000, icon: '📄' },
-                    { name: 'report.pdf', type: 'file', size: 524288, modified: Date.now() - 259200000, icon: '📕' },
-                    { name: 'presentation.pptx', type: 'file', size: 1048576, modified: Date.now() - 345600000, icon: '📽️' },
                     { name: 'archive', type: 'directory', size: 0, modified: Date.now() - 518400000, icon: '📁' },
                     { name: 'personal', type: 'directory', size: 0, modified: Date.now() - 604800000, icon: '📁' }
-                ]
-            },
-            '/downloads': {
-                items: [
-                    { name: 'software.zip', type: 'file', size: 10485760, modified: Date.now() - 86400000, icon: '📦' },
-                    { name: 'image.jpg', type: 'file', size: 1024000, modified: Date.now() - 172800000, icon: '🖼️' },
-                    { name: 'video.mp4', type: 'file', size: 52428800, modified: Date.now() - 259200000, icon: '🎥' },
-                    { name: 'document.pdf', type: 'file', size: 2048000, modified: Date.now() - 345600000, icon: '📕' }
-                ]
-            },
-            '/pictures': {
-                items: [
-                    { name: 'vacation', type: 'directory', size: 0, modified: Date.now() - 86400000, icon: '📁' },
-                    { name: 'family', type: 'directory', size: 0, modified: Date.now() - 172800000, icon: '📁' },
-                    { name: 'wallpaper.jpg', type: 'file', size: 2048000, modified: Date.now() - 345600000, icon: '🖼️' },
-                    { name: 'avatar.png', type: 'file', size: 512000, modified: Date.now() - 432000000, icon: '🖼️' }
-                ]
-            },
-            '/music': {
-                items: [
-                    { name: 'Rock', type: 'directory', size: 0, modified: Date.now() - 86400000, icon: '📁' },
-                    { name: 'Pop', type: 'directory', size: 0, modified: Date.now() - 172800000, icon: '📁' },
-                    { name: 'Classical', type: 'directory', size: 0, modified: Date.now() - 259200000, icon: '📁' },
-                    { name: 'README.txt', type: 'file', size: 1024, modified: Date.now() - 432000000, icon: '📄' }
-                ]
-            },
-            '/videos': {
-                items: [
-                    { name: 'Movies', type: 'directory', size: 0, modified: Date.now() - 86400000, icon: '📁' },
-                    { name: 'Personal', type: 'directory', size: 0, modified: Date.now() - 172800000, icon: '📁' },
-                    { name: 'demo.mp4', type: 'file', size: 104857600, modified: Date.now() - 345600000, icon: '🎥' }
-                ]
-            },
-            '/desktop': {
-                items: [
-                    { name: 'Notes.txt', type: 'file', size: 512, modified: Date.now() - 172800000, icon: '📄' },
-                    { name: 'Todo.md', type: 'file', size: 1024, modified: Date.now() - 259200000, icon: '📝' }
                 ]
             }
         };
@@ -490,9 +496,6 @@ class ExplorerManager {
         if (window.pixelPusher?.showNotification) {
             window.pixelPusher.showNotification(`Opening ${item.name}...`, 'info');
         }
-
-        // Here you could implement actual file opening logic
-        // For now, just show a notification
     }
 
     // Navigation methods
@@ -555,8 +558,9 @@ class ExplorerManager {
         if (explorer.content) {
             explorer.content.innerHTML = `
                 <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 200px; color: white;">
-                    <div style="font-size: 32px; margin-bottom: 16px;">📁</div>
+                    <div style="font-size: 32px; margin-bottom: 16px; animation: spin 1s linear infinite;">⏳</div>
                     <div>Loading files...</div>
+                    <div style="font-size: 12px; margin-top: 8px; opacity: 0.7;">Please wait...</div>
                 </div>
             `;
         }
@@ -635,8 +639,8 @@ class ExplorerManager {
 
     applyExplorerStyling(explorer) {
         // Apply consistent styling
-        const style = document.createElement('style');
         if (!document.getElementById('explorer-styles')) {
+            const style = document.createElement('style');
             style.id = 'explorer-styles';
             style.textContent = `
                 .nav-btn {
@@ -655,6 +659,10 @@ class ExplorerManager {
                 .nav-btn:disabled {
                     opacity: 0.5;
                     cursor: not-allowed;
+                }
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
                 }
             `;
             document.head.appendChild(style);
@@ -764,4 +772,4 @@ if (typeof module !== 'undefined' && module.exports) {
     module.exports = ExplorerManager;
 }
 
-console.log('📁 Fixed File Explorer manager loaded successfully');
+console.log('📁 FIXED File Explorer manager loaded successfully');

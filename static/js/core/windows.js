@@ -796,9 +796,12 @@ class WindowManager {
         }
     }
 
-async initializeTaskManager(appId) {
+ async initializeTaskManager(appId) {
         const content = document.getElementById(`taskmanager-content-${appId}`);
         if (!content) return;
+
+        // Set up tab switching functionality
+        this.setupTaskManagerTabs(appId);
 
         // Show loading state
         content.innerHTML = `
@@ -829,58 +832,183 @@ async initializeTaskManager(appId) {
             document.head.appendChild(style);
         }
 
-        // Auto-refresh task manager every 2 seconds
-        const updateTaskManager = async () => {
-            try {
-                const response = await fetch('/api/system/info');
+        // Load initial tab (processes)
+        this.loadTaskManagerTab(appId, 'processes');
 
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
+        // Set up auto-refresh
+        const refreshInterval = setInterval(() => {
+            const activeTab = this.getActiveTaskManagerTab(appId);
+            this.loadTaskManagerTab(appId, activeTab);
+        }, 2000);
 
+        // Store interval ID for cleanup
+        if (!this.taskManagerIntervals) {
+            this.taskManagerIntervals = new Map();
+        }
+        this.taskManagerIntervals.set(appId, refreshInterval);
+    }
+
+    setupTaskManagerTabs(appId) {
+        const tabsContainer = document.querySelector(`#window-${appId} .taskmanager-tabs`);
+        if (!tabsContainer) return;
+
+        tabsContainer.addEventListener('click', (e) => {
+            const tab = e.target.closest('.tab');
+            if (!tab) return;
+
+            const tabName = tab.dataset.tab;
+
+            // Update tab appearance
+            tabsContainer.querySelectorAll('.tab').forEach(t => {
+                t.classList.remove('active');
+                t.style.background = 'transparent';
+                t.style.color = 'rgba(255, 255, 255, 0.8)';
+                t.style.borderBottom = 'none';
+            });
+
+            tab.classList.add('active');
+            tab.style.background = '#6366f1';
+            tab.style.color = 'white';
+            tab.style.borderBottom = '2px solid #6366f1';
+
+            // Load tab content
+            this.loadTaskManagerTab(appId, tabName);
+        });
+    }
+
+    getActiveTaskManagerTab(appId) {
+        const activeTab = document.querySelector(`#window-${appId} .tab.active`);
+        return activeTab ? activeTab.dataset.tab : 'processes';
+    }
+
+    async loadTaskManagerTab(appId, tabName) {
+        const content = document.getElementById(`taskmanager-content-${appId}`);
+        if (!content) return;
+
+        try {
+            switch (tabName) {
+                case 'processes':
+                    await this.loadProcessesTab(appId, content);
+                    break;
+                case 'performance':
+                    await this.loadPerformanceTab(appId, content);
+                    break;
+                case 'network':
+                    await this.loadNetworkTab(appId, content);
+                    break;
+            }
+        } catch (error) {
+            console.error('Task Manager tab error:', error);
+            content.innerHTML = `
+                <div style="color: #ffffff; text-align: center; padding: 20px;">
+                    <div style="font-size: 48px; margin-bottom: 16px;">⚠️</div>
+                    <p>Error loading ${tabName} information</p>
+                    <p style="font-size: 12px; color: rgba(255, 255, 255, 0.6); margin-top: 8px;">${error.message}</p>
+                </div>
+            `;
+        }
+    }
+
+    async loadProcessesTab(appId, content) {
+        let html = `<div style="color: #ffffff;">`;
+
+        // Pixel Pusher OS Tasks Section
+        html += `
+            <div style="margin-bottom: 30px;">
+                <h3 style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
+                    🎨 Pixel Pusher OS Tasks
+                    <span style="font-size: 14px; color: rgba(255, 255, 255, 0.6);">(${this.windows.size} active)</span>
+                </h3>
+                <div style="background: rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 16px;">
+        `;
+
+        if (this.windows.size > 0) {
+            html += `
+                <div style="display: grid; grid-template-columns: 80px 1fr 120px 100px 80px; gap: 12px; padding: 8px; background: rgba(255, 255, 255, 0.1); border-radius: 6px; margin-bottom: 8px; font-weight: bold; font-size: 12px;">
+                    <div>Icon</div>
+                    <div>Application</div>
+                    <div>Status</div>
+                    <div>Memory</div>
+                    <div>Action</div>
+                </div>
+            `;
+
+            this.windows.forEach((windowElement, windowId) => {
+                const config = this.windowConfigs[windowId];
+                const isMinimized = windowElement.style.display === 'none';
+                const isActive = this.activeWindow === windowId && !isMinimized;
+                const memoryUsage = Math.floor(Math.random() * 50 + 10); // Simulated memory usage
+
+                html += `
+                    <div style="display: grid; grid-template-columns: 80px 1fr 120px 100px 80px; gap: 12px; padding: 8px; margin-bottom: 4px; background: rgba(255, 255, 255, 0.05); border-radius: 4px; align-items: center;">
+                        <div style="text-align: center; font-size: 20px;">
+                            ${config?.title?.split(' ')[0] || '🪟'}
+                        </div>
+                        <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${config?.title || windowId}">
+                            ${config?.title || windowId}
+                        </div>
+                        <div>
+                            <span style="
+                                background: ${isActive ? '#4CAF50' : isMinimized ? '#FF9800' : '#2196F3'};
+                                color: white;
+                                padding: 2px 8px;
+                                border-radius: 12px;
+                                font-size: 11px;
+                                font-weight: 500;
+                            ">
+                                ${isActive ? 'Active' : isMinimized ? 'Minimized' : 'Running'}
+                            </span>
+                        </div>
+                        <div style="text-align: right; font-family: monospace;">
+                            ${memoryUsage} MB
+                        </div>
+                        <div style="text-align: center;">
+                            <button onclick="window.pixelPusher.modules.windows.killTask('${windowId}')" style="
+                                background: #f44336;
+                                color: white;
+                                border: none;
+                                border-radius: 4px;
+                                padding: 4px 8px;
+                                cursor: pointer;
+                                font-size: 11px;
+                                transition: all 0.2s ease;
+                            " onmouseover="this.style.background='#d32f2f'" onmouseout="this.style.background='#f44336'">
+                                Kill
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+        } else {
+            html += `
+                <div style="text-align: center; color: rgba(255, 255, 255, 0.6); padding: 20px;">
+                    <div style="font-size: 32px; margin-bottom: 12px;">💤</div>
+                    <p>No applications currently running</p>
+                    <p style="font-size: 12px;">Open some applications to see them here</p>
+                </div>
+            `;
+        }
+
+        html += `</div></div>`;
+
+        // System Processes Section
+        try {
+            const response = await fetch('/api/system/info');
+            if (response.ok) {
                 const data = await response.json();
 
-                let html = `
-                    <div style="color: #ffffff;">
-                        <h3>System Information</h3>
-                        <div style="margin-bottom: 20px; background: rgba(255, 255, 255, 0.1); padding: 16px; border-radius: 8px;">
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                                <div>
-                                    <strong>CPU Usage:</strong> ${(data.cpu?.percent || 0).toFixed(1)}%
-                                    <div style="width: 100%; height: 8px; background: rgba(255, 255, 255, 0.2); border-radius: 4px; margin-top: 4px;">
-                                        <div style="width: ${data.cpu?.percent || 0}%; height: 100%; background: #4CAF50; border-radius: 4px;"></div>
-                                    </div>
-                                </div>
-                                <div>
-                                    <strong>CPU Cores:</strong> ${data.cpu?.cores || 'N/A'}
-                                </div>
-                            </div>
-                            
-                            <div style="margin-top: 16px;">
-                                <strong>Memory:</strong> ${((data.memory?.used || 0) / 1024 / 1024 / 1024).toFixed(1)} GB / ${((data.memory?.total || 0) / 1024 / 1024 / 1024).toFixed(1)} GB (${(data.memory?.percent || 0).toFixed(1)}%)
-                                <div style="width: 100%; height: 8px; background: rgba(255, 255, 255, 0.2); border-radius: 4px; margin-top: 4px;">
-                                    <div style="width: ${data.memory?.percent || 0}%; height: 100%; background: #2196F3; border-radius: 4px;"></div>
-                                </div>
-                            </div>
-                            
-                            <div style="margin-top: 16px;">
-                                <strong>Disk:</strong> ${((data.disk?.used || 0) / 1024 / 1024 / 1024).toFixed(1)} GB / ${((data.disk?.total || 0) / 1024 / 1024 / 1024).toFixed(1)} GB (${(data.disk?.percent || 0).toFixed(1)}%)
-                                <div style="width: 100%; height: 8px; background: rgba(255, 255, 255, 0.2); border-radius: 4px; margin-top: 4px;">
-                                    <div style="width: ${data.disk?.percent || 0}%; height: 100%; background: #FF9800; border-radius: 4px;"></div>
-                                </div>
-                            </div>
-                            
-                            <div style="margin-top: 16px;">
-                                <strong>Uptime:</strong> ${this.formatUptime(data.uptime || 0)}
-                            </div>
-                        </div>
-                        
-                        <h3 style="margin-top: 24px;">Top Processes</h3>
-                        <div style="margin-top: 16px;">`;
+                html += `
+                    <div>
+                        <h3 style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
+                            🖥️ System Processes
+                            <span style="font-size: 14px; color: rgba(255, 255, 255, 0.6);">(Top ${data.processes?.length || 0})</span>
+                        </h3>
+                        <div style="background: rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 16px;">
+                `;
 
                 if (data.processes && data.processes.length > 0) {
                     html += `
-                        <div style="display: grid; grid-template-columns: 60px 1fr 80px 80px; gap: 16px; padding: 8px; background: rgba(255, 255, 255, 0.1); border-radius: 8px; margin-bottom: 8px; font-weight: bold;">
+                        <div style="display: grid; grid-template-columns: 60px 1fr 80px 80px; gap: 16px; padding: 8px; background: rgba(255, 255, 255, 0.1); border-radius: 6px; margin-bottom: 8px; font-weight: bold; font-size: 12px;">
                             <div>PID</div>
                             <div>Process</div>
                             <div style="text-align: right;">CPU%</div>
@@ -891,63 +1019,306 @@ async initializeTaskManager(appId) {
                     data.processes.forEach(proc => {
                         html += `
                             <div style="display: grid; grid-template-columns: 60px 1fr 80px 80px; gap: 16px; padding: 8px; margin-bottom: 4px; background: rgba(255, 255, 255, 0.05); border-radius: 4px;">
-                                <div>${proc.pid || 'N/A'}</div>
+                                <div style="font-family: monospace;">${proc.pid || 'N/A'}</div>
                                 <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${proc.name || 'Unknown'}">${proc.name || 'Unknown'}</div>
-                                <div style="text-align: right;">${(proc.cpu_percent || 0).toFixed(1)}%</div>
-                                <div style="text-align: right;">${(proc.memory_mb || 0).toFixed(0)}MB</div>
+                                <div style="text-align: right; font-family: monospace;">${(proc.cpu_percent || 0).toFixed(1)}%</div>
+                                <div style="text-align: right; font-family: monospace;">${(proc.memory_mb || 0).toFixed(0)}MB</div>
                             </div>
                         `;
                     });
                 } else {
                     html += `
-                        <div style="padding: 20px; text-align: center; color: rgba(255, 255, 255, 0.6); background: rgba(255, 255, 255, 0.05); border-radius: 8px;">
-                            <p>Process information not available</p>
-                            <p style="font-size: 12px; margin-top: 8px;">This might be due to missing system permissions or the psutil library not being installed.</p>
+                        <div style="text-align: center; color: rgba(255, 255, 255, 0.6); padding: 20px;">
+                            <p>System process information not available</p>
+                            <p style="font-size: 12px; margin-top: 8px;">This might be due to missing system permissions</p>
                         </div>
                     `;
                 }
 
-                html += '</div></div>';
-                content.innerHTML = html;
+                html += `</div></div>`;
+            }
+        } catch (error) {
+            html += `
+                <div>
+                    <h3>🖥️ System Processes</h3>
+                    <div style="background: rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 16px;">
+                        <div style="text-align: center; color: rgba(255, 255, 255, 0.6);">
+                            <p>Unable to fetch system processes</p>
+                            <p style="font-size: 12px;">${error.message}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
 
-            } catch (error) {
-                console.error('Task Manager error:', error);
-                content.innerHTML = `
-                    <div style="color: #ffffff; text-align: center; padding: 20px;">
-                        <div style="font-size: 48px; margin-bottom: 16px;">⚠️</div>
-                        <p>Error loading system information</p>
-                        <p style="font-size: 12px; color: rgba(255, 255, 255, 0.6); margin-top: 8px;">${error.message}</p>
-                        <button onclick="window.pixelPusher.modules.windows.initializeTaskManager('${appId}')" style="
-                            margin-top: 16px;
-                            padding: 8px 16px;
-                            background: #2196F3;
-                            color: white;
-                            border: none;
-                            border-radius: 4px;
-                            cursor: pointer;
-                        ">Retry</button>
+        html += `</div>`;
+        content.innerHTML = html;
+    }
+
+    async loadPerformanceTab(appId, content) {
+        try {
+            const response = await fetch('/api/system/info');
+            const data = response.ok ? await response.json() : {};
+
+            // Get browser performance info
+            const browserMemory = performance.memory || {};
+            const timing = performance.timing || {};
+
+            let html = `
+                <div style="color: #ffffff;">
+                    <h3 style="margin-bottom: 20px;">📊 System Performance</h3>
+                    
+                    <!-- CPU Section -->
+                    <div style="background: rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+                        <h4 style="margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                            🔵 CPU Performance
+                        </h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                            <div>
+                                <div style="margin-bottom: 12px;">
+                                    <strong>Usage:</strong> ${(data.cpu?.percent || 0).toFixed(1)}%
+                                    <div style="width: 100%; height: 12px; background: rgba(255, 255, 255, 0.2); border-radius: 6px; margin-top: 4px; overflow: hidden;">
+                                        <div style="width: ${data.cpu?.percent || 0}%; height: 100%; background: linear-gradient(90deg, #4CAF50, #8BC34A); border-radius: 6px; transition: width 0.3s ease;"></div>
+                                    </div>
+                                </div>
+                                <div><strong>Cores:</strong> ${data.cpu?.cores || 'N/A'}</div>
+                                <div><strong>Threads:</strong> ${data.cpu?.threads || data.cpu?.cores || 'N/A'}</div>
+                            </div>
+                            <div>
+                                <div><strong>Architecture:</strong> ${navigator.platform || 'Unknown'}</div>
+                                <div><strong>Frequency:</strong> ${data.cpu?.frequency || 'N/A'}</div>
+                                <div><strong>Load Average:</strong> ${data.cpu?.load_avg || 'N/A'}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Memory Section -->
+                    <div style="background: rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+                        <h4 style="margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                            🟡 Memory Usage
+                        </h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                            <div>
+                                <div style="margin-bottom: 12px;">
+                                    <strong>System RAM:</strong> ${((data.memory?.used || 0) / 1024 / 1024 / 1024).toFixed(1)} GB / ${((data.memory?.total || 0) / 1024 / 1024 / 1024).toFixed(1)} GB (${(data.memory?.percent || 0).toFixed(1)}%)
+                                    <div style="width: 100%; height: 12px; background: rgba(255, 255, 255, 0.2); border-radius: 6px; margin-top: 4px; overflow: hidden;">
+                                        <div style="width: ${data.memory?.percent || 0}%; height: 100%; background: linear-gradient(90deg, #2196F3, #03A9F4); border-radius: 6px; transition: width 0.3s ease;"></div>
+                                    </div>
+                                </div>
+                                <div><strong>Available:</strong> ${((data.memory?.available || 0) / 1024 / 1024 / 1024).toFixed(1)} GB</div>
+                                <div><strong>Cached:</strong> ${((data.memory?.cached || 0) / 1024 / 1024 / 1024).toFixed(1)} GB</div>
+                            </div>
+                            <div>
+                                <div style="margin-bottom: 12px;">
+                                    <strong>Browser Heap:</strong> ${Math.round((browserMemory.usedJSHeapSize || 0) / 1024 / 1024)} MB / ${Math.round((browserMemory.totalJSHeapSize || 0) / 1024 / 1024)} MB
+                                    <div style="width: 100%; height: 12px; background: rgba(255, 255, 255, 0.2); border-radius: 6px; margin-top: 4px; overflow: hidden;">
+                                        <div style="width: ${browserMemory.usedJSHeapSize && browserMemory.totalJSHeapSize ? (browserMemory.usedJSHeapSize / browserMemory.totalJSHeapSize * 100) : 0}%; height: 100%; background: linear-gradient(90deg, #FF9800, #FFC107); border-radius: 6px; transition: width 0.3s ease;"></div>
+                                    </div>
+                                </div>
+                                <div><strong>Heap Limit:</strong> ${Math.round((browserMemory.jsHeapSizeLimit || 0) / 1024 / 1024)} MB</div>
+                                <div><strong>Swap Used:</strong> ${((data.memory?.swap_used || 0) / 1024 / 1024 / 1024).toFixed(1)} GB</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Storage Section -->
+                    <div style="background: rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+                        <h4 style="margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                            🟠 Storage Performance
+                        </h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                            <div>
+                                <div style="margin-bottom: 12px;">
+                                    <strong>Disk Usage:</strong> ${((data.disk?.used || 0) / 1024 / 1024 / 1024).toFixed(1)} GB / ${((data.disk?.total || 0) / 1024 / 1024 / 1024).toFixed(1)} GB (${(data.disk?.percent || 0).toFixed(1)}%)
+                                    <div style="width: 100%; height: 12px; background: rgba(255, 255, 255, 0.2); border-radius: 6px; margin-top: 4px; overflow: hidden;">
+                                        <div style="width: ${data.disk?.percent || 0}%; height: 100%; background: linear-gradient(90deg, #FF9800, #F57C00); border-radius: 6px; transition: width 0.3s ease;"></div>
+                                    </div>
+                                </div>
+                                <div><strong>Free Space:</strong> ${((data.disk?.free || 0) / 1024 / 1024 / 1024).toFixed(1)} GB</div>
+                            </div>
+                            <div>
+                                <div><strong>Read Speed:</strong> ${data.disk?.read_speed || 'N/A'}</div>
+                                <div><strong>Write Speed:</strong> ${data.disk?.write_speed || 'N/A'}</div>
+                                <div><strong>I/O Operations:</strong> ${data.disk?.io_ops || 'N/A'}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Browser Performance -->
+                    <div style="background: rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 20px;">
+                        <h4 style="margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                            🌐 Browser Performance
+                        </h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                            <div>
+                                <div><strong>Page Load:</strong> ${timing.loadEventEnd ? Math.round(timing.loadEventEnd - timing.navigationStart) : 'N/A'}ms</div>
+                                <div><strong>DOM Ready:</strong> ${timing.domContentLoaded ? Math.round(timing.domContentLoaded - timing.navigationStart) : 'N/A'}ms</div>
+                                <div><strong>Active Windows:</strong> ${this.windows.size}</div>
+                            </div>
+                            <div>
+                                <div><strong>User Agent:</strong> ${navigator.userAgent.split(' ')[0] || 'Unknown'}</div>
+                                <div><strong>Viewport:</strong> ${window.innerWidth}x${window.innerHeight}</div>
+                                <div><strong>Uptime:</strong> ${this.formatUptime(performance.now() / 1000)}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            content.innerHTML = html;
+
+        } catch (error) {
+            content.innerHTML = `
+                <div style="color: #ffffff; text-align: center; padding: 40px;">
+                    <div style="font-size: 48px; margin-bottom: 16px;">📊</div>
+                    <h3>Performance Monitor</h3>
+                    <p style="color: rgba(255, 255, 255, 0.6);">Unable to load performance data</p>
+                    <p style="font-size: 12px; margin-top: 8px;">${error.message}</p>
+                </div>
+            `;
+        }
+    }
+
+    async loadNetworkTab(appId, content) {
+        let html = `
+            <div style="color: #ffffff;">
+                <h3 style="margin-bottom: 20px;">🌐 Network Information</h3>
+                
+                <!-- Connection Status -->
+                <div style="background: rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+                    <h4 style="margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                        ${navigator.onLine ? '🟢' : '🔴'} Connection Status
+                    </h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div>
+                            <div><strong>Status:</strong> ${navigator.onLine ? 'Connected' : 'Disconnected'}</div>
+                            <div><strong>Connection Type:</strong> ${navigator.connection?.effectiveType || 'Unknown'}</div>
+                            <div><strong>Downlink:</strong> ${navigator.connection?.downlink || 'N/A'} Mbps</div>
+                        </div>
+                        <div>
+                            <div><strong>RTT:</strong> ${navigator.connection?.rtt || 'N/A'}ms</div>
+                            <div><strong>Save Data:</strong> ${navigator.connection?.saveData ? 'Enabled' : 'Disabled'}</div>
+                            <div><strong>Protocol:</strong> ${location.protocol.toUpperCase()}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Network Details -->
+                <div style="background: rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+                    <h4 style="margin-bottom: 16px;">🌍 Network Details</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div>
+                            <div><strong>Host:</strong> ${window.location.hostname}</div>
+                            <div><strong>Port:</strong> ${window.location.port || (window.location.protocol === 'https:' ? '443' : '80')}</div>
+                            <div><strong>Origin:</strong> ${window.location.origin}</div>
+                        </div>
+                        <div>
+                            <div><strong>User Agent:</strong> ${navigator.userAgent.split(' ')[0]}</div>
+                            <div><strong>Language:</strong> ${navigator.language}</div>
+                            <div><strong>Timezone:</strong> ${Intl.DateTimeFormat().resolvedOptions().timeZone}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- API Endpoints Status -->
+                <div style="background: rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+                    <h4 style="margin-bottom: 16px;">🔗 API Endpoints</h4>
+                    <div id="api-status-${appId}">
+                        <div style="text-align: center; color: rgba(255, 255, 255, 0.6);">
+                            <div class="spinner" style="width: 20px; height: 20px; border: 2px solid rgba(255, 255, 255, 0.3); border-top: 2px solid #ffffff; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 8px;"></div>
+                            Checking API endpoints...
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Network Activity -->
+                <div style="background: rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 20px;">
+                    <h4 style="margin-bottom: 16px;">📈 Network Activity</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div>
+                            <div><strong>Active Connections:</strong> ${this.windows.size}</div>
+                            <div><strong>WebSocket:</strong> Not Connected</div>
+                            <div><strong>Service Worker:</strong> ${navigator.serviceWorker ? 'Supported' : 'Not Supported'}</div>
+                        </div>
+                        <div>
+                            <div><strong>DNS:</strong> Browser Default</div>
+                            <div><strong>Proxy:</strong> None Detected</div>
+                            <div><strong>Cache:</strong> ${navigator.storage ? 'Available' : 'Not Available'}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        content.innerHTML = html;
+
+        // Check API endpoints
+        this.checkAPIEndpointsStatus(appId);
+    }
+
+    async checkAPIEndpointsStatus(appId) {
+        const statusContainer = document.getElementById(`api-status-${appId}`);
+        if (!statusContainer) return;
+
+        const endpoints = [
+            { name: 'System Info', url: '/api/system/info' },
+            { name: 'File System', url: '/api/files' },
+            { name: 'Command Interface', url: '/api/command' },
+            { name: 'Music Library', url: '/api/music' }
+        ];
+
+        let statusHTML = '';
+
+        for (const endpoint of endpoints) {
+            try {
+                const startTime = performance.now();
+                const response = await fetch(endpoint.url, { method: 'HEAD' });
+                const endTime = performance.now();
+                const responseTime = Math.round(endTime - startTime);
+
+                const status = response.ok ? 'online' : 'error';
+                const statusIcon = response.ok ? '🟢' : '🔴';
+                const statusText = response.ok ? 'Online' : `Error ${response.status}`;
+
+                statusHTML += `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span>${statusIcon}</span>
+                            <span>${endpoint.name}</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 12px; font-size: 12px;">
+                            <span style="color: ${response.ok ? '#4CAF50' : '#f44336'};">${statusText}</span>
+                            <span style="color: rgba(255, 255, 255, 0.6);">${responseTime}ms</span>
+                        </div>
                     </div>
                 `;
-
-                // Clear interval on error
-                if (this.taskManagerIntervals?.has(appId)) {
-                    clearInterval(this.taskManagerIntervals.get(appId));
-                    this.taskManagerIntervals.delete(appId);
-                }
+            } catch (error) {
+                statusHTML += `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span>🔴</span>
+                            <span>${endpoint.name}</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 12px; font-size: 12px;">
+                            <span style="color: #f44336;">Offline</span>
+                            <span style="color: rgba(255, 255, 255, 0.6);">Timeout</span>
+                        </div>
+                    </div>
+                `;
             }
-        };
-
-        // Initial load
-        await updateTaskManager();
-
-        // Set up auto-refresh
-        const refreshInterval = setInterval(updateTaskManager, 2000);
-
-        // Store interval ID for cleanup
-        if (!this.taskManagerIntervals) {
-            this.taskManagerIntervals = new Map();
         }
-        this.taskManagerIntervals.set(appId, refreshInterval);
+
+        statusContainer.innerHTML = statusHTML;
+    }
+
+    killTask(windowId) {
+        if (confirm(`Are you sure you want to close ${windowId}?`)) {
+            this.close(windowId);
+
+            if (window.pixelPusher?.showNotification) {
+                window.pixelPusher.showNotification(`Closed ${windowId}`, 'success');
+            }
+        }
     }
 
     formatUptime(seconds) {
