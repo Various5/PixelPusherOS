@@ -1602,7 +1602,7 @@ async initializeTaskManager(appId) {
         console.log('🪟 Enhanced Window Manager destroyed');
     }
 }
-
+window.WindowManager = WindowManager;
 // Export for module systems
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = WindowManager;

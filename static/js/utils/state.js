@@ -108,6 +108,28 @@ class StateManager {
     }
 
     /**
+     * Initialize the state manager
+     */
+    async init() {
+        console.log('💾 Initializing State Manager...');
+
+        // Any async initialization can go here
+        try {
+            // Update session count
+            this.incrementMetric('sessionsCount');
+
+            // Set initialized flag
+            this.state.initialized = true;
+
+            console.log('✅ State Manager initialized successfully');
+            return Promise.resolve();
+        } catch (error) {
+            console.error('❌ State Manager initialization failed:', error);
+            return Promise.reject(error);
+        }
+    }
+
+    /**
      * Get default desktop icon configuration
      */
     getDefaultDesktopIcons() {
@@ -115,7 +137,6 @@ class StateManager {
             // System applications
             { id: 'terminal', name: 'Terminal', icon: '💻', x: 60, y: 80, category: 'system' },
             { id: 'explorer', name: 'File Explorer', icon: '📁', x: 60, y: 200, category: 'system' },
-            { id: 'browser', name: 'Web Browser', icon: '🌐', x: 60, y: 320, category: 'internet' },
 
             // Games
             { id: 'snake', name: 'Snake Game', icon: '🐍', x: 180, y: 80, category: 'games' },
@@ -652,6 +673,9 @@ class StateManager {
         console.log('💾 State Manager destroyed');
     }
 }
+
+// Make StateManager available globally - THIS IS THE KEY FIX
+window.StateManager = StateManager;
 
 // Export for module systems
 if (typeof module !== 'undefined' && module.exports) {

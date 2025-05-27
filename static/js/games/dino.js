@@ -255,3 +255,6 @@ class DinoGame {
 
 // Make available globally
 window.DinoGame = DinoGame;
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = DinoGame;
+}

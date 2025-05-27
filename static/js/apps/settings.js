@@ -882,7 +882,7 @@ class SettingsManager {
         console.log('⚙️ Settings Manager destroyed');
     }
 }
-
+window.SettingsManager = SettingsManager;
 // Export for module systems
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = SettingsManager;

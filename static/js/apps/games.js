@@ -1,6 +1,6 @@
 /**
- * Fixed Games Manager with Enhanced Error Handling
- * Manages game instances with comprehensive diagnostics
+ * Simple Games Manager - Reliable Script Loading
+ * Manages game instances with straightforward script loading
  */
 
 class GameManager {
@@ -30,55 +30,17 @@ class GameManager {
             }
         };
 
-        console.log('🎮 Games Manager initialized with diagnostics');
+        console.log('🎮 Games Manager initialized');
     }
 
     async init() {
         try {
-            // Pre-load game classes to verify they exist
-            await this.preloadGameClasses();
+            // Simple initialization - just set up shortcuts
             this.setupGlobalShortcuts();
             console.log('✅ Games system ready');
         } catch (error) {
             console.error('❌ Games initialization failed:', error);
-            this.handleInitializationError(error);
         }
-    }
-
-    async preloadGameClasses() {
-        console.log('🔍 Pre-loading game classes...');
-
-        for (const [gameType, gameInfo] of Object.entries(this.gameData)) {
-            const className = gameInfo.class;
-
-            if (!window[className]) {
-                console.warn(`⚠️ Game class ${className} not found for ${gameType}`);
-
-                // Try to dynamically load the game script
-                try {
-                    await this.loadGameScript(gameType);
-                } catch (error) {
-                    console.error(`❌ Failed to load ${gameType} script:`, error);
-                }
-            } else {
-                console.log(`✅ Game class ${className} loaded for ${gameType}`);
-            }
-        }
-    }
-
-    async loadGameScript(gameType) {
-        return new Promise((resolve, reject) => {
-            const script = document.createElement('script');
-            script.src = `/static/js/games/${gameType}.js`;
-            script.onload = () => {
-                console.log(`✅ Dynamically loaded ${gameType}.js`);
-                resolve();
-            };
-            script.onerror = () => {
-                reject(new Error(`Failed to load ${gameType}.js`));
-            };
-            document.head.appendChild(script);
-        });
     }
 
     async initializeGame(appId, gameType) {
@@ -92,13 +54,12 @@ class GameManager {
         }
 
         try {
-            // Show loading with diagnostics
+            // Show loading state
             gameContainer.innerHTML = `
                 <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #ffffff; background: #0a0a0a;">
                     <div style="font-size: 48px; margin-bottom: 20px;">🎮</div>
                     <div style="font-size: 18px; margin-bottom: 10px;">Loading ${this.gameData[gameType]?.name || gameType}...</div>
                     <div style="font-size: 14px; color: #888;">Initializing game engine...</div>
-                    <div style="font-size: 12px; color: #666; margin-top: 10px;">Window ID: ${appId}</div>
                 </div>
             `;
 
@@ -110,14 +71,16 @@ class GameManager {
                 throw new Error(`Unknown game type: ${gameType}`);
             }
 
-            const GameClass = window[gameInfo.class];
+            // Get the game class - if it doesn't exist, the games are already loaded by the HTML template
+            let GameClass = window[gameInfo.class];
+
             if (!GameClass) {
-                // Try one more time to load it
-                await this.loadGameScript(gameType);
-                const GameClassRetry = window[gameInfo.class];
-                if (!GameClassRetry) {
-                    throw new Error(`Game class ${gameInfo.class} not found after retry`);
-                }
+                // Try to find it in different locations
+                GameClass = this.findGameClass(gameInfo.class);
+            }
+
+            if (!GameClass) {
+                throw new Error(`Game class ${gameInfo.class} not found. Make sure game scripts are loaded.`);
             }
 
             // Create canvas with proper sizing
@@ -129,9 +92,6 @@ class GameManager {
                 background: #000;
                 display: block;
                 border-radius: 8px;
-                max-width: 100%;
-                max-height: 100%;
-                object-fit: contain;
                 image-rendering: pixelated;
                 image-rendering: -moz-crisp-edges;
                 image-rendering: crisp-edges;
@@ -147,16 +107,15 @@ class GameManager {
                 throw new Error('Failed to get 2D context from canvas');
             }
 
-            // Set canvas internal size (this is important!)
-            const rect = canvas.getBoundingClientRect();
-            canvas.width = rect.width;
-            canvas.height = rect.height;
+            // Set canvas size after it's added to DOM
+            const rect = gameContainer.getBoundingClientRect();
+            canvas.width = Math.max(400, rect.width - 20);
+            canvas.height = Math.max(300, rect.height - 20);
 
             console.log(`📐 Canvas created: ${canvas.width}x${canvas.height}`);
 
-            // Initialize game with error handling
-            const FinalGameClass = window[gameInfo.class];
-            const game = new FinalGameClass(canvas, ctx);
+            // Initialize game
+            const game = new GameClass(canvas, ctx);
 
             // Store game instance
             this.gameInstances.set(appId, game);
@@ -173,7 +132,6 @@ class GameManager {
             console.error(`❌ Error initializing game ${gameType}:`, error);
             this.showGameError(gameContainer, `Failed to initialize ${gameType}: ${error.message}`);
 
-            // Report error to user
             if (window.pixelPusher?.showNotification) {
                 window.pixelPusher.showNotification(
                     `Failed to load ${this.gameData[gameType]?.name || gameType}`,
@@ -183,14 +141,35 @@ class GameManager {
         }
     }
 
-    showGameError(container, message) {
-        const errorContainer = container || document.createElement('div');
+    findGameClass(className) {
+        // Try different locations where the class might be
+        const locations = [
+            window[className],
+            window.games?.[className],
+            this[className]
+        ];
 
-        errorContainer.innerHTML = `
+        for (const location of locations) {
+            if (location && typeof location === 'function') {
+                return location;
+            }
+        }
+
+        return null;
+    }
+
+    showGameError(container, message) {
+        const errorHTML = `
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #ff4444; background: #0a0a0a; text-align: center; padding: 20px;">
                 <div style="font-size: 48px; margin-bottom: 20px;">❌</div>
                 <div style="font-size: 18px; margin-bottom: 10px;">Game Error</div>
-                <div style="font-size: 14px; color: #888; max-width: 300px;">${message}</div>
+                <div style="font-size: 14px; color: #888; max-width: 300px; margin-bottom: 20px;">${message}</div>
+                <div style="margin-top: 20px; font-size: 12px; color: #666;">
+                    <div><strong>Available Game Classes:</strong></div>
+                    <div style="font-family: monospace; margin-top: 5px;">
+                        ${this.getAvailableClasses().join(', ') || 'None found'}
+                    </div>
+                </div>
                 <button onclick="window.location.reload()" style="
                     margin-top: 20px;
                     padding: 10px 20px;
@@ -201,21 +180,22 @@ class GameManager {
                     cursor: pointer;
                     font-size: 14px;
                 ">Reload Page</button>
-                <div style="margin-top: 20px; font-size: 12px; color: #666;">
-                    <div>Troubleshooting tips:</div>
-                    <ul style="text-align: left; margin-top: 10px;">
-                        <li>Check browser console for errors</li>
-                        <li>Ensure JavaScript is enabled</li>
-                        <li>Try refreshing the page</li>
-                        <li>Clear browser cache</li>
-                    </ul>
-                </div>
             </div>
         `;
 
         if (container) {
-            container.appendChild(errorContainer);
+            container.innerHTML = errorHTML;
         }
+    }
+
+    getAvailableClasses() {
+        const classes = [];
+        Object.values(this.gameData).forEach(game => {
+            if (window[game.class]) {
+                classes.push(game.class);
+            }
+        });
+        return classes;
     }
 
     closeGame(appId) {
@@ -223,7 +203,6 @@ class GameManager {
 
         const game = this.gameInstances.get(appId);
         if (game) {
-            // Call destroy method if it exists
             if (typeof game.destroy === 'function') {
                 try {
                     game.destroy();
@@ -232,7 +211,6 @@ class GameManager {
                 }
             }
 
-            // Clear game state
             if (game.gameRunning !== undefined) {
                 game.gameRunning = false;
             }
@@ -279,13 +257,13 @@ class GameManager {
             id: key,
             name: data.name,
             icon: data.icon,
-            available: !!window[data.class]
+            available: !!window[data.class],
+            className: data.class
         }));
     }
 
     setupGlobalShortcuts() {
         document.addEventListener('keydown', (e) => {
-            // Ctrl+Alt+G - Open games menu
             if (e.ctrlKey && e.altKey && e.key.toLowerCase() === 'g') {
                 e.preventDefault();
                 this.showGamesMenu();
@@ -303,10 +281,11 @@ class GameManager {
         `;
 
         games.forEach(game => {
-            const availability = game.available ? '' : 'opacity: 0.5; cursor: not-allowed;';
-            const onClick = game.available ?
+            const isAvailable = game.available;
+            const availability = isAvailable ? '' : 'opacity: 0.5; cursor: not-allowed;';
+            const onClick = isAvailable ?
                 `onclick="window.pixelPusher.modules.windows.open('${game.id}'); document.querySelector('.modal').remove();"` :
-                `onclick="alert('${game.name} is not available')"`;
+                `onclick="alert('${game.name} is not available\\n\\nClass ${game.className} not found.\\nMake sure game scripts are loaded.')"`;
 
             menuHTML += `
                 <div class="game-option" 
@@ -314,19 +293,22 @@ class GameManager {
                      style="
                         padding: 20px;
                         background: linear-gradient(135deg, #1a1a2e, #16213e);
-                        border: 2px solid ${game.available ? '#00d9ff' : '#666'};
+                        border: 2px solid ${isAvailable ? '#00d9ff' : '#666'};
                         border-radius: 10px;
-                        cursor: ${game.available ? 'pointer' : 'not-allowed'};
+                        cursor: ${isAvailable ? 'pointer' : 'not-allowed'};
                         transition: all 0.3s ease;
                         text-align: center;
                         ${availability}
                      "
-                     onmouseover="${game.available ? "this.style.transform='scale(1.05)'; this.style.boxShadow='0 5px 15px rgba(0,217,255,0.3)';" : ""}"
-                     onmouseout="${game.available ? "this.style.transform='scale(1)'; this.style.boxShadow='none';" : ""}">
+                     onmouseover="${isAvailable ? "this.style.transform='scale(1.05)'; this.style.boxShadow='0 5px 15px rgba(0,217,255,0.3)';" : ""}"
+                     onmouseout="${isAvailable ? "this.style.transform='scale(1)'; this.style.boxShadow='none';" : ""}">
                     <div style="font-size: 32px; margin-bottom: 10px;">${game.icon}</div>
                     <div style="font-weight: bold; color: #ffffff; margin-bottom: 5px;">${game.name}</div>
-                    <div style="font-size: 12px; color: ${game.available ? '#888' : '#f44'};">
-                        ${game.available ? 'Click to play' : 'Not available'}
+                    <div style="font-size: 12px; color: ${isAvailable ? '#888' : '#f44'};">
+                        ${isAvailable ? 'Click to play' : 'Not available'}
+                    </div>
+                    <div style="font-size: 10px; color: #666; margin-top: 4px;">
+                        ${game.className} ${isAvailable ? '✅' : '❌'}
                     </div>
                 </div>
             `;
@@ -338,28 +320,13 @@ class GameManager {
                     Press Ctrl+Alt+G to open this menu anytime
                 </div>
                 <div style="margin-top: 10px; font-size: 12px; color: #666;">
-                    ${games.filter(g => !g.available).length > 0 ? 
-                        'Some games are not available. Check console for errors.' : 
-                        'All games loaded successfully!'}
+                    Available: ${games.filter(g => g.available).length}/${games.length} games
                 </div>
             </div>
         `;
 
         if (window.pixelPusher) {
             window.pixelPusher.showModal('Games Center', menuHTML);
-        }
-    }
-
-    handleInitializationError(error) {
-        console.error('🎮 Game system initialization failed:', error);
-
-        // Create a warning notification
-        if (window.pixelPusher?.showNotification) {
-            window.pixelPusher.showNotification(
-                'Some games may not be available. Check console for details.',
-                'warning',
-                10000
-            );
         }
     }
 
@@ -373,11 +340,11 @@ class GameManager {
             gameInstances: Array.from(this.games.entries()).map(([id, data]) => ({
                 windowId: id,
                 gameType: data.type
-            }))
+            })),
+            availableClasses: this.getAvailableClasses()
         };
     }
 
-    // Diagnostic method for debugging
     runDiagnostics() {
         console.log('🔍 Running Game System Diagnostics...');
         console.log('===================================');
@@ -389,6 +356,11 @@ class GameManager {
         Object.entries(this.gameData).forEach(([type, info]) => {
             const available = !!window[info.class];
             console.log(`   ${info.icon} ${info.name} (${info.class}): ${available ? '✅ Available' : '❌ Not Found'}`);
+
+            if (available) {
+                console.log(`      Type: ${typeof window[info.class]}`);
+                console.log(`      Constructor: ${window[info.class].name}`);
+            }
         });
 
         console.log('\n🪟 Active Game Instances:');
@@ -400,9 +372,11 @@ class GameManager {
             });
         }
 
-        console.log('\n📁 Game Script URLs:');
-        Object.keys(this.gameData).forEach(type => {
-            console.log(`   ${type}: /static/js/games/${type}.js`);
+        console.log('\n🌐 Global Window Objects:');
+        console.log('   Available game classes in window object:');
+        Object.values(this.gameData).forEach(game => {
+            const available = window[game.class];
+            console.log(`   - ${game.class}: ${available ? '✅ Found' : '❌ Missing'}`);
         });
 
         console.log('===================================');
@@ -410,18 +384,18 @@ class GameManager {
     }
 
     destroy() {
-        // Clean up all game instances
         this.gameInstances.forEach((game, appId) => {
             this.closeGame(appId);
         });
 
         this.games.clear();
         this.gameInstances.clear();
+
         console.log('🎮 Games Manager destroyed');
     }
 }
 
-// Make diagnostics available globally for debugging
+// Debug utilities
 window.GameManagerDiagnostics = () => {
     if (window.pixelPusher?.modules?.games) {
         return window.pixelPusher.modules.games.runDiagnostics();
@@ -429,10 +403,10 @@ window.GameManagerDiagnostics = () => {
         console.error('Game manager not initialized');
     }
 };
-
+window.GameManager = GameManager;
 // Export for module systems
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = GameManager;
 }
 
-console.log('🎮 Fixed Games manager loaded successfully');
+console.log('🎮 Simple Games manager loaded successfully');

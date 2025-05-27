@@ -654,7 +654,7 @@ class DesktopManager {
         console.log('🖥️ Desktop Manager destroyed');
     }
 }
-
+window.DesktopManager = DesktopManager;
 // Export for module systems
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = DesktopManager;
