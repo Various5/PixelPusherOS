@@ -363,19 +363,466 @@ body.theme-metallicviolet {
     color: var(--background) !important;
 }
 
-/* Desktop icon theming */
+/* Desktop Environment Base Styles */
+#desktop {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #4facfe 100%);
+    background-size: 400% 400%;
+    animation: gradientShift 15s ease infinite;
+}
+
+/* Animated gradient background */
+@keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* Desktop Pattern Overlay */
+#desktop-pattern {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image:
+        radial-gradient(circle at 2px 2px, rgba(255, 255, 255, 0.15) 1px, transparent 0);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.3;
+    animation: patternFloat 20s ease-in-out infinite;
+}
+
+@keyframes patternFloat {
+    0%, 100% { transform: translate(0, 0); }
+    50% { transform: translate(10px, 5px); }
+}
+
+/* Enhanced Desktop Icons */
 .desktop-icon {
-    color: var(--text-primary) !important;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+    position: absolute;
+    cursor: pointer;
+    user-select: none;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 8px;
+    border-radius: 16px;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    backdrop-filter: blur(20px);
+    z-index: 10;
+    opacity: 0;
+    transform: scale(0.8);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+
+    /* Subtle shadow for depth */
+    box-shadow:
+        0 4px 20px rgba(0, 0, 0, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
+/* Enhanced Icon Image Container */
+.desktop-icon .icon-image {
+    font-size: 36px;
+    margin-bottom: 8px;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    filter: drop-shadow(2px 2px 8px rgba(0, 0, 0, 0.3));
+    transform-origin: center;
+    position: relative;
+}
+
+/* Subtle glow effect for icons */
+.desktop-icon .icon-image::before {
+    content: attr(data-icon);
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    opacity: 0;
+    filter: blur(8px) brightness(1.5);
+    transition: opacity 0.3s ease;
+    z-index: -1;
+}
+
+/* Enhanced Icon Label */
+.desktop-icon .icon-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: white;
+    text-shadow:
+        1px 1px 3px rgba(0, 0, 0, 0.8),
+        0 0 10px rgba(0, 0, 0, 0.5);
+    word-wrap: break-word;
+    line-height: 1.3;
+    max-width: 100%;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    transition: all 0.3s ease;
+    letter-spacing: 0.3px;
+}
+
+/* Icon Categories - Different styling for different types */
+.desktop-icon[data-category="system"] {
+    background: rgba(59, 130, 246, 0.15);
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+.desktop-icon[data-category="games"] {
+    background: rgba(168, 85, 247, 0.15);
+    border-color: rgba(168, 85, 247, 0.3);
+}
+
+.desktop-icon[data-category="media"] {
+    background: rgba(34, 197, 94, 0.15);
+    border-color: rgba(34, 197, 94, 0.3);
+}
+
+/* Hover Effects */
 .desktop-icon:hover {
-    background: rgba(255, 255, 255, 0.1) !important;
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.4);
+    transform: scale(1.15) translateY(-8px);
+    box-shadow:
+        0 12px 40px rgba(0, 0, 0, 0.25),
+        0 0 30px rgba(255, 255, 255, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
+.desktop-icon:hover .icon-image {
+    transform: scale(1.1) rotate(8deg);
+    filter: drop-shadow(2px 2px 12px rgba(0, 0, 0, 0.4));
+}
+
+.desktop-icon:hover .icon-image::before {
+    opacity: 0.3;
+}
+
+.desktop-icon:hover .icon-label {
+    transform: translateY(2px);
+    text-shadow:
+        1px 1px 4px rgba(0, 0, 0, 0.9),
+        0 0 15px rgba(255, 255, 255, 0.3);
+}
+
+/* Active/Pressed State */
+.desktop-icon:active {
+    transform: scale(1.05) translateY(-4px);
+    transition: all 0.1s ease;
+}
+
+/* Selected State */
 .desktop-icon.selected {
-    background: var(--primary) !important;
-    color: var(--background) !important;
+    background: rgba(59, 130, 246, 0.3);
+    border-color: rgba(59, 130, 246, 0.8);
+    box-shadow:
+        0 12px 40px rgba(59, 130, 246, 0.4),
+        0 0 30px rgba(59, 130, 246, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    transform: scale(1.1) translateY(-6px);
+}
+
+.desktop-icon.selected .icon-image {
+    transform: scale(1.05);
+    filter: drop-shadow(2px 2px 12px rgba(59, 130, 246, 0.5));
+}
+
+.desktop-icon.selected .icon-label {
+    color: #ffffff;
+    text-shadow:
+        1px 1px 4px rgba(0, 0, 0, 0.9),
+        0 0 15px rgba(59, 130, 246, 0.6);
+}
+
+/* Animation for newly created icons */
+.desktop-icon.animate-in {
+    animation: iconFadeIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes iconFadeIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.3) translateY(20px);
+    }
+    50% {
+        opacity: 0.8;
+        transform: scale(1.1) translateY(-5px);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* Dragging state */
+.desktop-icon.dragging {
+    z-index: 1000;
+    transform: scale(1.1) rotate(5deg);
+    opacity: 0.8;
+    cursor: grabbing;
+    box-shadow:
+        0 20px 60px rgba(0, 0, 0, 0.4),
+        0 0 40px rgba(255, 255, 255, 0.2);
+}
+
+/* Drag ghost effect */
+#drag-ghost {
+    animation: ghostFloat 0.6s ease-in-out infinite alternate;
+}
+
+@keyframes ghostFloat {
+    0% { transform: scale(0.8) translateY(0px); }
+    100% { transform: scale(0.85) translateY(-5px); }
+}
+
+/* Context Menu Styling */
+#desktop-context-menu {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    animation: contextMenuSlide 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes contextMenuSlide {
+    0% {
+        opacity: 0;
+        transform: scale(0.95) translateY(-10px);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.context-item {
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 6px;
+    margin: 2px 6px;
+}
+
+.context-item:hover {
+    background: rgba(59, 130, 246, 0.8);
+    transform: translateX(4px);
+}
+
+.context-separator {
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+    .desktop-icon {
+        padding: 10px 6px;
+    }
+
+    .desktop-icon .icon-image {
+        font-size: 32px;
+    }
+
+    .desktop-icon .icon-label {
+        font-size: 11px;
+    }
+}
+
+@media (max-width: 768px) {
+    .desktop-icon {
+        padding: 8px 4px;
+        border-radius: 12px;
+    }
+
+    .desktop-icon .icon-image {
+        font-size: 28px;
+        margin-bottom: 6px;
+    }
+
+    .desktop-icon .icon-label {
+        font-size: 10px;
+        line-height: 1.2;
+        -webkit-line-clamp: 1;
+    }
+
+    .desktop-icon:hover {
+        transform: scale(1.1) translateY(-4px);
+    }
+}
+
+@media (max-width: 480px) {
+    #desktop-pattern {
+        background-size: 30px 30px;
+    }
+
+    .desktop-icon {
+        padding: 6px 3px;
+    }
+
+    .desktop-icon .icon-image {
+        font-size: 24px;
+        margin-bottom: 4px;
+    }
+
+    .desktop-icon .icon-label {
+        font-size: 9px;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .desktop-icon {
+        border-width: 2px;
+        background: rgba(255, 255, 255, 0.9);
+    }
+
+    .desktop-icon .icon-label {
+        color: #000000;
+        text-shadow: none;
+        font-weight: 700;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .desktop-icon,
+    .desktop-icon .icon-image,
+    .desktop-icon .icon-label,
+    #desktop-pattern {
+        animation: none;
+        transition: none;
+    }
+
+    .desktop-icon:hover {
+        transform: scale(1.05);
+    }
+
+    #desktop {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+}
+
+/* Dark theme overrides */
+.theme-dark .desktop-icon {
+    background: rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.theme-dark .desktop-icon:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Light theme overrides */
+.theme-light .desktop-icon {
+    background: rgba(255, 255, 255, 0.8);
+    border-color: rgba(0, 0, 0, 0.1);
+    box-shadow:
+        0 4px 20px rgba(0, 0, 0, 0.05),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.theme-light .desktop-icon .icon-label {
+    color: #333333;
+    text-shadow:
+        0 1px 2px rgba(255, 255, 255, 0.8),
+        0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+.theme-light .desktop-icon:hover {
+    background: rgba(255, 255, 255, 0.95);
+    border-color: rgba(0, 0, 0, 0.2);
+    box-shadow:
+        0 12px 40px rgba(0, 0, 0, 0.1),
+        0 0 30px rgba(59, 130, 246, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+/* Matrix theme special effects */
+.theme-matrix .desktop-icon {
+    background: rgba(0, 0, 0, 0.8);
+    border-color: #00ff41;
+    box-shadow:
+        0 4px 20px rgba(0, 255, 65, 0.2),
+        inset 0 1px 0 rgba(0, 255, 65, 0.1);
+}
+
+.theme-matrix .desktop-icon .icon-label {
+    color: #00ff41;
+    text-shadow:
+        0 0 10px #00ff41,
+        1px 1px 3px rgba(0, 0, 0, 0.9);
+}
+
+.theme-matrix .desktop-icon:hover {
+    background: rgba(0, 255, 65, 0.1);
+    border-color: #00ff41;
+    box-shadow:
+        0 12px 40px rgba(0, 255, 65, 0.4),
+        0 0 30px rgba(0, 255, 65, 0.3),
+        inset 0 1px 0 rgba(0, 255, 65, 0.2);
+}
+
+/* Neon theme effects */
+.theme-neon .desktop-icon {
+    background: rgba(0, 0, 0, 0.7);
+    border-color: #00ffff;
+    box-shadow:
+        0 4px 20px rgba(0, 255, 255, 0.3),
+        0 0 20px rgba(0, 255, 255, 0.2),
+        inset 0 1px 0 rgba(0, 255, 255, 0.1);
+}
+
+.theme-neon .desktop-icon .icon-label {
+    color: #00ffff;
+    text-shadow:
+        0 0 10px #00ffff,
+        0 0 20px #00ffff,
+        1px 1px 3px rgba(0, 0, 0, 0.9);
+}
+
+.theme-neon .desktop-icon:hover {
+    background: rgba(0, 255, 255, 0.1);
+    box-shadow:
+        0 12px 40px rgba(0, 255, 255, 0.5),
+        0 0 40px rgba(0, 255, 255, 0.4),
+        inset 0 1px 0 rgba(0, 255, 255, 0.3);
+}
+
+/* Performance optimizations */
+.desktop-icon {
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+    perspective: 1000px;
+}
+
+.desktop-icon .icon-image {
+    will-change: transform;
+    backface-visibility: hidden;
+}
+
+/* Print styles */
+@media print {
+    #desktop {
+        background: white;
+    }
+
+    .desktop-icon {
+        background: white;
+        border: 1px solid black;
+        break-inside: avoid;
+    }
+
+    .desktop-icon .icon-label {
+        color: black;
+        text-shadow: none;
+    }
 }
 
 /* Context menu theming */
@@ -469,3 +916,4 @@ body.theme-metallicviolet {
 .theme-hackerman .window {
     backdrop-filter: blur(5px);
 }
+

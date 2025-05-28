@@ -375,16 +375,18 @@
 <script src="{{ url_for('static', filename='js/utils/state.js') }}"></script>
 <script src="{{ url_for('static', filename='js/utils/helpers.js') }}"></script>
 <script src="{{ url_for('static', filename='js/core/auth.js') }}"></script>
-<script src="{{ url_for('static', filename='js/core/desktop.js') }}"></script>
-<script src="{{ url_for('static', filename='js/core/windows.js') }}"></script>
 
-<!-- Application Modules -->
-<script src="{{ url_for('static', filename='js/apps/terminal.js') }}"></script>
+<!-- Application Modules - MOVED EARLIER -->
 <script src="{{ url_for('static', filename='js/apps/explorer.js') }}"></script>
+<script src="{{ url_for('static', filename='js/apps/terminal.js') }}"></script>
 <script src="{{ url_for('static', filename='js/apps/games.js') }}"></script>
 <script src="{{ url_for('static', filename='js/apps/settings.js') }}"></script>
 
-<!-- IMPORTANT: Load Game Scripts BEFORE App Core -->
+<!-- Desktop and Window Management -->
+<script src="{{ url_for('static', filename='js/core/desktop.js') }}"></script>
+<script src="{{ url_for('static', filename='js/core/windows.js') }}"></script>
+
+<!-- Game Scripts -->
 <script src="{{ url_for('static', filename='js/games/snake.js') }}"></script>
 <script src="{{ url_for('static', filename='js/games/dino.js') }}"></script>
 <script src="{{ url_for('static', filename='js/games/memory.js') }}"></script>
